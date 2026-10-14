@@ -1,3 +1,13 @@
+# MathDB-specific fork of DifferentialGeometry
+
+This repository is a **fork of [Ziyang Qin's DifferentialGeometry repository](https://github.com/qinz1yang/differential-geometry), created specifically to prepare and submit its Poincaré-conjecture formalization to [MathDB](https://mathdb.com/p/316224/poincare-conjecture)**.
+
+The original formalization is by Ziyang Qin, Yuan Liao, Ayush Khaitan, and Bennett Chow; Qin and Liao contributed equally. See the [paper](https://arxiv.org/html/2609.33842v1) and [source attribution](PAPER_REFERENCE.md). All upstream and third-party licenses and credits are retained.
+
+MathDB preparation starts from upstream **v0.1.3**, commit `7a48598d35109aa99d1cc678e2724c213cdf4ff3`, matching the problem's frozen Lean 4.33.1 environment. This fork adds the target adapter, compatibility backports, and MathDB submission packaging. See [the preparation status](MATHDB_SUBMISSION.md) for completed checks and remaining work. Local validation and MathDB acceptance are reported separately.
+
+The upstream project documentation follows.
+
 # Differential Geometry in Lean 4
 
 An ongoing Lean 4 library for differential geometry and geometric analysis, currently focused on Ricci flow.

@@ -1,6 +1,6 @@
 # Original formalization paper
 
-Ziyang Qin, Yuan Liao, Ayush Khaitan, and Bennett Chow, **A Lean Formalization of the Hamilton–Perelman Proof of the Three-Dimensional Poincare Conjecture**, arXiv:2609.33842v1 (2026).
+Ziyang Qin, Yuan Liao, Ayush Khaitan, and Bennett Chow, **A Lean Formalization of the Hamilton–Perelman Proof of the Three-Dimensional Poincaré Conjecture**, arXiv:2609.33842v1 (2026).
 
 Paper: https://arxiv.org/html/2609.33842v1
 
