@@ -35,3 +35,14 @@ The Lean version and exact Mathlib revision above match MathDB's saved environme
 Do not upload this branch into the automatic proof-verification field as though these requirements were resolved. An ordinary solution post can instead link this source as credited repository evidence and explicitly distinguish upstream/native verification from MathDB verification.
 
 The sibling branch `mathdb-poincare-v0.1.4` contains a locally checked wrapper for the full homotopy-sphere statement in the v0.1.4 environment. Its newer Lean version is incompatible with the current MathDB pin.
+
+## Attempted bridge backport
+
+A separate isolated test copied the v0.1.4 compactness bridge's 31-module closure (30 new files, about 337 kB) into the exact Lean 4.33.1 / Mathlib 0df444a environment. A namespace-aware text scan found no candidate declaration collisions, but that is not a combined kernel check.
+
+The actual build failed with missing Mathlib modules:
+
+- `Mathlib.AlgebraicTopology.SimplicialSet.Homology.Relative`
+- `Mathlib.Geometry.Convex.ConvexSpace.CompactSpaceStdSimplex`
+
+The new sphere simply-connectivity file compiled in the old environment, but the compactness bridge requires additional Mathlib backport work. No failing bridge files were added to this branch. The successful v0.1.4 wrapper remains the validated full homotopy-sphere result.
