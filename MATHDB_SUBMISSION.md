@@ -15,9 +15,11 @@ See [PAPER_REFERENCE.md](PAPER_REFERENCE.md) for the original paper, four author
 - The genuine, unmodified MathDB frozen target and its 229-module support closure compile in the same environment. The target source SHA-256 is `9609b79bd21353e74225bf0e87777ec0a5da6ba3448846fd0ee07b531a596d91`.
 - Upstream CI also built the original v0.1.3 source: https://github.com/qinz1yang/differential-geometry/actions/runs/36305635235 .
 
-## Work still running
+## Current status
 
-The original Poincare dependency closure is being rebuilt locally before checking the combined final adapter. A separate packaging pass is moving helpers and their declarations into MathDB's required `Submission/` layout and `Submission` namespace. This native-source branch still uses DifferentialGeometry imports and is not yet a verified MathDB upload. No MathDB solution has been published.
+The original Poincare dependency closure has compiled successfully from source (22,902 Lake jobs). The complete native `Submission.solution : Problem.Target` adapter also compiled against the genuine frozen target. Its exact axiom audit contains only `propext`, `Classical.choice`, and `Quot.sound`. A complete merged audit inspected 237,126 constants across all 14,234 project modules; the nine names overlapping the frozen environment have exactly identical types, values, and universe parameters. Evidence is saved under `verification/native-*`.
+
+A separate packaging pass is moving helpers and their declarations into MathDB's required `Submission/` layout and `Submission` namespace. This checked native-source branch still uses DifferentialGeometry imports. The final upload layout and MathDB automated acceptance remain pending. No MathDB solution has been published.
 
 ## Backport provenance
 
