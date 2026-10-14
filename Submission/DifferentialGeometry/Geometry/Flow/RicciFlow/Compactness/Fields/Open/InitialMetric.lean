@@ -1,0 +1,88 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Fields.Open.Convergence
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+set_option autoImplicit false
+
+noncomputable section
+
+open _root_.Set _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Submission.Manifold
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.Topology _root_.ContDiff
+
+namespace DifferentialGeometry
+namespace CheegerGromovCompactness
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+  [FiniteDimensional Real E]
+  [NeZero (Module.finrank Real E)]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+
+variable {X : PointedFlowSeq (I := I)}
+variable {P : PointedRiemannianManifold (I := I)}
+variable {subseq : Nat → Nat}
+variable (Φ : PointedCGHMaps (I := I) X P subseq)
+
+namespace OpenMetricConvergenceData
+
+omit [NeZero (Module.finrank ℝ E)]
+  [I.Boundaryless] in
+theorem gInf_zero_eq
+    (R : letI : TopologicalSpace P.M := P.topology;
+      letI : ChartedSpace H P.M := P.charted;
+      letI : IsManifold I ∞ P.M := P.smooth;
+      SmoothRiemannianMetric I P.M)
+    (bf : BumpFamily (I := I) Φ) (hsrc : SourceIsSigmaCompact Φ) (htgt : TargetIsSigmaCompact Φ)
+    {a b t₀ : Real} (co : OpenMetricConvergenceData (I := I) Φ R bf hsrc htgt a b t₀)
+    (hzero : (0 : Real) ∈ Set.Ioo a b)
+    (g₀ : letI : TopologicalSpace P.M := P.topology;
+      letI : ChartedSpace H P.M := P.charted;
+      letI : IsManifold I ∞ P.M := P.smooth;
+      SmoothRiemannianMetric I P.M)
+    (hconv₀ : letI : TopologicalSpace P.M := P.topology;
+      letI : ChartedSpace H P.M := P.charted;
+      letI : T2Space P.M := P.t2;
+      letI : IsManifold I ∞ P.M := P.smooth;
+      letI : SigmaCompactSpace P.M := P.sigmaCompact;
+      ∀ (x : P.M) (v w : TangentSpace I x) (ε : Real), 0 < ε →
+        ∃ k₀ : Nat, ∀ k : Nat, k₀ ≤ k → ∀ hx : x ∈ Φ.source k,
+          |(letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+                sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+                sourceDomCharted (I := I) Φ k
+            letI : IsManifold I ∞ (SourceDomain (I := I) Φ k) :=
+                sourceDomSmooth (I := I) Φ k
+            (sourceMetric (I := I) Φ hsrc htgt k 0).inner ⟨x, hx⟩ v w) -
+              g₀.inner x v w| < ε) :
+    letI : TopologicalSpace P.M := P.topology
+    letI : ChartedSpace H P.M := P.charted
+    letI : IsManifold I ∞ P.M := P.smooth
+    co.gInf 0 = g₀ := by
+  let : TopologicalSpace P.M := P.topology
+  let : ChartedSpace H P.M := P.charted
+  let : T2Space P.M := P.t2
+  let : IsManifold I ∞ P.M := P.smooth
+  let : SigmaCompactSpace P.M := P.sigmaCompact
+  obtain ⟨n, hzeroN⟩ := RealTimeInterval.mem_openWindow (t₀ := t₀) hzero
+  exact DifferentialGeometry.CheegerGromovCompactness.gInf_zero_eq (I := I) Φ R bf hsrc htgt
+    (RealTimeInterval.openWindowLeft a t₀ n)
+    (RealTimeInterval.openWindowRight b t₀ n)
+    (OpenMetricConvergenceData.atWindow Φ co n) hzeroN g₀ hconv₀
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.gInf_zero_eq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.gInf_zero_eq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.gInf_zero_eq ``Submission.DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.gInf_zero_eq
+
+end OpenMetricConvergenceData
+end CheegerGromovCompactness
+end DifferentialGeometry

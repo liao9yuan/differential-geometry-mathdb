@@ -1,0 +1,240 @@
+import Submission.DifferentialGeometry.Geometry.Metric.DeTurck.Trace
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+
+
+noncomputable section
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Set
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.Matrix
+
+namespace DifferentialGeometry
+namespace PDE
+namespace DeTurck
+
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E] [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+variable [SigmaCompactSpace M] [T2Space M] [BoundarylessManifold I M]
+
+omit [NeZero (Module.finrank ℝ E)] [IsManifold I ∞ M] [SigmaCompactSpace M]
+    [BoundarylessManifold I M] in
+private lemma exists_bump_tsupport_subset {U : Set M} (hU : IsOpen U) {x₀ : M}
+    (hx₀ : x₀ ∈ U) :
+    ∃ χ : SmoothBumpFunction I x₀, tsupport (χ : M → ℝ) ⊆ U := by
+  have hUnhds : U ∈ 𝓝 x₀ := hU.mem_nhds hx₀
+  exact (SmoothBumpFunction.nhds_basis_support (I := I) (c := x₀) hUnhds).ex_mem
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.PDE.DeTurck.exists_bump_tsupport_subset
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.PDE.DeTurck.exists_bump_tsupport_subset target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+theorem connectionDifference_contMDiffOn_local (g g' : SmoothRiemannianMetric I M)
+    {U : Set M} (hU : IsOpen U) {σ τ : Π x : M, TangentSpace I x}
+    (hσ : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞ (T% σ) U)
+    (hτ : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞ (T% τ) U) :
+    ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x (σ x) (τ x)⟩ :
+          TotalSpace E (TangentSpace I))) U := by
+  classical
+  intro x₀ hx₀
+  obtain ⟨χ, hχ_tsupport⟩ := exists_bump_tsupport_subset (I := I) hU hx₀
+  set ψ : M → ℝ := (χ : M → ℝ) with hψ_def
+  have hψ_smooth : ContMDiffOn I 𝓘(ℝ) ∞ ψ U :=
+    χ.contMDiff.contMDiffOn
+  have hcut : ContMDiff I (I.prod 𝓘(ℝ, E)) ∞ (T% (ψ • σ)) :=
+    ContMDiffOn.smul_section_of_tsupport (𝕜 := ℝ) (n := ∞)
+      (V := fun x : M => TangentSpace I x) hψ_smooth hU hχ_tsupport hσ
+  have hConn : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x ((ψ • σ) x) (τ x)⟩ :
+          TotalSpace E (TangentSpace I))) U :=
+    connectionDifference_contMDiffOn (I := I) g g' hcut hτ
+  have hConnAt : ContMDiffAt I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x ((ψ • σ) x) (τ x)⟩ :
+          TotalSpace E (TangentSpace I))) x₀ :=
+    (hConn x₀ hx₀).contMDiffAt (hU.mem_nhds hx₀)
+  have hψ_one : ψ =ᶠ[𝓝 x₀] (1 : M → ℝ) := χ.eventuallyEq_one
+  have heventuallyEq :
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x (σ x) (τ x)⟩ :
+          _root_.Bundle.TotalSpace E (TangentSpace I))) =ᶠ[𝓝 x₀]
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x ((ψ • σ) x) (τ x)⟩ :
+          TotalSpace E (TangentSpace I))) := by
+    refine hψ_one.mono (fun x hx => ?_)
+    have hx1 : ψ x = 1 := by simpa using hx
+    have hσx : (ψ • σ) x = σ x := by
+      change ψ x • σ x = σ x
+      rw [hx1, one_smul]
+    change (⟨x, connectionDifference (I := I) g g' x (σ x) (τ x)⟩ : _root_.Bundle.TotalSpace E (TangentSpace I)) =
+      ⟨x, connectionDifference (I := I) g g' x ((ψ • σ) x) (τ x)⟩
+    rw [hσx]
+  have hGoalAt : ContMDiffAt I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x (σ x) (τ x)⟩ :
+          TotalSpace E (TangentSpace I))) x₀ :=
+    hConnAt.congr_of_eventuallyEq heventuallyEq
+  exact hGoalAt.contMDiffWithinAt
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.DeTurck.connectionDifference_contMDiffOn_local then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.DeTurck.connectionDifference_contMDiffOn_local"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.DeTurck.connectionDifference_contMDiffOn_local ``Submission.DifferentialGeometry.PDE.DeTurck.connectionDifference_contMDiffOn_local
+
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+private lemma connectionDifference_chartBasis_contMDiffOn (g g' : SmoothRiemannianMetric I M)
+    (α : M) (j k : Fin (Module.finrank ℝ E)) :
+    ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M =>
+        (⟨x, connectionDifference (I := I) g g' x
+            (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α j x)
+            (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α k x)⟩ :
+          _root_.Bundle.TotalSpace E (TangentSpace I)))
+      (chartAt H α).source := by
+  have hopen : IsOpen ((chartAt H α).source) := (chartAt H α).open_source
+  have hbase : (_root_.FiberBundle.trivializationAt E (TangentSpace I) α).baseSet = (chartAt H α).source :=
+    trivializationAt_baseSet_eq_chartAt_source α
+  have hframe : ∀ i : Fin (Module.finrank ℝ E),
+      ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+        (T% (fun x : M => DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α i x))
+        (chartAt H α).source := by
+    intro i
+    have h := DifferentialGeometry.Tensor.Coordinates.chartBasisVec_contMDiffOn (I := I) α i
+    rw [hbase] at h
+    exact h
+  exact connectionDifference_contMDiffOn_local (I := I) g g' hopen (hframe j) (hframe k)
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.PDE.DeTurck.connectionDifference_chartBasis_contMDiffOn
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.PDE.DeTurck.connectionDifference_chartBasis_contMDiffOn target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] [SigmaCompactSpace M] [T2Space M] [BoundarylessManifold I M] in
+private lemma chartInvGramMatrix_entry_contMDiffOn_source
+    (g : SmoothRiemannianMetric I M) (α : M)
+    (j k : Fin (Module.finrank ℝ E)) :
+    ContMDiffOn I 𝓘(ℝ) ∞
+      (fun x : M => chartInvGramMatrix (I := I) g α x j k)
+      (chartAt H α).source := by
+  have h := chartInvGramMatrix_entry_contMDiffOn (I := I) g α j k
+  rwa [trivializationAt_baseSet_eq_chartAt_source] at h
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.PDE.DeTurck.chartInvGramMatrix_entry_contMDiffOn_source
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.PDE.DeTurck.chartInvGramMatrix_entry_contMDiffOn_source target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+theorem deTurckChartLocal_contMDiffOn (g g' : SmoothRiemannianMetric I M) (α : M) :
+    ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M => TotalSpace.mk' E x (deTurckChartLocal (I := I) g g' α x))
+      (chartAt H α).source := by
+  classical
+  have hcoeff : ∀ j k : Fin (Module.finrank ℝ E),
+      ContMDiffOn I 𝓘(ℝ) ∞
+        (fun x : M => chartInvGramMatrix (I := I) g α x j k)
+        (chartAt H α).source :=
+    fun j k => chartInvGramMatrix_entry_contMDiffOn_source (I := I) g α j k
+  have hterm : ∀ j k : Fin (Module.finrank ℝ E),
+      ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+        (fun x : M =>
+          (⟨x, connectionDifference (I := I) g g' x
+              (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α j x)
+              (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α k x)⟩ :
+            _root_.Bundle.TotalSpace E (TangentSpace I)))
+        (chartAt H α).source :=
+    fun j k => connectionDifference_chartBasis_contMDiffOn (I := I) g g' α j k
+  have hsmul : ∀ j k : Fin (Module.finrank ℝ E),
+      ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+        (fun x : M => TotalSpace.mk' E x
+          (chartInvGramMatrix (I := I) g α x j k •
+            connectionDifference (I := I) g g' x
+              (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α j x)
+              (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α k x)))
+        (chartAt H α).source :=
+    fun j k => (hcoeff j k).smul_section (hterm j k)
+  have hinner : ∀ j : Fin (Module.finrank ℝ E),
+      ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+        (fun x : M => TotalSpace.mk' E x
+          (∑ k : Fin (Module.finrank ℝ E),
+            chartInvGramMatrix (I := I) g α x j k •
+              connectionDifference (I := I) g g' x
+                (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α j x)
+                (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α k x)))
+        (chartAt H α).source :=
+    fun j => ContMDiffOn.sum_section (fun k _ => hsmul j k)
+  have houter : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M => TotalSpace.mk' E x
+        (∑ j : Fin (Module.finrank ℝ E),
+          ∑ k : Fin (Module.finrank ℝ E),
+            chartInvGramMatrix (I := I) g α x j k •
+              connectionDifference (I := I) g g' x
+                (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α j x)
+                (DifferentialGeometry.Tensor.Coordinates.chartBasisVecFiber (I := I) α k x)))
+      (chartAt H α).source :=
+    ContMDiffOn.sum_section (fun j _ => hinner j)
+  refine houter.congr (fun x _hx => ?_)
+  rw [deTurckChartLocal_def]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.DeTurck.deTurckChartLocal_contMDiffOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.DeTurck.deTurckChartLocal_contMDiffOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.DeTurck.deTurckChartLocal_contMDiffOn ``Submission.DifferentialGeometry.PDE.DeTurck.deTurckChartLocal_contMDiffOn
+
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+theorem deTurckFun_contMDiff_total (g g' : SmoothRiemannianMetric I M) :
+    ContMDiff I (I.prod 𝓘(ℝ, E)) ∞
+      (fun x : M => TotalSpace.mk' E x (deTurckFun (I := I) g g' x)) := by
+  intro x
+  have hx_source : x ∈ (chartAt H x).source := mem_chart_source H x
+  have hsrc_open : IsOpen ((chartAt H x).source) := (chartAt H x).open_source
+  have hsmooth_local : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun y : M => TotalSpace.mk' E y (deTurckChartLocal (I := I) g g' x y))
+      (chartAt H x).source :=
+    deTurckChartLocal_contMDiffOn (I := I) g g' x
+  have hsmooth_local2 : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun y : M => TotalSpace.mk' E y (deTurckFun (I := I) g g' y))
+      (chartAt H x).source := by
+    refine hsmooth_local.congr (fun y hy => ?_)
+    have h := deTurckChartLocal_eq_deTurckFun_of_mem_source (I := I) g g' x hy
+    change TotalSpace.mk' E y (deTurckFun (I := I) g g' y) =
+      TotalSpace.mk' E y (deTurckChartLocal (I := I) g g' x y)
+    rw [h]
+  exact (hsmooth_local2 x hx_source).contMDiffAt (hsrc_open.mem_nhds hx_source)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.DeTurck.deTurckFun_contMDiff_total then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.DeTurck.deTurckFun_contMDiff_total"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.DeTurck.deTurckFun_contMDiff_total ``Submission.DifferentialGeometry.PDE.DeTurck.deTurckFun_contMDiff_total
+
+end DeTurck
+end PDE
+end DifferentialGeometry

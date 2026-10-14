@@ -1,0 +1,119 @@
+import Submission.DifferentialGeometry.Geometry.Compactness.CheegerGromov.Pointed.Bounds.BoundedGeometry
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Foundations.Defs
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open scoped _root_.ContDiff _root_.Manifold _root_.Submission.Manifold _root_.Topology
+
+set_option autoImplicit false
+
+noncomputable section
+
+universe u uE uH
+
+namespace DifferentialGeometry
+namespace CheegerGromovCompactness
+
+variable {E : Type uE} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E]
+variable {H : Type uH} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H}
+
+def HasSpacetimeCurvBound
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (F : PointedFlowData.{u, uE, uH} (I := I) D) (C : Real) : Prop :=
+  forall t : Real, t ∈ D.carrier ->
+    forall x : F.M, F.rmNormSq (I := I) t x <= C
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvBound ``Submission.DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvBound
+
+def HasSpacetimeCurvDerivBound
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (F : PointedFlowData.{u, uE, uH} (I := I) D) (k : Nat) (C : Real) : Prop :=
+  letI : TopologicalSpace F.M := F.topology
+  letI : ChartedSpace H F.M := F.charted
+  letI : IsManifold I ∞ F.M := F.smooth
+  letI : IsManifold I (∞ + 1) F.M := by
+    change IsManifold I ∞ F.M
+    infer_instance
+  letI : SigmaCompactSpace F.M := F.sigmaCompact
+  letI : T2Space F.M := F.t2
+  forall t : Real, t ∈ D.carrier ->
+    forall x : F.M, curvDerivNorm (I := I) k (F.S.family.metric t) x <= C
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvDerivBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvDerivBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvDerivBound ``Submission.DifferentialGeometry.CheegerGromovCompactness.HasSpacetimeCurvDerivBound
+
+structure SpacetimeCurvBound
+    (X : PointedFlowSeq.{u, uE, uH} (I := I)) where
+  C : Real
+  nonneg : 0 <= C
+  bound : forall i : Nat, HasSpacetimeCurvBound (I := I) (X.term i) C
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.SpacetimeCurvBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.SpacetimeCurvBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.SpacetimeCurvBound ``Submission.DifferentialGeometry.CheegerGromovCompactness.SpacetimeCurvBound
+
+structure FlowDerivBounds
+    (X : PointedFlowSeq.{u, uE, uH} (I := I)) where
+  C : Nat -> Real
+  nonneg : forall k : Nat, 0 <= C k
+  bound : forall i k : Nat, HasSpacetimeCurvDerivBound (I := I) (X.term i) k (C k)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds ``Submission.DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds
+
+namespace FlowDerivBounds
+
+def atTime
+    {X : PointedFlowSeq.{u, uE, uH} (I := I)}
+    (h : FlowDerivBounds (I := I) X) {t : Real} (ht : t ∈ X.D.carrier) :
+    SeqBoundedGeometry (I := I) (X.atTime (I := I) t) where
+  C := h.C
+  nonneg := h.nonneg
+  bound := by
+    intro i k
+    simpa [HasSpacetimeCurvDerivBound, HasCurvDerivBound,
+      PointedFlowSeq.atTime, PointedFlowData.atTime] using h.bound i k t ht
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds.atTime then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds.atTime"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds.atTime ``Submission.DifferentialGeometry.CheegerGromovCompactness.FlowDerivBounds.atTime
+
+end FlowDerivBounds
+
+structure FlowCompactnessBounds
+    (X : PointedFlowSeq.{u, uE, uH} (I := I)) where
+  spacetime : FlowDerivBounds (I := I) X
+  atZeroGeom : SeqBoundedGeometry (I := I) (X.atZero (I := I))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.FlowCompactnessBounds then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.FlowCompactnessBounds"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.FlowCompactnessBounds ``Submission.DifferentialGeometry.CheegerGromovCompactness.FlowCompactnessBounds
+
+
+end CheegerGromovCompactness
+end DifferentialGeometry

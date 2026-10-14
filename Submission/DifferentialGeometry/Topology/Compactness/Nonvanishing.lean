@@ -1,0 +1,31 @@
+import Mathlib.Topology.Order.Compact
+import Mathlib.Analysis.Normed.Group.Continuity
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+set_option autoImplicit false
+open _root_.Set
+namespace DifferentialGeometry.Topology
+variable {X E : Type*} [TopologicalSpace X] [NormedAddCommGroup E]
+
+theorem exists_pos_lt_norm_of_isCompact {f : X → E} {K : Set X} (hK : IsCompact K)
+    (hf : ContinuousOn f K) (hn : ∀ x ∈ K, f x ≠ 0) :
+    ∃ δ : ℝ, 0 < δ ∧ ∀ x ∈ K, δ < ‖f x‖ := by
+  by_cases he : K.Nonempty
+  · obtain ⟨x,hx,hmin⟩ := hK.exists_isMinOn he hf.norm
+    have hp : 0 < ‖f x‖ := norm_pos_iff.mpr (hn x hx)
+    exact ⟨‖f x‖ / 2, half_pos hp, fun y hy => (half_lt_self hp).trans_le (hmin hy)⟩
+  · exact ⟨1,zero_lt_one,fun x hx => (he ⟨x,hx⟩).elim⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Topology.exists_pos_lt_norm_of_isCompact then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Topology.exists_pos_lt_norm_of_isCompact"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Topology.exists_pos_lt_norm_of_isCompact ``Submission.DifferentialGeometry.Topology.exists_pos_lt_norm_of_isCompact
+
+end DifferentialGeometry.Topology

@@ -1,0 +1,352 @@
+import Submission.DifferentialGeometry.Geometry.Comparison.Hessian.AlongGeodesic
+
+
+import Submission.DifferentialGeometry.Geometry.Compactness.CheegerGromov.CenterOfMass.NormalCoordinates.BoundedGeometry
+import Submission.DifferentialGeometry.Geometry.Compactness.CheegerGromov.CenterOfMass.StrictDistance.Defs
+import Submission.DifferentialGeometry.Geometry.Compactness.CheegerGromov.CenterOfMass.NormalCoordinates.BoundedGeometryReplay
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+set_option autoImplicit false
+
+noncomputable section
+
+universe u uE uH
+
+namespace DifferentialGeometry
+namespace CheegerGromovCompactness
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Submission.Manifold _root_.Set _root_.TopologicalSpace
+open scoped _root_.ContDiff _root_.Manifold _root_.Submission.Manifold _root_.NNReal _root_.Topology
+open _root_.Submission.DifferentialGeometry.Geometry.Riemannian
+open _root_.Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic
+open _root_.Submission.DifferentialGeometry.Geometry.Riemannian.Exponential
+open _root_.Submission.DifferentialGeometry.Geometry.Riemannian.NormalCoordinates
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+
+attribute [-instance] Tensor0SBundle.tangentSpaceNormedAddCommGroup
+  Tensor0SBundle.tangentSpaceNormedSpace
+
+variable {E : Type uE} [NormedAddCommGroup E] [InnerProductSpace Real E]
+variable [FiniteDimensional Real E] [CompleteSpace E]
+variable [NeZero (Module.finrank Real E)]
+variable {H : Type uH} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+
+namespace BoundedGeometryNormalChartData
+
+theorem strict_distance_convexity
+    {X : PointedRiemannianSeq.{u, uE, uH} (I := I)}
+    {hd : InjectivityRadiusDecay (I := I) X}
+    (d : BoundedGeometryNormalChartData (I := I) X hd) (k : Nat)
+    (hcomplete : MetricComplete (I := I) (X.obj k))
+    (hconn : letI : TopologicalSpace (X.obj k).M := (X.obj k).topology
+      ConnectedSpace (X.obj k).M)
+    (x : (X.obj k).M) {q eta : NNReal} {δ ρ : Real}
+    {e : OpenPartialHomeomorph (E × E) (E × E)}
+    (hq : 0 < q)
+    (he : IsNormalDiag (I := I) (X.obj k) hcomplete hconn
+      x q δ e (c := d.chart k x))
+    (hf : NormalDiagFence (I := I) (X.obj k) x q e
+      (c := d.chart k x))
+    (happrox : ApproximatesLinearOn (e.symm : E × E → E × E)
+      ((PhaseFlow.freeDiagCLE (E := E)).symm :
+        (E × E) →L[Real] (E × E)) e.target eta)
+    (heta : eta < (1 / 24 : NNReal))
+    (hqAcc : 3 * d.metricC 1 * (2 * (q : Real)) ^ 2 ≤
+      (2 / 3 : Real) * (q : Real))
+    {ι : Type} [Fintype ι] (points : ι → (X.obj k).M)
+    (p : (X.obj k).M) (r R : Real) :
+    letI : TopologicalSpace (X.obj k).M := (X.obj k).topology
+    letI : ChartedSpace H (X.obj k).M := (X.obj k).charted
+    letI : IsManifold I ∞ (X.obj k).M := (X.obj k).smooth
+    letI : IsManifold I 1 (X.obj k).M := IsManifold.of_le
+      (I := I) (M := (X.obj k).M) (n := ∞) (by decide)
+    letI : SigmaCompactSpace (X.obj k).M := (X.obj k).sigmaCompact
+    letI : T2Space (X.obj k).M := (X.obj k).t2
+    letI : ConnectedSpace (X.obj k).M := hconn
+    letI : T2Space (TangentBundle I (X.obj k).M) :=
+      (X.obj k).t2TangentBundle
+    letI : TopologicalSpace.MetrizableSpace (X.obj k).M :=
+      Manifold.metrizableSpace I (X.obj k).M
+    letI : T3Space (X.obj k).M := inferInstance
+    letI : _root_.Bundle.RiemannianBundle
+        (fun z : (X.obj k).M ↦ TangentSpace I z) :=
+      (X.obj k).riemBundle (I := I)
+    letI : (z : (X.obj k).M) →
+        InnerProductSpace Real (TangentSpace I z) :=
+      (X.obj k).riemInner (I := I)
+    letI : IsContinuousRiemannianBundle E
+        (fun z : (X.obj k).M ↦ TangentSpace I z) :=
+      (X.obj k).riemBundle_cont (I := I)
+    letI : EMetricSpace (X.obj k).M :=
+      (X.obj k).emetricSpace (I := I)
+    letI : CompleteSpace (X.obj k).M :=
+      MetricComplete.complete (I := I) (X.obj k) hcomplete
+    letI : MetricSpace (X.obj k).M :=
+      HopfRinow.riemMetricSpace (I := I) (M := (X.obj k).M)
+    let c := d.chart k x
+    ρ ≤ c.radius / 4 →
+    0 < ρ →
+    2 * ρ < (q : Real) →
+    0 < r →
+    _root_.Dist.dist x p ≤ R →
+    (∀ i, _root_.Dist.dist p (points i) < r) →
+    ENNReal.ofReal (R + 6 * r) < ENNReal.ofReal (ρ / 2) →
+    StrictDistanceConvexity (I := I) (X.obj k).metric points
+      (minJoin (I := I) (X.obj k).metric
+        (normal_enorm (I := I) (X.obj k))) p r := by
+  classical
+  let : TopologicalSpace (X.obj k).M := (X.obj k).topology
+  let : ChartedSpace H (X.obj k).M := (X.obj k).charted
+  let : IsManifold I ∞ (X.obj k).M := (X.obj k).smooth
+  let : IsManifold I 1 (X.obj k).M := IsManifold.of_le
+    (I := I) (M := (X.obj k).M) (n := ∞) (by decide)
+  let : SigmaCompactSpace (X.obj k).M := (X.obj k).sigmaCompact
+  let : T2Space (X.obj k).M := (X.obj k).t2
+  let : ConnectedSpace (X.obj k).M := hconn
+  let : T2Space (TangentBundle I (X.obj k).M) :=
+    (X.obj k).t2TangentBundle
+  let : TopologicalSpace.MetrizableSpace (X.obj k).M :=
+    Manifold.metrizableSpace I (X.obj k).M
+  let : T3Space (X.obj k).M := inferInstance
+  let : _root_.Bundle.RiemannianBundle
+      (fun z : (X.obj k).M ↦ TangentSpace I z) :=
+    (X.obj k).riemBundle (I := I)
+  let : (z : (X.obj k).M) →
+      InnerProductSpace Real (TangentSpace I z) :=
+    (X.obj k).riemInner (I := I)
+  let : IsContinuousRiemannianBundle E
+      (fun z : (X.obj k).M ↦ TangentSpace I z) :=
+    (X.obj k).riemBundle_cont (I := I)
+  let : EMetricSpace (X.obj k).M :=
+    (X.obj k).emetricSpace (I := I)
+  let : CompleteSpace (X.obj k).M :=
+    MetricComplete.complete (I := I) (X.obj k) hcomplete
+  let : MetricSpace (X.obj k).M :=
+    HopfRinow.riemMetricSpace (I := I) (M := (X.obj k).M)
+  dsimp only
+  intro hρInner hρ hρq hr hxp hpts hcage
+  let hEnorm := normal_enorm (I := I) (X.obj k)
+  let join := minJoin (I := I) (X.obj k).metric hEnorm
+  let c := d.chart k x
+  have hc4 : c.radius / 4 ≤ c.radius := by
+    nlinarith [c.radius_pos]
+  have hsub4 : Metric.ball (0 : E) (c.radius / 4) ⊆
+      Metric.ball (0 : E) c.radius :=
+    Metric.ball_subset_ball hc4
+  let mb : (d.chart k x).MetricBounds (X.obj k).metric :=
+    { C := d.metricC
+      C_nonneg := d.metricC_nonneg
+      radius := c.radius / 4
+      radius_pos := by linarith [c.radius_pos]
+      equiv := fun z hz v => (d.metricBounds k x).equiv z (hsub4 hz) v
+      deriv := fun q z hz => (d.metricBounds k x).deriv q z (hsub4 hz) }
+  have hmb : mb.radius = (d.chart k x).radius / 4 := rfl
+  have hR6pos : 0 < R + 6 * r := by
+    nlinarith [show 0 ≤ _root_.Dist.dist x p from dist_nonneg]
+  have hjoin_dist (a b : (X.obj k).M) {t : Real} (ht : 0 ≤ t) :
+      dist a (join a b t) ≤ _root_.Dist.dist a b * t := by
+    have hed := minJoin_edist_le
+      (I := I) (X.obj k).metric hEnorm a b ht
+    have hmono := ENNReal.toReal_mono ENNReal.ofReal_ne_top hed
+    have hmul : 0 ≤ (_root_.Manifold.riemannianEDist I a b).toReal * t :=
+      mul_nonneg ENNReal.toReal_nonneg ht
+    rw [ENNReal.toReal_ofReal hmul] at hmono
+    simpa only [join, ← HopfRinow.riemMetric_dist_eq] using hmono
+  have hjoin_cage (a : (X.obj k).M)
+      (ha : a ∈ Metric.closedBall p (2 * r)) (b : (X.obj k).M)
+      (hbmem : b ∈ Metric.closedBall p (2 * r)) {t : Real}
+      (ht : t ∈ unitInterval) :
+      dist x (join a b t) ≤ R + 6 * r := by
+    have ha' : _root_.Dist.dist p a ≤ 2 * r := by
+      simpa only [dist_comm] using Metric.mem_closedBall.mp ha
+    have hb' : _root_.Dist.dist p b ≤ 2 * r := by
+      simpa only [dist_comm] using Metric.mem_closedBall.mp hbmem
+    have hab : _root_.Dist.dist a b ≤ 4 * r := by
+      calc
+        dist a b ≤ _root_.Dist.dist a p + _root_.Dist.dist p b := dist_triangle _ _ _
+        _ ≤ 4 * r := by
+          have hap : _root_.Dist.dist a p ≤ 2 * r := Metric.mem_closedBall.mp ha
+          linarith
+    have hajoin : _root_.Dist.dist a (join a b t) ≤ 4 * r := by
+      have hraw := hjoin_dist a b ht.1
+      have habt : _root_.Dist.dist a b * t ≤ 4 * r := by
+        calc
+          dist a b * t ≤ _root_.Dist.dist a b * 1 :=
+            mul_le_mul_of_nonneg_left ht.2 dist_nonneg
+          _ ≤ 4 * r := by simpa only [mul_one] using hab
+      exact hraw.trans habt
+    calc
+      _root_.Dist.dist x (join a b t) ≤
+          dist x p + _root_.Dist.dist p a + _root_.Dist.dist a (join a b t) :=
+        dist_triangle4 _ _ _ _
+      _ ≤ R + 6 * r := by linarith
+  have hriem_eq (a b : (X.obj k).M) :
+      riemannianEDist I a b = ENNReal.ofReal (_root_.Dist.dist a b) := by
+    rw [HopfRinow.riemMetric_dist_eq]
+    exact (ENNReal.ofReal_toReal
+      (riemannianEDist_ne_top (I := I) a b)).symm
+  have hpair_cage (pt : (X.obj k).M) (hpt : _root_.Dist.dist x pt < R + 6 * r)
+      (a : (X.obj k).M) (ha : a ∈ Metric.closedBall p (2 * r))
+      (b : (X.obj k).M) (hbmem : b ∈ Metric.closedBall p (2 * r))
+      {t : Real} (ht : t ∈ unitInterval) :
+      _root_.Max.max (_root_.Manifold.riemannianEDist I x (join a b t))
+          (_root_.Manifold.riemannianEDist I x pt) <
+        ENNReal.ofReal (ρ / 2) := by
+    rw [max_lt_iff]
+    constructor
+    · have hjoinEd : _root_.Manifold.riemannianEDist I x (join a b t) ≤
+          ENNReal.ofReal (R + 6 * r) := by
+        rw [hriem_eq]
+        exact ENNReal.ofReal_le_ofReal (hjoin_cage a ha b hbmem ht)
+      exact hjoinEd.trans_lt hcage
+    · have hptEd : _root_.Manifold.riemannianEDist I x pt <
+          ENNReal.ofReal (R + 6 * r) := by
+        rw [hriem_eq]
+        exact (ENNReal.ofReal_lt_ofReal_iff hR6pos).2 hpt
+      exact hptEd.trans hcage
+  have hpCage : _root_.Dist.dist x p < R + 6 * r := by
+    linarith
+  have hptsCage (i : ι) : _root_.Dist.dist x (points i) < R + 6 * r := by
+    calc
+      dist x (points i) ≤ _root_.Dist.dist x p + _root_.Dist.dist p (points i) :=
+        dist_triangle _ _ _
+      _ < R + r := add_lt_add_of_le_of_lt hxp (hpts i)
+      _ < R + 6 * r := by nlinarith
+  have hstrict_pt (pt : (X.obj k).M) (hpt : _root_.Dist.dist x pt < R + 6 * r)
+      (a : (X.obj k).M) (ha : a ∈ Metric.closedBall p (2 * r))
+      (b : (X.obj k).M) (hbmem : b ∈ Metric.closedBall p (2 * r))
+      (hab : a ≠ b) :
+      StrictConvexOn Real unitInterval
+        (fun t : Real => CenterOfMass.halfSqDist pt (join a b t)) := by
+    let S : Set (X.obj k).M :=
+      {y | _root_.Max.max (_root_.Manifold.riemannianEDist I x y) (_root_.Manifold.riemannianEDist I x pt) <
+        ENNReal.ofReal (ρ / 2)}
+    let γ : Real → (X.obj k).M := join a b
+    let v₀ : TangentSpace I a := minimizingVec
+      (I := I) (X.obj k).metric hEnorm a b
+    have hSopen : IsOpen S := by
+      dsimp only [S]
+      exact isOpen_lt
+        ((continuous_riemannianEDist (I := I) (X.obj k).metric x).max
+          continuous_const) continuous_const
+    have hsmooth : ContMDiffOn I 𝓘(Real) ∞
+        (CenterOfMass.halfSqDist pt) S := by
+      simpa only [S] using
+        SeqBallNormalChartData.halfSqDist_contMDiffOn
+          (SeqBallNormalChartData.of_boundedGeometryNormalChartData d)
+          k hcomplete hconn x hq he hf mb hmb hρ hρq hρInner
+    have hmap : _root_.Set.MapsTo γ unitInterval S := by
+      intro t ht
+      with_unfolding_all
+        exact hpair_cage pt hpt a ha b hbmem ht
+    have hgeo : IsGeodesic (I := I) (X.obj k).metric γ := by
+      with_unfolding_all
+        exact intrinsicGeodesic_isGeodesic
+          (I := I) (X.obj k).metric hEnorm a v₀
+    have hγcont : Continuous γ := by
+      simpa only [γ, join] using
+        minJoin_cont (I := I) (X.obj k).metric hEnorm a b
+    have hγsmooth : ContMDiff 𝓘(Real) I ∞ γ :=
+      isGeodesic_contMDiff (I := I) (X.obj k).metric hgeo hγcont
+    have hv₀ : v₀ ≠ 0 := by
+      intro hvzero
+      apply hab
+      calc
+        a = expMapIntrinsic (I := I) (X.obj k).metric hEnorm a 0 :=
+          (expMapIntrinsic_zero
+            (I := I) (X.obj k).metric hEnorm a).symm
+        _ = expMapIntrinsic (I := I) (X.obj k).metric hEnorm a v₀ := by
+          rw [hvzero]
+        _ = b := by
+          simpa only [v₀] using
+            minimizingVec_exp (I := I) (X.obj k).metric hEnorm a b
+    have hvel (t : Real) :
+        mfderiv 𝓘(Real) I γ t 1 ≠ 0 := by
+      intro hzero
+      have hspeed := intrinsicGeodesic_speedSq_eq
+        (I := I) (X.obj k).metric hEnorm a v₀ t
+      have hspeed' : (X.obj k).metric.inner (γ t)
+          (mfderiv 𝓘(Real) I γ t 1) (mfderiv 𝓘(Real) I γ t 1) =
+          (X.obj k).metric.inner a v₀ v₀ := by
+        with_unfolding_all
+          exact hspeed
+      have hlaunch : 0 < (X.obj k).metric.inner a v₀ v₀ :=
+        (X.obj k).metric.pos a v₀ hv₀
+      apply ne_of_gt hlaunch
+      rw [← hspeed', hzero]
+      simp
+    have hcont : ContinuousOn
+        ((CenterOfMass.halfSqDist pt) ∘ γ) unitInterval :=
+      hsmooth.continuousOn.comp hγsmooth.continuous.continuousOn hmap
+    have hmem : _root_.Set.MapsTo γ (interior unitInterval) S :=
+      fun t ht => hmap (interior_subset ht)
+    have hpos : ∀ t ∈ interior unitInterval,
+        0 < hessFun (I := I) (X.obj k).metric
+          (CenterOfMass.halfSqDist pt) (γ t)
+          (mfderiv 𝓘(Real) I γ t 1)
+          (mfderiv 𝓘(Real) I γ t 1) := by
+      intro t ht
+      exact SeqBallNormalChartData.hess_pos
+        (SeqBallNormalChartData.of_boundedGeometryNormalChartData d)
+        k hcomplete hconn x hq he hf happrox heta mb (d.metricC 1) hqAcc
+        hmb le_rfl hρInner hρ hρq
+        (by
+          with_unfolding_all
+            exact hmem ht) (hvel t)
+    with_unfolding_all
+      exact strictConvex_geo (I := I) (X.obj k).metric hSopen hsmooth
+        hγsmooth hgeo (convex_Icc (0 : Real) 1) hcont hmem hpos
+  change StrictDistanceConvexity (I := I) (X.obj k).metric points join p r
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro a ha b hbmem hab
+    have hstrictP := hstrict_pt p hpCage a ha b hbmem hab
+    have hlt := hstrictP.2 unitInterval.zero_mem unitInterval.one_mem
+      (by norm_num : (0 : Real) ≠ 1)
+      (by norm_num : (0 : Real) < 1 / 2)
+      (by norm_num : (0 : Real) < 1 / 2)
+      (by norm_num : (1 / 2 : Real) + 1 / 2 = 1)
+    norm_num at hlt
+    have hltMid :
+        CenterOfMass.halfSqDist p (join a b (1 / 2 : Real)) <
+          (1 / 2 : Real) * CenterOfMass.halfSqDist p a +
+            (1 / 2 : Real) * CenterOfMass.halfSqDist p b := by
+      simpa only [join, minJoin_zero, minJoin_one, one_smul,
+        Function.comp_apply, smul_eq_mul] using hlt
+    have hRnonneg : 0 ≤ 2 * r := by positivity
+    have haDist : _root_.Dist.dist a p ≤ 2 * r := Metric.mem_closedBall.mp ha
+    have hbDist : _root_.Dist.dist b p ≤ 2 * r := Metric.mem_closedBall.mp hbmem
+    have haSq : _root_.Dist.dist a p ^ 2 ≤ (2 * r) ^ 2 :=
+      (sq_le_sq₀ dist_nonneg hRnonneg).2 haDist
+    have hbSq : _root_.Dist.dist b p ^ 2 ≤ (2 * r) ^ 2 :=
+      (sq_le_sq₀ dist_nonneg hRnonneg).2 hbDist
+    have hsq : _root_.Dist.dist (join a b (1 / 2 : Real)) p ^ 2 ≤
+        (2 * r) ^ 2 := by
+      simp only [CenterOfMass.halfSqDist] at hltMid
+      nlinarith
+    exact Metric.mem_closedBall.2
+      ((sq_le_sq₀ dist_nonneg hRnonneg).1 hsq)
+  · intro a _ha b _hb
+    exact minJoin_zero (I := I) (X.obj k).metric hEnorm a b
+  · intro a _ha b _hb
+    exact minJoin_one (I := I) (X.obj k).metric hEnorm a b
+  · intro i a ha b hbmem hab
+    exact hstrict_pt (points i) (hptsCage i) a ha b hbmem hab
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.BoundedGeometryNormalChartData.strict_distance_convexity then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.BoundedGeometryNormalChartData.strict_distance_convexity"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.BoundedGeometryNormalChartData.strict_distance_convexity ``Submission.DifferentialGeometry.CheegerGromovCompactness.BoundedGeometryNormalChartData.strict_distance_convexity
+
+end BoundedGeometryNormalChartData
+
+end CheegerGromovCompactness
+end DifferentialGeometry

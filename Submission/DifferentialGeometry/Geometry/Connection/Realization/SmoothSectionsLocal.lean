@@ -1,0 +1,121 @@
+import Submission.DifferentialGeometry.Geometry.Connection.Realization.SmoothSections
+import Submission.DifferentialGeometry.Geometry.Coordinates.Calculus.FixedBaseDerivative
+import Mathlib.Geometry.Manifold.BumpFunction
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+namespace DifferentialGeometry.Geometry.Connection.Realization
+
+noncomputable section
+
+
+open scoped _root_.Manifold _root_.ContDiff _root_.Topology
+open _root_.Bundle _root_.Submission.Bundle
+
+section SmoothSectionsLocal
+
+variable
+  {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E] [CompleteSpace E]
+  {H : Type*} [TopologicalSpace H]
+  {I : ModelWithCorners ℝ E H}
+  {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [SigmaCompactSpace M] [T2Space M]
+
+omit [FiniteDimensional ℝ E] [CompleteSpace E] [SigmaCompactSpace M] [T2Space M] in
+theorem contMDiffOn_dual_apply
+    (α : Cₛ^∞⟮I; E →L[ℝ] ℝ, (_root_.Submission.Bundle.dual ℝ (TangentSpace I : M → Type _))⟯)
+    {V : (y : M) → TangentSpace I y} {u : Set M}
+    (hV : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun y => TotalSpace.mk' E (E := TangentSpace I) y (V y)) u) :
+    ContMDiffOn I 𝓘(ℝ, ℝ) ∞ (fun y => α y (V y)) u := by
+  have hα : ContMDiffOn I (I.prod 𝓘(ℝ, E →L[ℝ] ℝ)) ∞
+      (fun y => TotalSpace.mk' (E →L[ℝ] ℝ)
+        (E := fun x : M => (TangentSpace I x →L[ℝ] (_root_.Bundle.Trivial M ℝ) x))
+        y (α y)) u := α.contMDiff.contMDiffOn
+  have hap : ContMDiffOn I (I.prod 𝓘(ℝ, ℝ)) ∞
+      (fun y => TotalSpace.mk' ℝ (E := _root_.Bundle.Trivial M ℝ) y (α y (V y))) u :=
+    ContMDiffOn.clm_bundle_apply (b := id) hα hV
+  intro y hy
+  exact (_root_.Bundle.contMDiffWithinAt_section (F := ℝ) (E := _root_.Bundle.Trivial M ℝ)).mp (hap y hy)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Connection.Realization.contMDiffOn_dual_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Connection.Realization.contMDiffOn_dual_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Connection.Realization.contMDiffOn_dual_apply ``Submission.DifferentialGeometry.Geometry.Connection.Realization.contMDiffOn_dual_apply
+
+omit [FiniteDimensional ℝ E] [CompleteSpace E] [IsManifold I ∞ M] [SigmaCompactSpace M]
+    [T2Space M] in
+private theorem mvfderiv_congr_nhds
+    {f g : M → ℝ} {x : M} (V : TangentSpace I x) (h : f =ᶠ[𝓝 x] g) :
+    mvfderiv (I := I) f x V = mvfderiv (I := I) g x V := by
+  rw [DifferentialGeometry.mvfderiv_real_eq_mfderiv I f x V,
+    DifferentialGeometry.mvfderiv_real_eq_mfderiv I g x V,
+    Filter.EventuallyEq.mfderiv_eq (I := I) (I' := 𝓘(ℝ, ℝ)) h]
+  rfl
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Connection.Realization.mvfderiv_congr_nhds
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Connection.Realization.mvfderiv_congr_nhds target :: scope.openDecls } }
+
+omit [CompleteSpace E] [SigmaCompactSpace M] in
+theorem contMDiffAt_mvfderiv_apply
+    {u : Set M} (hu : IsOpen u) {x : M} (hx : x ∈ u)
+    {f : M → ℝ} (hf : ContMDiffOn I 𝓘(ℝ, ℝ) ∞ f u)
+    {V : (y : M) → TangentSpace I y}
+    (hV : ContMDiffOn I (I.prod 𝓘(ℝ, E)) ∞
+      (fun y => TotalSpace.mk' E (E := TangentSpace I) y (V y)) u) :
+    ContMDiffAt I 𝓘(ℝ, ℝ) ∞ (fun y => mvfderiv (I := I) f y (V y)) x := by
+  classical
+  obtain ⟨b, -, hb_support⟩ :=
+    (SmoothBumpFunction.nhds_basis_tsupport (I := I) x).mem_iff.mp (hu.mem_nhds hx)
+  set ftil : M → ℝ := fun y => b y * f y with hftil_def
+  have hftil : ContMDiff I 𝓘(ℝ, ℝ) ∞ ftil := by
+    apply contMDiff_of_locally_contMDiffOn
+    intro z
+    by_cases hz : z ∈ u
+    · exact ⟨u, hu, hz, (b.contMDiff.contMDiffOn).mul hf⟩
+    · refine ⟨(tsupport (b : M → ℝ))ᶜ, (isClosed_tsupport _).isOpen_compl,
+        fun hmem => hz (hb_support hmem), ?_⟩
+      refine (contMDiffOn_const (c := (0 : ℝ))).congr ?_
+      intro y hy
+      have hb0 : b y = 0 := by
+        by_contra hne
+        exact hy (subset_tsupport _ hne)
+      simp [hftil_def, hb0]
+  let dα : Cₛ^∞⟮I; E →L[ℝ] ℝ, (_root_.Submission.Bundle.dual ℝ (TangentSpace I : M → Type _))⟯ :=
+    ⟨fun y => mvfderiv (I := I) ftil y,
+      contMDiff_mvfderiv_section (I := I) (M := M) ⟨ftil, hftil⟩⟩
+  have hpair : ContMDiffOn I 𝓘(ℝ, ℝ) ∞
+      (fun y => mvfderiv (I := I) ftil y (V y)) u :=
+    contMDiffOn_dual_apply (I := I) dα hV
+  have hAt : ContMDiffAt I 𝓘(ℝ, ℝ) ∞
+      (fun y => mvfderiv (I := I) ftil y (V y)) x :=
+    hpair.contMDiffAt (hu.mem_nhds hx)
+  refine hAt.congr_of_eventuallyEq ?_
+  obtain ⟨w, hw_one, hw_open, hxw⟩ := eventually_nhds_iff.mp b.eventuallyEq_one
+  refine eventually_nhds_iff.mpr ⟨w, ?_, hw_open, hxw⟩
+  intro y hyw
+  refine mvfderiv_congr_nhds (I := I) (V y) ?_
+  refine eventually_nhds_iff.mpr ⟨w, ?_, hw_open, hyw⟩
+  intro z hzw
+  simp [hftil_def, hw_one z hzw]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Connection.Realization.contMDiffAt_mvfderiv_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Connection.Realization.contMDiffAt_mvfderiv_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Connection.Realization.contMDiffAt_mvfderiv_apply ``Submission.DifferentialGeometry.Geometry.Connection.Realization.contMDiffAt_mvfderiv_apply
+
+end SmoothSectionsLocal
+
+end
+
+end DifferentialGeometry.Geometry.Connection.Realization

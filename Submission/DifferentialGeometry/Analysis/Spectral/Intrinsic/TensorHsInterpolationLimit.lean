@@ -1,0 +1,629 @@
+import Submission.DifferentialGeometry.Analysis.Spectral.Tensor.SobolevScale.Basic.FractionalPower
+import Submission.DifferentialGeometry.Analysis.Spectral.Intrinsic.CompactResolvent
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+
+noncomputable section
+
+open _root_.Filter
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.ENNReal _root_.BigOperators
+  RealInnerProductSpace InnerProductSpace
+
+namespace DifferentialGeometry
+namespace Analysis
+namespace Parabolic
+namespace TensorHeatEquation
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E] [CompleteSpace E] [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [CompactSpace M] [I.Boundaryless] [T2Space M] [SigmaCompactSpace M]
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.L2
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral
+
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instMeasurableSpace_differentialGeometry : MeasurableSpace E := borel E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instMeasurableSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instMeasurableSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instBorelSpace_differentialGeometry : BorelSpace E := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instBorelSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instBorelSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instMeasurableSpace_differentialGeometry_1 : MeasurableSpace M := borel M
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instMeasurableSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instMeasurableSpace_differentialGeometry_1 target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instBorelSpace_differentialGeometry_1 : BorelSpace M := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instBorelSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.instBorelSpace_differentialGeometry_1 target :: scope.openDecls } }
+
+omit [CompleteSpace E] in
+theorem tensorEigenIdx_one_add_lambda_lt_finite
+    (g : SmoothRiemannianMetric I M) (r s : ℕ) (Λ : ℝ) :
+    {i : TensorEigenIdx (I := I) (M := M) g r s |
+      1 + TensorEigenIdx.lambda (I := I) (M := M) i < Λ}.Finite := by
+  classical
+  by_cases hΛ : 0 < Λ
+  · set B : Set (TensorNonzeroResolventEigenvalue (I := I) (M := M) g r s) :=
+      {μ | 1 + tensorLaplacianEigenvalueOf μ.val < Λ} with hB_def
+    have hBfin : B.Finite := by
+      apply Set.Finite.of_finite_image
+        (f := fun μ : TensorNonzeroResolventEigenvalue (I := I) (M := M) g r s =>
+          μ.val)
+      · refine Set.Finite.subset
+          (tensorResolvent_eigenvalues_finite_above (I := I) (M := M) g r s
+            (DifferentialGeometry.Analysis.Spectral.tensorResolventL2_isCompactOperator
+              (I := I) (M := M) g r s)
+            (show (0 : ℝ) < 1 / Λ by positivity)) ?_
+        rintro x ⟨μ, hμB, rfl⟩
+        have hev : Module.End.HasEigenvalue
+            ((tensorResolventL2 (I := I) (M := M) g r s).toLinearMap) μ.val :=
+          μ.hasEigenvalue
+        obtain ⟨u, hu_mem, hu_ne⟩ := μ.hasEigenvalue.exists_hasEigenvector
+        have hu_in : u ∈ tensorResolventEigenspace (I := I) (M := M) g r s μ.val :=
+          hu_mem
+        have hμ_unit : μ.val ∈ Set.Ioc (0 : ℝ) 1 :=
+          tensorResolvent_eigenvalue_mem_unit_interval
+            (I := I) (M := M) g r s hu_in hu_ne
+        have hμ_pos : 0 < μ.val := hμ_unit.1
+        have hlt : 1 + tensorLaplacianEigenvalueOf μ.val < Λ := hμB
+        have hinv : (μ.val)⁻¹ < Λ := by
+          have heq : (μ.val)⁻¹ = 1 + tensorLaplacianEigenvalueOf μ.val := by
+            rw [tensorLaplacianEigenvalueOf]
+            field_simp; ring
+          rw [heq]; exact hlt
+        have hμ_gt : 1 / Λ < μ.val := by
+          rw [div_lt_iff₀ hΛ]
+          rw [inv_lt_iff_one_lt_mul₀ hμ_pos] at hinv
+          linarith [hinv]
+        exact ⟨hev, by rw [abs_of_pos hμ_pos]; exact le_of_lt hμ_gt⟩
+      · intro μ₁ _ μ₂ _ h
+        exact TensorNonzeroResolventEigenvalue.ext μ₁ μ₂ h
+    have hset_eq :
+        {i : TensorEigenIdx (I := I) (M := M) g r s |
+          1 + TensorEigenIdx.lambda (I := I) (M := M) i < Λ}
+          = ⋃ μ ∈ B, Sigma.mk μ '' Set.univ := by
+      ext ⟨μ, k⟩
+      simp only [Set.mem_ofPred_eq, Set.mem_iUnion, Set.mem_image, Set.mem_univ,
+        true_and]
+      constructor
+      · intro h
+        exact ⟨μ, by rw [hB_def]; exact h, k, rfl⟩
+      · rintro ⟨μ', hμ'B, k', heq⟩
+        obtain ⟨rfl, _⟩ := Sigma.mk.injEq .. ▸ heq
+        rw [hB_def] at hμ'B; exact hμ'B
+    rw [hset_eq]
+    exact hBfin.biUnion (fun μ _ => Set.finite_univ.image _)
+  · have hempty :
+        {i : TensorEigenIdx (I := I) (M := M) g r s |
+          1 + TensorEigenIdx.lambda (I := I) (M := M) i < Λ} = ∅ := by
+      rw [Set.eq_empty_iff_forall_notMem]
+      intro i hi
+      have hlam := tensor_lambda_nonneg (I := I) (M := M) i
+      have hΛle := not_lt.1 hΛ
+      simp only [Set.mem_ofPred_eq] at hi
+      linarith
+    rw [hempty]; exact Set.finite_empty
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorEigenIdx_one_add_lambda_lt_finite then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorEigenIdx_one_add_lambda_lt_finite"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorEigenIdx_one_add_lambda_lt_finite ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorEigenIdx_one_add_lambda_lt_finite
+
+def eigenFinset (g : SmoothRiemannianMetric I M) (r s n : ℕ) :
+    Finset (TensorEigenIdx (I := I) (M := M) g r s) :=
+  (tensorEigenIdx_one_add_lambda_lt_finite
+    (I := I) (M := M) g r s ((n : ℝ) + 1)).toFinset
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset
+
+omit [CompleteSpace E] in
+lemma mem_eigenFinset (g : SmoothRiemannianMetric I M) (r s n : ℕ)
+    (i : TensorEigenIdx (I := I) (M := M) g r s) :
+    i ∈ eigenFinset (I := I) (M := M) g r s n ↔
+      1 + TensorEigenIdx.lambda (I := I) (M := M) i < (n : ℝ) + 1 := by
+  unfold eigenFinset
+  rw [Set.Finite.mem_toFinset]
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.mem_eigenFinset then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.mem_eigenFinset"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.mem_eigenFinset ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.mem_eigenFinset
+
+omit [CompleteSpace E] in
+lemma eigenFinset_mono (g : SmoothRiemannianMetric I M) (r s : ℕ) :
+    Monotone (eigenFinset (I := I) (M := M) g r s) := by
+  intro m n hmn i hi
+  rw [mem_eigenFinset] at hi ⊢
+  have hcast : (m : ℝ) + 1 ≤ (n : ℝ) + 1 := by
+    have hmn' : (m : ℝ) ≤ (n : ℝ) := by exact_mod_cast hmn
+    linarith
+  exact hi.trans_le hcast
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_mono then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_mono"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_mono ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_mono
+
+omit [CompleteSpace E] in
+lemma eigenFinset_exhaust (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (i : TensorEigenIdx (I := I) (M := M) g r s) :
+    ∃ n : ℕ, i ∈ eigenFinset (I := I) (M := M) g r s n := by
+  obtain ⟨n, hn⟩ :=
+    exists_nat_gt (1 + TensorEigenIdx.lambda (I := I) (M := M) i)
+  refine ⟨n, ?_⟩
+  rw [mem_eigenFinset]
+  linarith
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_exhaust then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_exhaust"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_exhaust ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_exhaust
+
+omit [CompleteSpace E] in
+lemma eigenFinset_tendsto (g : SmoothRiemannianMetric I M) (r s : ℕ) :
+    Tendsto (eigenFinset (I := I) (M := M) g r s) _root_.Filter.atTop atTop :=
+  _root_.Filter.tendsto_atTop_finset_of_monotone
+    (eigenFinset_mono (I := I) (M := M) g r s)
+    (eigenFinset_exhaust (I := I) (M := M) g r s)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_tendsto then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_tendsto"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_tendsto ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.eigenFinset_tendsto
+
+namespace TensorHs
+
+variable {g : SmoothRiemannianMetric I M} {r s : ℕ}
+
+omit [CompleteSpace E] in
+omit [NeZero (Module.finrank ℝ E)] in
+lemma weight_mul_coeff_sq_le_normSq {σ : ℝ}
+    (T : TensorHs (I := I) (M := M) g r s σ)
+    (i : TensorEigenIdx (I := I) (M := M) g r s) :
+    tensorSobolevWeight (I := I) (M := M) i σ * (T.coeff i) ^ 2 ≤ ‖T‖ ^ 2 := by
+  rw [norm_sq_eq_tsum (I := I) (M := M) T]
+  refine Summable.le_tsum T.weighted_summable i (fun j _ => ?_)
+  have hw : 0 ≤ tensorSobolevWeight (I := I) (M := M) j σ :=
+    tensorSobolevWeight_nonneg (I := I) (M := M) j σ
+  positivity
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.weight_mul_coeff_sq_le_normSq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.weight_mul_coeff_sq_le_normSq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.weight_mul_coeff_sq_le_normSq ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.weight_mul_coeff_sq_le_normSq
+
+omit [CompleteSpace E] in
+omit [NeZero (Module.finrank ℝ E)] in
+lemma coeff_tendsto_zero_of_norm_tendsto_zero {σ : ℝ}
+    (d : ℕ → TensorHs (I := I) (M := M) g r s σ)
+    (hd : _root_.Filter.Tendsto (fun n => ‖d n‖) _root_.Filter.atTop (𝓝 0))
+    (i : TensorEigenIdx (I := I) (M := M) g r s) :
+    Tendsto (fun n => (d n).coeff i) _root_.Filter.atTop (𝓝 0) := by
+  have hbd : ∀ n, |(d n).coeff i| ≤
+      (Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ))⁻¹ * ‖d n‖ := by
+    intro n
+    have hwpos : 0 < tensorSobolevWeight (I := I) (M := M) i σ :=
+      tensorSobolevWeight_pos (I := I) (M := M) i σ
+    have hsqrtpos : 0 < Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ) :=
+      Real.sqrt_pos.mpr hwpos
+    have hterm : tensorSobolevWeight (I := I) (M := M) i σ * ((d n).coeff i) ^ 2 ≤
+        ‖d n‖ ^ 2 := weight_mul_coeff_sq_le_normSq (I := I) (M := M) (d n) i
+    have hsq : ((d n).coeff i) ^ 2 ≤
+        ((Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ))⁻¹ * ‖d n‖) ^ 2 := by
+      have hsqrt_sq :
+          Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ) ^ 2 =
+            tensorSobolevWeight (I := I) (M := M) i σ :=
+        sq_sqrt_tensorSobolevWeight (I := I) (M := M) i σ
+      rw [mul_pow, inv_pow, hsqrt_sq, inv_mul_eq_div, le_div_iff₀ hwpos, mul_comm]
+      exact hterm
+    have hrhs_nonneg :
+        0 ≤ (Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ))⁻¹ * ‖d n‖ :=
+      mul_nonneg (le_of_lt (inv_pos.mpr hsqrtpos)) (norm_nonneg (d n))
+    have h := Real.sqrt_le_sqrt hsq
+    rwa [Real.sqrt_sq_eq_abs, Real.sqrt_sq hrhs_nonneg] at h
+  have hupper :
+      Tendsto (fun n => (Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ))⁻¹ *
+        ‖d n‖) _root_.Filter.atTop (𝓝 0) := by
+    have := hd.const_mul
+      (Real.sqrt (tensorSobolevWeight (I := I) (M := M) i σ))⁻¹
+    simpa using this
+  have habs : _root_.Filter.Tendsto (fun n => |(d n).coeff i|) _root_.Filter.atTop (𝓝 0) := by
+    refine squeeze_zero (fun n => abs_nonneg _) hbd hupper
+  exact (tendsto_zero_iff_abs_tendsto_zero _).mpr habs
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.coeff_tendsto_zero_of_norm_tendsto_zero then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.coeff_tendsto_zero_of_norm_tendsto_zero"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.coeff_tendsto_zero_of_norm_tendsto_zero ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorHs.coeff_tendsto_zero_of_norm_tendsto_zero
+
+end TensorHs
+
+omit [CompleteSpace E] in
+theorem tendsto_of_coeff
+    {g : SmoothRiemannianMetric I M} {r s : ℕ} {σ' σ'' : ℝ}
+    (hσ'σ'' : σ' < σ'')
+    (d : ℕ → TensorHs (I := I) (M := M) g r s σ'')
+    {C : ℝ} (hC : 0 ≤ C) (hCbd : ∀ n, ‖d n‖ ≤ C)
+    (hcoeff0 : ∀ i : TensorEigenIdx (I := I) (M := M) g r s,
+      _root_.Filter.Tendsto (fun n => (d n).coeff i) _root_.Filter.atTop (𝓝 0)) :
+    _root_.Filter.Tendsto (fun n =>
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (d n)‖) _root_.Filter.atTop (𝓝 0) := by
+  classical
+  set ι := TensorEigenIdx (I := I) (M := M) g r s
+  have hnormsq : ∀ n,
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          hσ'σ''.le (d n)‖ ^ 2 =
+        ∑' i : ι, tensorSobolevWeight (I := I) (M := M) i σ' *
+          ((d n).coeff i) ^ 2 := by
+    intro n
+    have h := TensorHs.norm_sq_eq_tsum (I := I) (M := M)
+      (tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (d n))
+    rwa [tensorHsInclusion_coeff] at h
+  have hsumm' : ∀ n, Summable (fun i : ι =>
+      tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2) :=
+    fun n => TensorHs.weighted_summable_of_le (I := I) (M := M) hσ'σ''.le (d n)
+  have hmass'' : ∀ n,
+      ∑' i : ι, tensorSobolevWeight (I := I) (M := M) i σ'' * ((d n).coeff i) ^ 2
+        = ‖d n‖ ^ 2 :=
+    fun n => (TensorHs.norm_sq_eq_tsum (I := I) (M := M) (d n)).symm
+  suffices hsq : _root_.Filter.Tendsto (fun n =>
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (d n)‖ ^ 2) _root_.Filter.atTop (𝓝 0) by
+    have hnn : ∀ n,
+        0 ≤ ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          hσ'σ''.le (d n)‖ := fun n => norm_nonneg _
+    have hsqrt :
+        _root_.Filter.Tendsto (fun n => Real.sqrt
+          (‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+            hσ'σ''.le (d n)‖ ^ 2)) _root_.Filter.atTop (𝓝 (Real.sqrt 0)) :=
+      (Real.continuous_sqrt.tendsto 0).comp hsq
+    rw [Real.sqrt_zero] at hsqrt
+    refine hsqrt.congr (fun n => ?_)
+    rw [Real.sqrt_sq (hnn n)]
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  have hexp : σ' - σ'' < 0 := by linarith
+  obtain ⟨Λ, hΛgt1, hΛtail⟩ :
+      ∃ Λ : ℝ, 1 < Λ ∧ Λ ^ (σ' - σ'') * C ^ 2 < ε / 2 := by
+    set δ : ℝ := (ε / 2) / (C ^ 2 + 1) with hδ_def
+    have hδ_pos : 0 < δ := by
+      have : (0 : ℝ) < C ^ 2 + 1 := by positivity
+      rw [hδ_def]; positivity
+    have htend : _root_.Filter.Tendsto (fun x : ℝ => x ^ (σ' - σ'')) _root_.Filter.atTop (𝓝 0) := by
+      have h := tendsto_rpow_neg_atTop (y := σ'' - σ') (by linarith)
+      rwa [show -(σ'' - σ') = σ' - σ'' by ring] at h
+    have hev : ∀ᶠ x : ℝ in _root_.Filter.atTop, x ^ (σ' - σ'') < δ :=
+      htend.eventually_lt_const hδ_pos
+    obtain ⟨Λ, hΛ1, hΛδ⟩ := ((_root_.Filter.eventually_gt_atTop 1).and hev).exists
+    refine ⟨Λ, hΛ1, ?_⟩
+    have hΛδ_nn : 0 ≤ Λ ^ (σ' - σ'') := Real.rpow_nonneg (by linarith) _
+    have hCsq_nn : 0 ≤ C ^ 2 := sq_nonneg C
+    have h1 : Λ ^ (σ' - σ'') * C ^ 2 ≤ δ * C ^ 2 :=
+      mul_le_mul_of_nonneg_right hΛδ.le hCsq_nn
+    have h2 : δ * C ^ 2 < ε / 2 := by
+      rw [hδ_def]
+      rw [div_mul_eq_mul_div, div_lt_iff₀ (by positivity : (0 : ℝ) < C ^ 2 + 1)]
+      have hεpos : 0 < ε / 2 := by linarith
+      nlinarith [hεpos, hCsq_nn]
+    linarith
+  set F : Finset ι :=
+    (tensorEigenIdx_one_add_lambda_lt_finite (I := I) (M := M) g r s Λ).toFinset
+    with hF_def
+  have hmemF : ∀ i : ι, i ∈ F ↔
+      1 + TensorEigenIdx.lambda (I := I) (M := M) i < Λ := by
+    intro i; rw [hF_def, Set.Finite.mem_toFinset]; rfl
+  have hcompl_bd : ∀ (n : ℕ) (i : ι), i ∉ F →
+      tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2 ≤
+        Λ ^ (σ' - σ'') *
+          (tensorSobolevWeight (I := I) (M := M) i σ'' * ((d n).coeff i) ^ 2) := by
+    intro n i hi
+    have hΛle : Λ ≤ 1 + TensorEigenIdx.lambda (I := I) (M := M) i := by
+      by_contra hcon
+      exact hi ((hmemF i).2 (lt_of_not_ge hcon))
+    have hsplit : tensorSobolevWeight (I := I) (M := M) i σ' =
+        tensorSobolevWeight (I := I) (M := M) i (σ' - σ'') *
+          tensorSobolevWeight (I := I) (M := M) i σ'' := by
+      rw [← TensorHs.tensorSobolevWeight_add (I := I) (M := M)]
+      congr 1; ring
+    have hratio : tensorSobolevWeight (I := I) (M := M) i (σ' - σ'') ≤
+        Λ ^ (σ' - σ'') := by
+      unfold tensorSobolevWeight
+      exact Real.rpow_le_rpow_of_nonpos (by linarith) hΛle hexp.le
+    have hw''_nn : 0 ≤ tensorSobolevWeight (I := I) (M := M) i σ'' :=
+      tensorSobolevWeight_nonneg (I := I) (M := M) i σ''
+    have hcoeff_nn : 0 ≤ ((d n).coeff i) ^ 2 := sq_nonneg _
+    calc
+      tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2
+          = tensorSobolevWeight (I := I) (M := M) i (σ' - σ'') *
+              (tensorSobolevWeight (I := I) (M := M) i σ'' * ((d n).coeff i) ^ 2) := by
+            rw [hsplit]; ring
+      _ ≤ Λ ^ (σ' - σ'') *
+              (tensorSobolevWeight (I := I) (M := M) i σ'' * ((d n).coeff i) ^ 2) :=
+            mul_le_mul_of_nonneg_right hratio (by positivity)
+  have htail : ∀ n,
+      ∑' i : { i : ι // i ∉ F },
+          tensorSobolevWeight (I := I) (M := M) (i : ι) σ' * ((d n).coeff i) ^ 2 ≤
+        Λ ^ (σ' - σ'') * C ^ 2 := by
+    intro n
+    have hsub_summ' : Summable (fun i : { i : ι // i ∉ F } =>
+        tensorSobolevWeight (I := I) (M := M) (i : ι) σ' * ((d n).coeff i) ^ 2) :=
+      (hsumm' n).subtype _
+    have hsub_summ'' : Summable (fun i : { i : ι // i ∉ F } =>
+        Λ ^ (σ' - σ'') *
+          (tensorSobolevWeight (I := I) (M := M) (i : ι) σ'' * ((d n).coeff i) ^ 2)) :=
+      ((d n).weighted_summable.subtype _).mul_left _
+    calc
+      ∑' i : { i : ι // i ∉ F },
+            tensorSobolevWeight (I := I) (M := M) (i : ι) σ' * ((d n).coeff i) ^ 2
+          ≤ ∑' i : { i : ι // i ∉ F },
+              Λ ^ (σ' - σ'') *
+                (tensorSobolevWeight (I := I) (M := M) (i : ι) σ'' *
+                  ((d n).coeff i) ^ 2) :=
+            hsub_summ'.tsum_le_tsum
+              (fun i => hcompl_bd n i.1 i.2) hsub_summ''
+      _ = Λ ^ (σ' - σ'') *
+            ∑' i : { i : ι // i ∉ F },
+              tensorSobolevWeight (I := I) (M := M) (i : ι) σ'' * ((d n).coeff i) ^ 2 :=
+            (tsum_mul_left)
+      _ ≤ Λ ^ (σ' - σ'') *
+            ∑' i : ι, tensorSobolevWeight (I := I) (M := M) i σ'' *
+              ((d n).coeff i) ^ 2 := by
+            apply mul_le_mul_of_nonneg_left _ (Real.rpow_nonneg (by linarith) _)
+            refine ((d n).weighted_summable.subtype _).tsum_le_tsum_of_inj
+              Subtype.val Subtype.val_injective (fun i _ => ?_) (fun i => le_refl _)
+              (d n).weighted_summable
+            have hw : 0 ≤ tensorSobolevWeight (I := I) (M := M) i σ'' :=
+              tensorSobolevWeight_nonneg (I := I) (M := M) i σ''
+            positivity
+      _ ≤ Λ ^ (σ' - σ'') * C ^ 2 := by
+            rw [hmass'' n]
+            apply mul_le_mul_of_nonneg_left _ (Real.rpow_nonneg (by linarith) _)
+            have hnn : (0 : ℝ) ≤ ‖d n‖ := norm_nonneg _
+            nlinarith [hCbd n, hnn, hC]
+  have hfin0 : _root_.Filter.Tendsto (fun n =>
+      ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2)
+      atTop (𝓝 0) := by
+    have h := tendsto_finsetSum (s := F)
+      (f := fun i n => tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2)
+      (a := fun _ : ι => (0 : ℝ))
+      (fun i _ => by
+        have hc : _root_.Filter.Tendsto (fun n => ((d n).coeff i) ^ 2) _root_.Filter.atTop (𝓝 (0 ^ 2)) :=
+          (hcoeff0 i).pow 2
+        rw [show (0 : ℝ) ^ 2 = 0 by ring] at hc
+        have := hc.const_mul (tensorSobolevWeight (I := I) (M := M) i σ')
+        simpa using this)
+    simpa using h
+  rw [Metric.tendsto_atTop] at hfin0
+  obtain ⟨N, hN⟩ := hfin0 (ε / 2) (by linarith)
+  refine ⟨N, fun n hn => ?_⟩
+  have hsplit_sum :
+      ∑' i : ι, tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2 =
+        (∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2) +
+          ∑' i : { i : ι // i ∉ F },
+            tensorSobolevWeight (I := I) (M := M) (i : ι) σ' * ((d n).coeff i) ^ 2 :=
+    ((hsumm' n).sum_add_tsum_subtype_compl F).symm
+  have hfin_lt : ∑ i ∈ F,
+      tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2 < ε / 2 := by
+    have hd := hN n hn
+    rw [Real.dist_eq, sub_zero] at hd
+    calc ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2
+        ≤ |∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i σ' * ((d n).coeff i) ^ 2| :=
+          le_abs_self _
+      _ < ε / 2 := hd
+  have htail_lt : ∑' i : { i : ι // i ∉ F },
+      tensorSobolevWeight (I := I) (M := M) (i : ι) σ' * ((d n).coeff i) ^ 2 < ε / 2 :=
+    lt_of_le_of_lt (htail n) hΛtail
+  have hbound : ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+      hσ'σ''.le (d n)‖ ^ 2 < ε := by
+    rw [hnormsq n, hsplit_sum]
+    linarith
+  rw [Real.dist_eq, sub_zero]
+  have hnn : 0 ≤ ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+      hσ'σ''.le (d n)‖ ^ 2 := sq_nonneg _
+  rwa [abs_of_nonneg hnn]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tendsto_of_coeff then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tendsto_of_coeff"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tendsto_of_coeff ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tendsto_of_coeff
+
+omit [CompleteSpace E] in
+theorem cont_of_coeff
+    {X : Type*} [TopologicalSpace X] [FirstCountableTopology X]
+    {g : SmoothRiemannianMetric I M} {r s : ℕ} {σ' σ'' : ℝ}
+    (hσ'σ'' : σ' < σ'') (W : X → TensorHs (I := I) (M := M) g r s σ'')
+    {C : ℝ} (hC : 0 ≤ C) (hCbd : ∀ x, ‖W x‖ ≤ C)
+    (hcoeff : ∀ i : TensorEigenIdx (I := I) (M := M) g r s,
+      Continuous (fun x => (W x).coeff i)) :
+    Continuous (fun x =>
+      tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (W x)) := by
+  rw [continuous_iff_seqContinuous]
+  intro x x₀ hx
+  let d : ℕ → TensorHs (I := I) (M := M) g r s σ'' :=
+    fun n => W (x n) - W x₀
+  have hd_bound (n : ℕ) : ‖d n‖ ≤ 2 * C := by
+    calc
+      ‖d n‖ = ‖W (x n) - W x₀‖ := rfl
+      _ ≤ ‖W (x n)‖ + ‖W x₀‖ := norm_sub_le _ _
+      _ ≤ C + C := add_le_add (hCbd _) (hCbd _)
+      _ = 2 * C := by ring
+  have hd_coeff (i : TensorEigenIdx (I := I) (M := M) g r s) :
+      Tendsto (fun n => (d n).coeff i) _root_.Filter.atTop (𝓝 0) := by
+    have hi := ((hcoeff i).tendsto x₀).comp hx
+    have hi' : _root_.Filter.Tendsto (fun n => (W (x n)).coeff i - (W x₀).coeff i)
+        atTop (𝓝 0) := tendsto_sub_nhds_zero_iff.mpr hi
+    simpa only [d, sub_eq_add_neg, TensorHs.add_coeff, TensorHs.neg_coeff,
+      Pi.add_apply, Pi.neg_apply] using hi'
+  have hnorm := tendsto_of_coeff (I := I) (M := M) hσ'σ'' d
+    (mul_nonneg (by norm_num) hC) hd_bound hd_coeff
+  have hzero : _root_.Filter.Tendsto (fun n =>
+      tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (d n)) _root_.Filter.atTop (𝓝 0) :=
+    tendsto_zero_iff_norm_tendsto_zero.mpr hnorm
+  have hsub : _root_.Filter.Tendsto (fun n =>
+      tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          hσ'σ''.le (W (x n)) -
+        tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          hσ'σ''.le (W x₀)) _root_.Filter.atTop (𝓝 0) := by
+    refine hzero.congr' (Eventually.of_forall fun n => ?_)
+    simp only [d, map_sub]
+  exact tendsto_sub_nhds_zero_iff.mp hsub
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.cont_of_coeff then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.cont_of_coeff"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.cont_of_coeff ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.cont_of_coeff
+
+omit [CompleteSpace E] in
+theorem tensorHs_norm_tendsto_zero_of_low_tendsto_of_uniform
+    {g : SmoothRiemannianMetric I M} {r s : ℕ} {σ σ' σ'' : ℝ}
+    (hσσ' : σ ≤ σ') (hσ'σ'' : σ' < σ'')
+    (d : ℕ → TensorHs (I := I) (M := M) g r s σ'')
+    {C : ℝ} (hC : 0 ≤ C) (hCbd : ∀ n, ‖d n‖ ≤ C)
+    (hlow : _root_.Filter.Tendsto (fun n =>
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        (hσσ'.trans hσ'σ''.le) (d n)‖) _root_.Filter.atTop (𝓝 0)) :
+    _root_.Filter.Tendsto (fun n =>
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (d n)‖) _root_.Filter.atTop (𝓝 0) := by
+  have hcoeff0 : ∀ i : TensorEigenIdx (I := I) (M := M) g r s,
+      Tendsto (fun n => (d n).coeff i) _root_.Filter.atTop (𝓝 0) := by
+    intro i
+    have h := TensorHs.coeff_tendsto_zero_of_norm_tendsto_zero (I := I) (M := M)
+      (fun n => tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        (hσσ'.trans hσ'σ''.le) (d n)) hlow i
+    simpa only [tensorHsInclusion_coeff_apply] using h
+  exact tendsto_of_coeff (I := I) (M := M) hσ'σ'' d hC hCbd hcoeff0
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_norm_tendsto_zero_of_low_tendsto_of_uniform then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_norm_tendsto_zero_of_low_tendsto_of_uniform"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_norm_tendsto_zero_of_low_tendsto_of_uniform ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_norm_tendsto_zero_of_low_tendsto_of_uniform
+
+omit [CompleteSpace E] in
+omit [NeZero (Module.finrank ℝ E)] in
+private lemma norm_le_sqrt_of_weightedMass_le
+    {g : SmoothRiemannianMetric I M} {r s : ℕ} {σ'' : ℝ}
+    (T : TensorHs (I := I) (M := M) g r s σ'') {B : ℝ}
+    (hB : ∑' i : TensorEigenIdx (I := I) (M := M) g r s,
+      tensorSobolevWeight (I := I) (M := M) i σ'' * (T.coeff i) ^ 2 ≤ B) :
+    ‖T‖ ≤ Real.sqrt B := by
+  have hsq : ‖T‖ ^ 2 ≤ B := by
+    rw [TensorHs.norm_sq_eq_tsum (I := I) (M := M) T]; exact hB
+  have h := Real.sqrt_le_sqrt hsq
+  rwa [Real.sqrt_sq (norm_nonneg T)] at h
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.norm_le_sqrt_of_weightedMass_le
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.norm_le_sqrt_of_weightedMass_le target :: scope.openDecls } }
+
+omit [CompleteSpace E] in
+theorem tensorHs_tendsto_of_tendsto_of_uniform_weightedMass
+    {g : SmoothRiemannianMetric I M} {r s : ℕ} {σ σ' σ'' : ℝ}
+    (hσσ' : σ ≤ σ') (hσ'σ'' : σ' < σ'')
+    (u : ℕ → TensorHs (I := I) (M := M) g r s σ'')
+    (ulim : TensorHs (I := I) (M := M) g r s σ'') {B : ℝ}
+    (hconv : _root_.Filter.Tendsto (fun n =>
+        tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          (hσσ'.trans hσ'σ''.le) (u n)) _root_.Filter.atTop
+        (𝓝 (tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          (hσσ'.trans hσ'σ''.le) ulim)))
+    (humass : ∀ n, ∑' i : TensorEigenIdx (I := I) (M := M) g r s,
+      tensorSobolevWeight (I := I) (M := M) i σ'' * ((u n).coeff i) ^ 2 ≤ B)
+    (hlmass : ∑' i : TensorEigenIdx (I := I) (M := M) g r s,
+      tensorSobolevWeight (I := I) (M := M) i σ'' * (ulim.coeff i) ^ 2 ≤ B) :
+    _root_.Filter.Tendsto (fun n =>
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        hσ'σ''.le (u n - ulim)‖) _root_.Filter.atTop (𝓝 0) := by
+  set d : ℕ → TensorHs (I := I) (M := M) g r s σ'' := fun n => u n - ulim with hd_def
+  have hBnn : 0 ≤ B :=
+    le_trans (tsum_nonneg (fun i => by
+      have hw : 0 ≤ tensorSobolevWeight (I := I) (M := M) i σ'' :=
+        tensorSobolevWeight_nonneg (I := I) (M := M) i σ''
+      positivity)) hlmass
+  have hCbd : ∀ n, ‖d n‖ ≤ 2 * Real.sqrt B := by
+    intro n
+    have hu : ‖u n‖ ≤ Real.sqrt B :=
+      norm_le_sqrt_of_weightedMass_le (I := I) (M := M) (u n) (humass n)
+    have hl : ‖ulim‖ ≤ Real.sqrt B :=
+      norm_le_sqrt_of_weightedMass_le (I := I) (M := M) ulim hlmass
+    calc ‖d n‖ = ‖u n - ulim‖ := by rw [hd_def]
+      _ ≤ ‖u n‖ + ‖ulim‖ := norm_sub_le _ _
+      _ ≤ Real.sqrt B + Real.sqrt B := add_le_add hu hl
+      _ = 2 * Real.sqrt B := by ring
+  have hlow : _root_.Filter.Tendsto (fun n =>
+      ‖tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+        (hσσ'.trans hσ'σ''.le) (d n)‖) _root_.Filter.atTop (𝓝 0) := by
+    have hsub : _root_.Filter.Tendsto (fun n =>
+        tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          (hσσ'.trans hσ'σ''.le) (u n) -
+        tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+          (hσσ'.trans hσ'σ''.le) ulim) _root_.Filter.atTop (𝓝 0) :=
+      tendsto_sub_nhds_zero_iff.mpr hconv
+    have heq : ∀ n,
+        tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+            (hσσ'.trans hσ'σ''.le) (u n) -
+          tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+            (hσσ'.trans hσ'σ''.le) ulim =
+          tensorHsInclusion (I := I) (M := M) (g := g) (r := r) (s := s)
+            (hσσ'.trans hσ'σ''.le) (d n) := by
+      intro n; rw [hd_def, map_sub]
+    rw [tendsto_zero_iff_norm_tendsto_zero] at hsub
+    exact hsub.congr (fun n => by rw [heq n])
+  exact tensorHs_norm_tendsto_zero_of_low_tendsto_of_uniform (I := I) (M := M)
+    hσσ' hσ'σ'' d (by positivity) hCbd hlow
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_tendsto_of_tendsto_of_uniform_weightedMass then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_tendsto_of_tendsto_of_uniform_weightedMass"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_tendsto_of_tendsto_of_uniform_weightedMass ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.tensorHs_tendsto_of_tendsto_of_uniform_weightedMass
+
+end TensorHeatEquation
+end Parabolic
+end Analysis
+end DifferentialGeometry

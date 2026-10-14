@@ -1,0 +1,432 @@
+import Submission.DifferentialGeometry.Geometry.Geodesic.Equation.Basic
+import Submission.DifferentialGeometry.Geometry.Connection.MetricCompatibility.Chart.GramChristoffel
+import Submission.DifferentialGeometry.Analysis.Integration.Measure.Riemannian.Invariance
+import Mathlib.Geometry.Manifold.IsManifold.ExtChartAt
+import Mathlib.Analysis.Calculus.FDeriv.Basic
+import Mathlib.Analysis.Calculus.ContDiff.FiniteDimension
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+noncomputable section
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Set _root_.MeasureTheory
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+
+namespace DifferentialGeometry
+namespace Geometry
+namespace Riemannian
+namespace Geodesic
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [Module.Finite ℝ E]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+
+def chartTransitionSource (α β : M) : Set E :=
+  ((extChartAt I α).symm ≫ extChartAt I β).source
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionSource_def (α β : M) :
+    chartTransitionSource (I := I) α β =
+      ((extChartAt I α).symm ≫ extChartAt I β).source := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_def then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_def"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_def ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_def
+
+def chartTransitionMap (α β : M) : E → E :=
+  extChartAt I β ∘ (extChartAt I α).symm
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_def (α β : M) :
+    chartTransitionMap (I := I) α β =
+      extChartAt I β ∘ (extChartAt I α).symm := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_def then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_def"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_def ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_def
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_apply (α β : M) (x : E) :
+    chartTransitionMap (I := I) α β x =
+      extChartAt I β ((extChartAt I α).symm x) := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_apply_extChartAt
+    (α β : M) {x : M} (hx_α : x ∈ (chartAt H α).source) :
+    chartTransitionMap (I := I) α β ((extChartAt I α) x) = extChartAt I β x := by
+  unfold chartTransitionMap
+  have hx_source : x ∈ (extChartAt I α).source := by
+    rw [extChartAt_source (I := I)]
+    exact hx_α
+  change extChartAt I β ((extChartAt I α).symm ((extChartAt I α) x)) = extChartAt I β x
+  rw [(extChartAt I α).left_inv hx_source]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply_extChartAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply_extChartAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply_extChartAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_apply_extChartAt
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionMap_contDiffOn (α β : M) :
+    ContDiffOn ℝ ∞ (chartTransitionMap (I := I) α β)
+      (chartTransitionSource (I := I) α β) := by
+  have h := (contDiffOn_ext_coord_change (I := I) (n := ∞) β α)
+  exact h
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffOn ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffOn
+
+omit [IsManifold I ∞ M] in
+omit [Module.Finite ℝ E] in
+lemma extChartAt_mem_chartTransitionSource
+    (α β : M) {x : M}
+    (hx_α : x ∈ (chartAt H α).source) (hx_β : x ∈ (chartAt H β).source) :
+    (extChartAt I α) x ∈ chartTransitionSource (I := I) α β := by
+  unfold chartTransitionSource
+  have hx_α_source : x ∈ (extChartAt I α).source := by
+    rw [extChartAt_source (I := I)]; exact hx_α
+  have hx_β_source : x ∈ (extChartAt I β).source := by
+    rw [extChartAt_source (I := I)]; exact hx_β
+  refine ⟨?_, ?_⟩
+  · exact (extChartAt I α).map_source hx_α_source
+  · have h_inv : (extChartAt I α).symm ((extChartAt I α) x) = x :=
+      (extChartAt I α).left_inv hx_α_source
+    change (extChartAt I α).symm ((extChartAt I α) x) ∈ (extChartAt I β).source
+    rw [h_inv]
+    exact hx_β_source
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.extChartAt_mem_chartTransitionSource then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.extChartAt_mem_chartTransitionSource"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.extChartAt_mem_chartTransitionSource ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.extChartAt_mem_chartTransitionSource
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+theorem chartTransitionSource_isOpen [I.Boundaryless] (α β : M) :
+    IsOpen (chartTransitionSource (I := I) α β) := by
+  unfold chartTransitionSource
+  have : ((extChartAt I α).symm ≫ extChartAt I β).source =
+      ((chartAt H α).extend I).symm.source ∩
+        ((chartAt H α).extend I).symm ⁻¹' ((chartAt H β).extend I).source := by
+    rfl
+  rw [this]
+  have h1 : IsOpen (((chartAt H α).extend I).symm.source) := by
+    change IsOpen ((chartAt H α).extend I).target
+    exact (chartAt H α).isOpen_extend_target (I := I)
+  have h2_cont : ContinuousOn ((chartAt H α).extend I).symm
+      ((chartAt H α).extend I).symm.source := by
+    change ContinuousOn ((chartAt H α).extend I).symm ((chartAt H α).extend I).target
+    exact (chartAt H α).continuousOn_extend_symm (I := I)
+  have h3 : IsOpen ((chartAt H β).extend I).source :=
+    (chartAt H β).isOpen_extend_source (I := I)
+  exact h2_cont.isOpen_inter_preimage h1 h3
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_isOpen then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_isOpen"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_isOpen ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionSource_isOpen
+
+def chartTransitionAt (α β : M) (x : E) : E →L[ℝ] E :=
+  fderiv ℝ (chartTransitionMap (I := I) α β) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionAt_def (α β : M) (x : E) :
+    chartTransitionAt (I := I) α β x =
+      fderiv ℝ (chartTransitionMap (I := I) α β) x := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_def then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_def"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_def ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_def
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionMap_contDiffAt [I.Boundaryless]
+    (α β : M) {x : E}
+    (hx : x ∈ chartTransitionSource (I := I) α β) :
+    ContDiffAt ℝ ∞ (chartTransitionMap (I := I) α β) x := by
+  have h_open : IsOpen (chartTransitionSource (I := I) α β) :=
+    chartTransitionSource_isOpen (I := I) α β
+  have h_on : ContDiffOn ℝ ∞ (chartTransitionMap (I := I) α β)
+      (chartTransitionSource (I := I) α β) :=
+    chartTransitionMap_contDiffOn (I := I) α β
+  exact (h_on.contDiffAt (h_open.mem_nhds hx))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_contDiffAt
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionMap_differentiableAt [I.Boundaryless]
+    (α β : M) {x : E}
+    (hx : x ∈ chartTransitionSource (I := I) α β) :
+    DifferentiableAt ℝ (chartTransitionMap (I := I) α β) x :=
+  (chartTransitionMap_contDiffAt (I := I) α β hx).differentiableAt (by
+    decide)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_differentiableAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_differentiableAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_differentiableAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_differentiableAt
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionAt_smooth [I.Boundaryless] (α β : M) :
+    ContDiffOn ℝ ∞
+      (fun x => (chartTransitionAt (I := I) α β x : E →L[ℝ] E))
+      (chartTransitionSource (I := I) α β) := by
+  have h_open : IsOpen (chartTransitionSource (I := I) α β) :=
+    chartTransitionSource_isOpen (I := I) α β
+  have h_smooth :
+      ContDiffOn ℝ ∞ (chartTransitionMap (I := I) α β)
+        (chartTransitionSource (I := I) α β) :=
+    chartTransitionMap_contDiffOn (I := I) α β
+  have h_top : (∞ + 1) ≤ ∞ := by
+    simp
+  refine h_smooth.fderiv_of_isOpen h_open ?_
+  exact h_top
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_smooth then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_smooth"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_smooth ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_smooth
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+@[simp] lemma chartTransitionAt_apply_eq_fderiv (α β : M) (x : E) (v : E) :
+    chartTransitionAt (I := I) α β x v =
+      fderiv ℝ (chartTransitionMap (I := I) α β) x v := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_apply_eq_fderiv then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_apply_eq_fderiv"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_apply_eq_fderiv ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_apply_eq_fderiv
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_self_apply
+    (α : M) {x : E}
+    (hx : x ∈ (extChartAt I α).target) :
+    chartTransitionMap (I := I) α α x = x := by
+  unfold chartTransitionMap
+  change extChartAt I α ((extChartAt I α).symm x) = x
+  exact (extChartAt I α).right_inv hx
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_self_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_self_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_self_apply ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_self_apply
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_value_on_overlap
+    (α β : M) {x : M}
+    (hx_α : x ∈ (chartAt H α).source) :
+    chartTransitionMap (I := I) α β ((extChartAt I α) x) = extChartAt I β x :=
+  chartTransitionMap_apply_extChartAt (I := I) α β hx_α
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_value_on_overlap then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_value_on_overlap"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_value_on_overlap ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_value_on_overlap
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionMap_continuousOn (α β : M) :
+    ContinuousOn (chartTransitionMap (I := I) α β)
+      (chartTransitionSource (I := I) α β) :=
+  (chartTransitionMap_contDiffOn (I := I) α β).continuousOn
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousOn ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousOn
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionMap_continuousAt [I.Boundaryless]
+    (α β : M) {x : E}
+    (hx : x ∈ chartTransitionSource (I := I) α β) :
+    ContinuousAt (chartTransitionMap (I := I) α β) x := by
+  have h_open : IsOpen (chartTransitionSource (I := I) α β) :=
+    chartTransitionSource_isOpen (I := I) α β
+  exact (chartTransitionMap_continuousOn (I := I) α β).continuousAt (h_open.mem_nhds hx)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_continuousAt
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_comp_self_extChartAt
+    (α β : M) {p : M}
+    (hp_α : p ∈ (chartAt H α).source)
+    (hp_β : p ∈ (chartAt H β).source) :
+    chartTransitionMap (I := I) β α
+        (chartTransitionMap (I := I) α β ((extChartAt I α) p)) =
+      (extChartAt I α) p := by
+  have h1 : chartTransitionMap (I := I) α β ((extChartAt I α) p) =
+      extChartAt I β p :=
+    chartTransitionMap_apply_extChartAt (I := I) α β hp_α
+  rw [h1]
+  exact chartTransitionMap_apply_extChartAt (I := I) β α hp_β
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_extChartAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_extChartAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_extChartAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_extChartAt
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_comp_self_of_mem_source
+    (α β : M) {y : E} (hy : y ∈ chartTransitionSource (I := I) α β) :
+    chartTransitionMap (I := I) β α (chartTransitionMap (I := I) α β y) = y := by
+  obtain ⟨hy_target, hy_pre⟩ := hy
+  have hy_pre' : (extChartAt I α).symm y ∈ (extChartAt I β).source := hy_pre
+  change extChartAt I α
+      ((extChartAt I β).symm (extChartAt I β ((extChartAt I α).symm y))) = y
+  rw [(extChartAt I β).left_inv hy_pre']
+  exact (extChartAt I α).right_inv hy_target
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_of_mem_source then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_of_mem_source"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_of_mem_source ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_comp_self_of_mem_source
+
+omit [Module.Finite ℝ E] [IsManifold I ∞ M] in
+lemma chartTransitionMap_mapsTo_source
+    (α β : M) :
+    Set.MapsTo (chartTransitionMap (I := I) α β)
+      (chartTransitionSource (I := I) α β)
+      (chartTransitionSource (I := I) β α) := by
+  intro y hy
+  obtain ⟨hy_target, hy_pre⟩ := hy
+  have hy_pre' : (extChartAt I α).symm y ∈ (extChartAt I β).source := hy_pre
+  refine ⟨?_, ?_⟩
+  · change extChartAt I β ((extChartAt I α).symm y) ∈ (extChartAt I β).target
+    exact (extChartAt I β).map_source hy_pre'
+  · change (extChartAt I β).symm
+        (extChartAt I β ((extChartAt I α).symm y)) ∈ (extChartAt I α).source
+    rw [(extChartAt I β).left_inv hy_pre']
+    exact (extChartAt I α).map_target hy_target
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_mapsTo_source then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_mapsTo_source"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_mapsTo_source ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionMap_mapsTo_source
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionAt_comp_chartTransitionAt [I.Boundaryless]
+    (α β : M) {y : E} (hy : y ∈ chartTransitionSource (I := I) α β) :
+    (chartTransitionAt (I := I) β α (chartTransitionMap (I := I) α β y)).comp
+        (chartTransitionAt (I := I) α β y) =
+      ContinuousLinearMap.id ℝ E := by
+  classical
+  have h_open : IsOpen (chartTransitionSource (I := I) α β) :=
+    chartTransitionSource_isOpen (I := I) α β
+  have h_nhds : chartTransitionSource (I := I) α β ∈ nhds y :=
+    h_open.mem_nhds hy
+  have h_eq : (chartTransitionMap (I := I) β α ∘ chartTransitionMap (I := I) α β)
+      =ᶠ[nhds y] id := by
+    filter_upwards [h_nhds] with z hz
+    simp only [Function.comp_apply, id_eq]
+    exact chartTransitionMap_comp_self_of_mem_source (I := I) α β hz
+  have hdiff_f : DifferentiableAt ℝ (chartTransitionMap (I := I) α β) y :=
+    chartTransitionMap_differentiableAt (I := I) α β hy
+  have hy' : chartTransitionMap (I := I) α β y ∈ chartTransitionSource (I := I) β α :=
+    chartTransitionMap_mapsTo_source (I := I) α β hy
+  have hdiff_g : DifferentiableAt ℝ (chartTransitionMap (I := I) β α)
+      (chartTransitionMap (I := I) α β y) :=
+    chartTransitionMap_differentiableAt (I := I) β α hy'
+  have h_fderiv_comp :
+      fderiv ℝ (chartTransitionMap (I := I) β α ∘ chartTransitionMap (I := I) α β) y =
+        (fderiv ℝ (chartTransitionMap (I := I) β α)
+            (chartTransitionMap (I := I) α β y)).comp
+          (fderiv ℝ (chartTransitionMap (I := I) α β) y) :=
+    fderiv_comp y hdiff_g hdiff_f
+  have h_fderiv_id : fderiv ℝ (id : E → E) y = ContinuousLinearMap.id ℝ E :=
+    fderiv_id
+  have h_chain : fderiv ℝ
+      (chartTransitionMap (I := I) β α ∘ chartTransitionMap (I := I) α β) y =
+      ContinuousLinearMap.id ℝ E := by
+    rw [h_eq.fderiv_eq, h_fderiv_id]
+  rw [chartTransitionAt_def, chartTransitionAt_def]
+  rw [← h_fderiv_comp, h_chain]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_comp_chartTransitionAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_comp_chartTransitionAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_comp_chartTransitionAt ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_comp_chartTransitionAt
+
+omit [Module.Finite ℝ E] in
+theorem chartTransitionAt_reverse_comp [I.Boundaryless]
+    (α β : M) {y : E} (hy : y ∈ chartTransitionSource (I := I) α β) :
+    (chartTransitionAt (I := I) α β y).comp
+        (chartTransitionAt (I := I) β α (chartTransitionMap (I := I) α β y)) =
+      ContinuousLinearMap.id ℝ E := by
+  have hy' : chartTransitionMap (I := I) α β y ∈ chartTransitionSource (I := I) β α :=
+    chartTransitionMap_mapsTo_source (I := I) α β hy
+  have hback : chartTransitionMap (I := I) β α (chartTransitionMap (I := I) α β y) = y :=
+    chartTransitionMap_comp_self_of_mem_source (I := I) α β hy
+  have h := chartTransitionAt_comp_chartTransitionAt (I := I) β α hy'
+  rw [hback] at h
+  exact h
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_reverse_comp then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_reverse_comp"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_reverse_comp ``Submission.DifferentialGeometry.Geometry.Riemannian.Geodesic.chartTransitionAt_reverse_comp
+
+end Geodesic
+end Riemannian
+end Geometry
+end DifferentialGeometry

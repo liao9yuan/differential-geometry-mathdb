@@ -1,0 +1,112 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.ShortTime.DeTurck.Existence
+import Submission.DifferentialGeometry.Geometry.Metric.DeTurck.VectorField
+import Submission.DifferentialGeometry.Geometry.Metric.DeTurck.Smoothness
+import Submission.DifferentialGeometry.Analysis.Parabolic.DeTurckRicci.VectorField.MetricContinuity
+import Submission.DifferentialGeometry.Geometry.Metric.DeTurck.Coordinates.Formula
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+
+
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+namespace DifferentialGeometry.PDE.RicciFlow
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Set
+open scoped _root_.Manifold _root_.ContDiff
+open _root_.Submission.DifferentialGeometry.PDE.DeTurck
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [CompactSpace M] [BoundarylessManifold I M] [T2Space M] [SigmaCompactSpace M]
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+theorem deturck_vf_time_family_smoothness
+    (g_bg : SmoothRiemannianMetric I M)
+    (T : ℝ) (g_DT : ℝ → SmoothRiemannianMetric I M)
+    (h_metric_cont : ∀ x : M, ∀ v w : TangentSpace I x,
+      ContinuousOn (fun t : ℝ => (g_DT t).inner x v w)
+        (Set.Ico (0 : ℝ) T))
+    (h_metric_partial_cont :
+      ∀ (x : M) (l i j : Fin (Module.finrank ℝ E)),
+        ContinuousOn
+          (fun t : ℝ =>
+            DifferentialGeometry.Tensor.Coordinates.partialDeriv (E := E) l
+              (chartGramOnE (I := I) (g_DT t) x i j) (extChartAt I x x))
+          (Set.Ico (0 : ℝ) T)) :
+    ∀ x : M,
+      ContinuousOn
+        (fun t : ℝ =>
+          (deTurckVF (I := I) (g_DT t) g_bg :
+            Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) x)
+        (Set.Ico (0 : ℝ) T) := by
+  intro x
+  have hrewrite : (fun t : ℝ =>
+        (deTurckVF (I := I) (g_DT t) g_bg :
+          Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) x) =
+      fun t : ℝ =>
+        ∑ p : Fin (Module.finrank ℝ E),
+          DeTurckLinearization.chartDeTurckVFComp (I := I) (g_DT t) g_bg x p
+              (extChartAt I x x) •
+            DifferentialGeometry.Tensor.Coordinates.centeredChartTangentBasis (I := I) x p := by
+    funext t
+    exact deTurckVF_apply_eq_chartDeTurckVFComp_sum_self (I := I) (g_DT t) g_bg x
+  rw [hrewrite]
+  refine continuousOn_finsetSum _ ?_
+  intro p _
+  refine ContinuousOn.smul ?_ continuousOn_const
+  have h_entry : ∀ i j : Fin (Module.finrank ℝ E),
+      ContinuousOn
+        (fun t : ℝ =>
+          chartGramOnE (I := I) (g_DT t) x i j (extChartAt I x x))
+        (Set.Ico (0 : ℝ) T) := by
+    intro i j
+    have hreduce :
+        (fun t : ℝ =>
+            chartGramOnE (I := I) (g_DT t) x i j (extChartAt I x x))
+          = fun t : ℝ =>
+              (g_DT t).inner x
+                (DifferentialGeometry.Tensor.Coordinates.centeredChartTangentBasis (I := I) x i)
+                (DifferentialGeometry.Tensor.Coordinates.centeredChartTangentBasis (I := I) x j) := by
+      funext t
+      rw [chartGramOnE_def]
+      rw [extChartAt_to_inv (I := I) x]
+      rw [DifferentialGeometry.Tensor.Coordinates.chartGramMatrix_apply]
+      rw [chartBasisVecFiber_self (I := I) x i,
+          chartBasisVecFiber_self (I := I) x j]
+    rw [hreduce]
+    exact h_metric_cont x (DifferentialGeometry.Tensor.Coordinates.centeredChartTangentBasis (I := I) x i)
+      (DifferentialGeometry.Tensor.Coordinates.centeredChartTangentBasis (I := I) x j)
+  have h_partial : ∀ l i j : Fin (Module.finrank ℝ E),
+      ContinuousOn
+        (fun t : ℝ =>
+          DifferentialGeometry.Tensor.Coordinates.partialDeriv (E := E) l (chartGramOnE (I := I) (g_DT t) x i j)
+            (extChartAt I x x))
+        (Set.Ico (0 : ℝ) T) := h_metric_partial_cont x
+  have hx_base : ((extChartAt I x).symm (extChartAt I x x)) ∈
+      (_root_.FiberBundle.trivializationAt E (TangentSpace I) x).baseSet := by
+    rw [extChartAt_to_inv (I := I) x]
+    rw [trivializationAt_baseSet_eq_chartAt_source]
+    exact mem_chart_source H x
+  exact chartDeTurckVFComp_continuous_in_metric_at (I := I) g_bg x
+    (extChartAt I x x) (Set.Ico (0 : ℝ) T) g_DT h_entry h_partial hx_base p
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.deturck_vf_time_family_smoothness then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.deturck_vf_time_family_smoothness"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.deturck_vf_time_family_smoothness ``Submission.DifferentialGeometry.PDE.RicciFlow.deturck_vf_time_family_smoothness
+
+end DifferentialGeometry.PDE.RicciFlow

@@ -1,0 +1,189 @@
+import Submission.DifferentialGeometry.Analysis.Spectral.Intrinsic.HeatSemigroup.Regularity.ParabolicInteriorSmoothing
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+noncomputable section
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.MeasureTheory _root_.Submission.MeasureTheory _root_.Set _root_.Filter
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.ENNReal _root_.BigOperators
+  RealInnerProductSpace InnerProductSpace
+
+namespace DifferentialGeometry
+namespace Analysis
+namespace Spectral
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E] [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [CompactSpace M] [I.Boundaryless] [T2Space M] [SigmaCompactSpace M]
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.L2
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TimeSobolev
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.MaximalRegularity
+
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Spectral.instMeasurableSpace_differentialGeometry : MeasurableSpace E := borel E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Spectral.instMeasurableSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Spectral.instMeasurableSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Spectral.instBorelSpace_differentialGeometry : BorelSpace E := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Spectral.instBorelSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Spectral.instBorelSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Spectral.instMeasurableSpace_differentialGeometry_1 : MeasurableSpace M := borel M
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Spectral.instMeasurableSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Spectral.instMeasurableSpace_differentialGeometry_1 target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Spectral.instBorelSpace_differentialGeometry_1 : BorelSpace M := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Spectral.instBorelSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Spectral.instBorelSpace_differentialGeometry_1 target :: scope.openDecls } }
+
+variable {g : SmoothRiemannianMetric I M} {r s : ℕ} {a : ℝ} {T : ℝ}
+
+omit [NeZero (Module.finrank ℝ E)] in
+private theorem forcingMass_summable_of_couple (hT : 0 ≤ T)
+    (f : timeL2 (TensorHs (I := I) (M := M) g r s a) T) {b : ℝ}
+    (hcouple : ∀ d : ℝ,
+      Summable (solutionFieldMass (I := I) (M := M) hT f (d + 1)) →
+        Summable (forcingMass (I := I) (M := M) f d))
+    (hbase : Summable (solutionFieldMass (I := I) (M := M) hT f b)) (σ : ℝ) :
+    Summable (forcingMass (I := I) (M := M) f σ) :=
+  hcouple σ
+    (solutionFieldMass_summable_all (I := I) (M := M) hT f hcouple hbase (σ + 1))
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Spectral.forcingMass_summable_of_couple
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Spectral.forcingMass_summable_of_couple target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] in
+private theorem weighted_perModeConvolution_sq_le (hT : 0 ≤ T)
+    (f : timeL2 (TensorHs (I := I) (M := M) g r s a) T) (σ : ℝ)
+    (i : TensorEigenIdx (I := I) (M := M) g r s) {t : ℝ}
+    (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    tensorSobolevWeight (I := I) (M := M) i σ *
+        (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 ≤
+      T * forcingMass (I := I) (M := M) f σ i := by
+  set lam := TensorEigenIdx.lambda (I := I) (M := M) i with hlam_def
+  have hlam_nn : 0 ≤ lam := tensor_lambda_nonneg (I := I) (M := M) i
+  have hwt_nn : 0 ≤ tensorSobolevWeight (I := I) (M := M) i σ :=
+    tensorSobolevWeight_nonneg (I := I) (M := M) i σ
+  have habs := abs_perModeConvolution_timeL2_le lam hlam_nn
+    (timeModeCoeff (I := I) (M := M) f i) ht
+  have hconv_sq :
+      (perModeConvolution lam
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 ≤
+        T * ‖timeModeCoeff (I := I) (M := M) f i‖ ^ 2 := by
+    have hsq : (perModeConvolution lam
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 ≤
+        (Real.sqrt T * ‖timeModeCoeff (I := I) (M := M) f i‖) ^ 2 := by
+      have habs_nn : 0 ≤ |perModeConvolution lam
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t| := abs_nonneg _
+      have hrhs_nn : 0 ≤ Real.sqrt T * ‖timeModeCoeff (I := I) (M := M) f i‖ :=
+        mul_nonneg (Real.sqrt_nonneg _) (norm_nonneg _)
+      have hbase :
+          (perModeConvolution lam
+            (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 =
+            |perModeConvolution lam
+              (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t| ^ 2 := by
+        rw [sq_abs]
+      rw [hbase]
+      exact pow_le_pow_left₀ habs_nn habs 2
+    calc (perModeConvolution lam
+            (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2
+        ≤ (Real.sqrt T * ‖timeModeCoeff (I := I) (M := M) f i‖) ^ 2 := hsq
+      _ = T * ‖timeModeCoeff (I := I) (M := M) f i‖ ^ 2 := by
+          rw [mul_pow, Real.sq_sqrt hT]
+  calc tensorSobolevWeight (I := I) (M := M) i σ *
+          (perModeConvolution lam
+            (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2
+      ≤ tensorSobolevWeight (I := I) (M := M) i σ *
+          (T * ‖timeModeCoeff (I := I) (M := M) f i‖ ^ 2) :=
+        mul_le_mul_of_nonneg_left hconv_sq hwt_nn
+    _ = T * (tensorSobolevWeight (I := I) (M := M) i σ *
+          ‖timeModeCoeff (I := I) (M := M) f i‖ ^ 2) := by ring
+    _ = T * forcingMass (I := I) (M := M) f σ i := by rw [forcingMass]
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Spectral.weighted_perModeConvolution_sq_le
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Spectral.weighted_perModeConvolution_sq_le target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] in
+theorem spectralMass_sup_le_of_timeL2_allHs (hT : 0 < T)
+    (f : timeL2 (TensorHs (I := I) (M := M) g r s a) T) {b : ℝ}
+    (hcouple : ∀ d : ℝ,
+      Summable (solutionFieldMass (I := I) (M := M) hT.le f (d + 1)) →
+        Summable (forcingMass (I := I) (M := M) f d))
+    (hbase : Summable (solutionFieldMass (I := I) (M := M) hT.le f b)) :
+    ∀ σ : ℝ, ∃ C : ℝ, ∀ t ∈ Set.Icc (0 : ℝ) T,
+      Summable (fun i => tensorSobolevWeight (I := I) (M := M) i σ *
+          (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+            (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2) ∧
+        ∑' i, tensorSobolevWeight (I := I) (M := M) i σ *
+            (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+              (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 ≤ C := by
+  intro σ
+  have hforce : Summable (forcingMass (I := I) (M := M) f σ) :=
+    forcingMass_summable_of_couple (I := I) (M := M) hT.le f hcouple hbase σ
+  have hmaj : Summable (fun i => T * forcingMass (I := I) (M := M) f σ i) :=
+    hforce.mul_left T
+  refine ⟨T * ∑' i, forcingMass (I := I) (M := M) f σ i, fun t ht => ?_⟩
+  have hle : ∀ i, tensorSobolevWeight (I := I) (M := M) i σ *
+        (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 ≤
+      T * forcingMass (I := I) (M := M) f σ i :=
+    fun i => weighted_perModeConvolution_sq_le (I := I) (M := M) hT.le f σ i ht
+  have hnn : ∀ i, 0 ≤ tensorSobolevWeight (I := I) (M := M) i σ *
+        (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2 :=
+    fun i => mul_nonneg (tensorSobolevWeight_nonneg (I := I) (M := M) i σ) (sq_nonneg _)
+  have hsum : Summable (fun i => tensorSobolevWeight (I := I) (M := M) i σ *
+        (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2) :=
+    Summable.of_nonneg_of_le hnn hle hmaj
+  refine ⟨hsum, ?_⟩
+  calc ∑' i, tensorSobolevWeight (I := I) (M := M) i σ *
+        (perModeConvolution (TensorEigenIdx.lambda (I := I) (M := M) i)
+          (fun u => (timeModeCoeff (I := I) (M := M) f i) u) t) ^ 2
+      ≤ ∑' i, T * forcingMass (I := I) (M := M) f σ i :=
+        hsum.tsum_le_tsum hle hmaj
+    _ = T * ∑' i, forcingMass (I := I) (M := M) f σ i := by
+        rw [tsum_mul_left]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Spectral.spectralMass_sup_le_of_timeL2_allHs then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Spectral.spectralMass_sup_le_of_timeL2_allHs"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Spectral.spectralMass_sup_le_of_timeL2_allHs ``Submission.DifferentialGeometry.Analysis.Spectral.spectralMass_sup_le_of_timeL2_allHs
+
+end Spectral
+end Analysis
+end DifferentialGeometry
+
+end

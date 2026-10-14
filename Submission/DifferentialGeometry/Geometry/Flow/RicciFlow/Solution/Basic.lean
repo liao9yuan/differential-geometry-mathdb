@@ -1,0 +1,1366 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Solution.Defs
+import Submission.DifferentialGeometry.Geometry.Curvature.Metric.Defs
+import Submission.DifferentialGeometry.Geometry.Curvature.Metric.LeviCivita
+import Submission.DifferentialGeometry.Geometry.Metric.Completeness
+import Submission.DifferentialGeometry.Geometry.Coordinates.MetricCompatibility.Inverse
+import Submission.DifferentialGeometry.Geometry.Coordinates.MetricCompatibility.Covariant
+import Submission.DifferentialGeometry.Geometry.Coordinates.MetricCompatibility.Coordinate
+import Submission.DifferentialGeometry.Geometry.Curvature.Riemann.Basic.Field
+import Submission.DifferentialGeometry.Geometry.Curvature.Riemann.Basic.Pointwise
+import Submission.DifferentialGeometry.Geometry.Curvature.Riemann.Basic.Sections
+import Submission.DifferentialGeometry.Geometry.Curvature.Bochner.Tensor.Basic
+import Submission.DifferentialGeometry.Geometry.Curvature.Sections.Connection
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Smooth.MetricFlatBasis
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Smooth.CovariantDerivative
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Smooth.MetricCoord
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Smooth.Model
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Smooth.Christoffel
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Characterization.Torsion
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+
+set_option autoImplicit false
+
+noncomputable section
+
+namespace DifferentialGeometry.PDE.RicciFlow
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open scoped _root_.Manifold _root_.ContDiff _root_.BigOperators
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+variable [IsManifold I 1 M]
+
+abbrev RicciSectionFamily : Type _ :=
+  Real -> DifferentialGeometry.Geometry.Curvature.Tensor02Section (I := I) (M := M)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily ``Submission.DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily
+
+abbrev RicciAtFamily : Type _ :=
+  Real -> (x : M) -> DifferentialGeometry.Geometry.Curvature.Tensor02At (I := I) (M := M) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.RicciAtFamily then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.RicciAtFamily"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.RicciAtFamily ``Submission.DifferentialGeometry.PDE.RicciFlow.RicciAtFamily
+
+namespace RicciAtFamily
+
+def toTensorField (Ric : RicciAtFamily (I := I) (M := M)) :
+    DifferentialGeometry.PDE.RicciFlow.RicciTensorField (I := I) (M := M) Real :=
+  fun t x X Y => Ric t x (DifferentialGeometry.Geometry.Curvature.vec2 X Y)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField ``Submission.DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField
+
+omit [FiniteDimensional ℝ E] [IsManifold I 1 M] in
+@[simp] theorem toTensorField_apply
+    (Ric : RicciAtFamily (I := I) (M := M))
+    (t : Real) (x : M) (X Y : TangentSpace I x) :
+    toTensorField (I := I) Ric t x X Y =
+      Ric t x (DifferentialGeometry.Geometry.Curvature.vec2 X Y) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField_apply ``Submission.DifferentialGeometry.PDE.RicciFlow.RicciAtFamily.toTensorField_apply
+
+end RicciAtFamily
+
+namespace RicciSectionFamily
+
+def toTensorField (Ric : RicciSectionFamily (I := I) (M := M)) :
+    DifferentialGeometry.PDE.RicciFlow.RicciTensorField (I := I) (M := M) Real :=
+  fun t x X Y => Ric t x (DifferentialGeometry.Geometry.Curvature.vec2 X Y)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField ``Submission.DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField
+
+omit [IsManifold I 1 M] in
+@[simp] theorem toTensorField_apply
+    (Ric : RicciSectionFamily (I := I) (M := M))
+    (t : Real) (x : M) (X Y : TangentSpace I x) :
+    toTensorField (I := I) Ric t x X Y =
+      Ric t x (DifferentialGeometry.Geometry.Curvature.vec2 X Y) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField_apply ``Submission.DifferentialGeometry.PDE.RicciFlow.RicciSectionFamily.toTensorField_apply
+
+end RicciSectionFamily
+
+variable [CompleteSpace E] [SigmaCompactSpace M] [T2Space M]
+
+structure SolutionFamily where
+  metric : Real -> SmoothRiemannianMetric I M
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily
+
+namespace SolutionFamily
+
+def timeShift
+    (G : SolutionFamily (I := I) (M := M)) (τ : Real) :
+    SolutionFamily (I := I) (M := M) where
+  metric := fun s => G.metric (s + τ)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift
+
+omit [FiniteDimensional ℝ E] [IsManifold I 1 M] [CompleteSpace E] [SigmaCompactSpace M]
+    [T2Space M] in
+@[simp] theorem timeShift_metric
+    (G : SolutionFamily (I := I) (M := M)) (τ s : Real) :
+    (G.timeShift τ).metric s = G.metric (s + τ) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift_metric then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift_metric"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift_metric ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.timeShift_metric
+
+
+noncomputable def connection
+    (G : SolutionFamily (I := I) (M := M)) :
+    Real -> CovariantDerivative I E (TangentSpace I : M -> Type _) :=
+  fun t => DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric (I := I)
+             (G.metric t)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.connection then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.connection"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.connection ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.connection
+
+
+noncomputable def rm13At
+    (G : SolutionFamily (I := I) (M := M)) :
+    Real -> (x : M) -> DifferentialGeometry.Geometry.Curvature.Tensor13At (I := I) (M := M) x :=
+  fun t x => metricRm13At (I := I) (M := M) (G.metric t) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13At then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13At"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13At ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13At
+
+
+noncomputable def rm04At
+    (G : SolutionFamily (I := I) (M := M)) :
+    Real -> (x : M) -> DifferentialGeometry.Geometry.Curvature.Tensor04At (I := I) (M := M) x :=
+  fun t x => metricRm04At (I := I) (M := M) (G.metric t) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04At then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04At"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04At ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04At
+
+
+noncomputable def ricciAt
+    (G : SolutionFamily (I := I) (M := M)) :
+    RicciAtFamily (I := I) (M := M) :=
+  fun t x => metricRicciAt (I := I) (M := M) (G.metric t) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricciAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricciAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricciAt ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricciAt
+
+
+noncomputable def scalar
+    (G : SolutionFamily (I := I) (M := M)) :
+    Real -> M -> Real :=
+  fun t x => metricScalarAt (I := I) (M := M) (G.metric t) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar
+
+noncomputable def rm13
+    (G : SolutionFamily (I := I) (M := M)) :
+    Real -> DifferentialGeometry.Geometry.Curvature.Tensor13Section (I := I) (M := M) :=
+  fun t => metricRm13 (I := I) (M := M) (G.metric t)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13 then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13 ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm13
+
+
+noncomputable def rm04
+    (G : SolutionFamily (I := I) (M := M)) :
+    Real -> DifferentialGeometry.Geometry.Curvature.Tensor04Section (I := I) (M := M) :=
+  fun t => metricRm04 (I := I) (M := M) (G.metric t)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04 then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04 ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.rm04
+
+noncomputable def ricci
+    (G : SolutionFamily (I := I) (M := M)) :
+    RicciSectionFamily (I := I) (M := M) :=
+  fun t => metricRicci (I := I) (M := M) (G.metric t)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci
+
+omit [SigmaCompactSpace M] in
+@[simp] theorem ricci_apply
+    (G : SolutionFamily (I := I) (M := M))
+    (t : Real) (x : M) :
+    G.ricci t x = G.ricciAt t x := by
+  simp [ricci, ricciAt]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci_apply ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.ricci_apply
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem scalar_apply
+    (G : SolutionFamily (I := I) (M := M))
+    (t : Real) (x : M) :
+    G.scalar t x =
+      DifferentialGeometry.Geometry.Operator.metricTracePair0SAt (I := I) (G.metric t)
+        (G.ricciAt t x) := by
+  simp [scalar, metricScalarAt, DifferentialGeometry.Geometry.Curvature.metricScalarAt, ricciAt,
+    metricRicciAt]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar_apply ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.scalar_apply
+
+
+def MetricCompatibleOn
+    (G : SolutionFamily (I := I) (M := M))
+    (D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval) : Prop :=
+  forall t : DifferentialGeometry.Geometry.Curvature.RealTimeInterval.FlowTime D,
+    DifferentialGeometry.Geometry.Connection.IsMetricCompatible (I := I)
+      (G.connection (t : Real)) (G.metric (t : Real))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.MetricCompatibleOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionFamily.MetricCompatibleOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionFamily.MetricCompatibleOn ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionFamily.MetricCompatibleOn
+
+end SolutionFamily
+
+structure SolutionOn (D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval) where
+  base : SolutionFamily (I := I) (M := M)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn
+
+namespace SolutionOn
+
+def timeShift {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ : Real) :
+    SolutionOn (I := I) (M := M) (D.timeShift τ) where
+  base := S.base.timeShift τ
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift
+
+omit [FiniteDimensional ℝ E] [IsManifold I 1 M] [CompleteSpace E] [SigmaCompactSpace M]
+    [T2Space M] in
+@[simp] theorem timeShift_base {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ : Real) :
+    (S.timeShift τ).base = S.base.timeShift τ := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base
+
+omit [FiniteDimensional ℝ E] [IsManifold I 1 M] [CompleteSpace E] [SigmaCompactSpace M]
+    [T2Space M] in
+theorem timeShift_base_metric
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ s : Real) :
+    (S.timeShift τ).base.metric s = S.base.metric (s + τ) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base_metric then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base_metric"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base_metric ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_base_metric
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem metricCompatible {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.base.MetricCompatibleOn D := by
+  intro t
+  exact DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric_isMetricCompatible
+    (I := I) (S.base.metric (t : Real))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.metricCompatible then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.metricCompatible"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.metricCompatible ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.metricCompatible
+
+def family {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    DifferentialGeometry.Geometry.Curvature.MetricConnectionFamilyOn (I := I) (M := M) D where
+  metric := S.base.metric
+  connection := S.base.connection
+  metricCompatible := S.metricCompatible
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.family then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.family"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.family ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.family
+
+def ricci {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    RicciSectionFamily (I := I) (M := M) :=
+  S.base.ricci
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci
+
+
+def ricciAt {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    RicciAtFamily (I := I) (M := M) :=
+  S.base.ricciAt
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt
+
+
+def scalar {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    Real -> M -> Real :=
+  S.base.scalar
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem family_metric {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.family.metric = S.base.metric := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_metric then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_metric"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_metric ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_metric
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem family_connection {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.family.connection = S.base.connection := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_connection then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_connection"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_connection ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.family_connection
+
+omit [SigmaCompactSpace M] in
+@[simp] theorem ricci_eq {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.ricci = S.base.ricci := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci_eq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci_eq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci_eq ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricci_eq
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem ricciAt_eq {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.ricciAt = S.base.ricciAt := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt_eq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt_eq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt_eq ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.ricciAt_eq
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem scalar_eq {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.scalar = S.base.scalar := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem scalar_eq_metricTrace
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (t : Real) (x : M) :
+    S.scalar t x =
+      DifferentialGeometry.Geometry.Operator.metricTracePair0SAt (I := I) (S.family.metric t)
+        (S.ricciAt t x) := by
+  simp [scalar, SolutionFamily.scalar_apply]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq_metricTrace then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq_metricTrace"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq_metricTrace ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_eq_metricTrace
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem timeShift_family_metric
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ s : Real) :
+    (S.timeShift τ).family.metric s = S.family.metric (s + τ) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_family_metric then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_family_metric"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_family_metric ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_family_metric
+
+omit [SigmaCompactSpace M] in
+@[simp] theorem timeShift_ricci {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ s : Real) :
+    (S.timeShift τ).ricci s = S.ricci (s + τ) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricci then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricci"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricci ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricci
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem timeShift_ricciAt {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ s : Real) :
+    (S.timeShift τ).ricciAt s = S.ricciAt (s + τ) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricciAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricciAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricciAt ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_ricciAt
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem timeShift_scalar {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ s : Real) :
+    (S.timeShift τ).scalar s = S.scalar (s + τ) := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_scalar then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_scalar"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_scalar ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_scalar
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem timeShift_initial_metric {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) (τ : Real) :
+    (S.timeShift τ).family.metric ((D.timeShift τ).initial) =
+      S.family.metric D.initial := by
+  rw [timeShift_family_metric]
+  change S.family.metric (D.initial - τ + τ) = S.family.metric D.initial
+  rw [sub_add_cancel]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_initial_metric then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_initial_metric"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_initial_metric ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_initial_metric
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem timeShift_self_initial_metric
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    (S.timeShift D.initial).family.metric 0 = S.family.metric D.initial := by
+  simp
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_self_initial_metric then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_self_initial_metric"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_self_initial_metric ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.timeShift_self_initial_metric
+
+
+def toMetricEvolutionData {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    DifferentialGeometry.PDE.RicciFlow.MetricEvolutionDataOn (I := I) (M := M) D where
+  family := S.family
+  drivingTensor := RicciAtFamily.toTensorField (I := I) S.ricciAt
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData
+
+omit [SigmaCompactSpace M] [T2Space M] in
+@[simp] theorem toMetricEvolutionData_family
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    S.toMetricEvolutionData.family = S.family := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData_family then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData_family"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData_family ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.toMetricEvolutionData_family
+
+end SolutionOn
+
+def MetricVariationEquationOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) : Prop :=
+  DifferentialGeometry.PDE.RicciFlow.MetricConnectionFamilyVariationEquationOn (I := I) S.family
+    (RicciAtFamily.toTensorField (I := I) S.ricciAt)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.MetricVariationEquationOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.MetricVariationEquationOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.MetricVariationEquationOn ``Submission.DifferentialGeometry.PDE.RicciFlow.MetricVariationEquationOn
+
+
+def ricciNorm
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    Real -> M -> Real :=
+  fun t x => normSq0S (I := I) (S.family.metric t) x 2 (S.ricci t x)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ricciNorm then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ricciNorm"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ricciNorm ``Submission.DifferentialGeometry.PDE.RicciFlow.ricciNorm
+
+
+def ricciGradSq
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    Real -> M -> Real :=
+  fun t x =>
+    normSq0S (I := I) (S.family.metric t) x 3
+      (totalNabla0SFun (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        2 (S.family.connection t) (S.ricci t) x)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ricciGradSq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ricciGradSq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ricciGradSq ``Submission.DifferentialGeometry.PDE.RicciFlow.ricciGradSq
+
+def flowG
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    DifferentialGeometry.Geometry.Curvature.MetricConnectionFamily (I := I) (M := M) Real where
+  metric := S.base.metric
+  connection := S.base.connection
+  metricCompatible := by
+    intro t
+    simpa [SolutionFamily.connection] using
+      (DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric_isMetricCompatible
+        (I := I) (S.base.metric t))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.flowG then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.flowG"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.flowG ``Submission.DifferentialGeometry.PDE.RicciFlow.flowG
+
+
+def ricciNormLap
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    Real -> M -> Real :=
+  fun t x =>
+    DifferentialGeometry.Geometry.Curvature.laplacianAt (I := I) (flowG (I := I) S) t
+      (ricciNorm (I := I) S t) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ricciNormLap then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ricciNormLap"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ricciNormLap ``Submission.DifferentialGeometry.PDE.RicciFlow.ricciNormLap
+
+def ricciPair04 {x : M}
+    (Ric : DifferentialGeometry.Geometry.Curvature.Tensor02At (I := I) (M := M) x) :
+    DifferentialGeometry.Geometry.Curvature.Tensor04At (I := I) (M := M) x :=
+  (Tensor0SBundle.tensor0SSpaceFiberContinuousLinearEquiv
+      (𝕜 := Real) (E := E) (H := H) (I := I) (M := M) 4 x).symm
+    ((Bundle.continuousMultilinearMap.productFun
+        (𝕜 := Real) (B := M) (F := E) (E := TangentSpace I)
+        (s := 2) (q := 2) (x := x)
+        (Tensor0SBundle.tensor0SSpaceFiberContinuousLinearEquiv
+          (𝕜 := Real) (E := E) (H := H) (I := I) (M := M) 2 x Ric)
+        (Tensor0SBundle.tensor0SSpaceFiberContinuousLinearEquiv
+          (𝕜 := Real) (E := E) (H := H) (I := I) (M := M) 2 x Ric)).domDomCongr
+      (Equiv.swap (1 : Fin 4) (2 : Fin 4)))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ricciPair04 then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ricciPair04"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ricciPair04 ``Submission.DifferentialGeometry.PDE.RicciFlow.ricciPair04
+
+def ricciReact
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) : Real -> M -> Real :=
+  fun t x =>
+    -inner0S (I := I) (S.base.metric t) x 4 (S.base.rm04 t x)
+      (ricciPair04 (I := I) (S.ricciAt t x))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ricciReact then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ricciReact"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ricciReact ``Submission.DifferentialGeometry.PDE.RicciFlow.ricciReact
+
+structure IsSolutionOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) : Prop where
+  smoothMetric : DifferentialGeometry.Geometry.Curvature.MetricFamilySmoothOn (I := I) (M := M) D
+    S.family.metric
+  smoothConnection : DifferentialGeometry.Geometry.Connection.ConnectionFamilySmoothOn (I := I)
+    (M := M) S.family
+  equation : MetricVariationEquationOn (I := I) S
+  scalarCont : ContinuousOn (fun q : Real × M => S.scalar q.1 q.2)
+    (D.carrier ×ˢ (Set.univ : Set M))
+  scalarTime :
+    ∀ {K : Set Real} {t : Real}, t ∈ K -> K ⊆ D.carrier -> ∀ x : M,
+      DifferentiableWithinAt Real (fun s : Real => S.scalar s x) K t
+  ricciCont :
+    DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet (I := I) (M := M) 2
+      D.carrier
+      (fun t x => S.ricci t x)
+  rm04Cont :
+    DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet (I := I) (M := M) 4
+      D.carrier
+      (fun t x => S.base.rm04 t x)
+  ricciNormSpace :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDifferentiableAt I 𝓘(Real, Real) (ricciNorm (I := I) S t) x
+  ricciNormGrad :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (ricciNorm (I := I) S t) y) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.IsSolutionOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.IsSolutionOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.IsSolutionOn ``Submission.DifferentialGeometry.PDE.RicciFlow.IsSolutionOn
+
+namespace SolutionOn
+
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem leviCivita
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) :
+    DifferentialGeometry.Geometry.Connection.IsLeviCivitaFamilyOn (I := I) S.family := by
+  intro t
+  exact ⟨S.metricCompatible t,
+    DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric_isTorsionFree
+      (I := I) (S.base.metric (t : Real))⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.leviCivita then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.leviCivita"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.leviCivita ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.leviCivita
+
+end SolutionOn
+
+structure ScalarSTContOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) : Prop where
+  scalar_continuousOn : ContinuousOn (fun q : Real × M => S.scalar q.1 q.2)
+    (D.carrier ×ˢ (Set.univ : Set M))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn ``Submission.DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn
+
+namespace ScalarSTContOn
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem continuous_subtype
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    {S : SolutionOn (I := I) (M := M) D}
+    (hreg : ScalarSTContOn (I := I) (M := M) S) :
+    Continuous (fun q : {t : Real // t ∈ D.carrier} × M =>
+      S.scalar q.1.1 q.2) := by
+  have hmap : Continuous (fun q : {t : Real // t ∈ D.carrier} × M =>
+      ((q.1.1 : Real), q.2)) :=
+    (continuous_subtype_val.comp continuous_fst).prodMk continuous_snd
+  have hmem :
+      ∀ q : {t : Real // t ∈ D.carrier} × M,
+        ((q.1.1 : Real), q.2) ∈ D.carrier ×ˢ (Set.univ : Set M) := by
+    intro q
+    exact ⟨q.1.2, trivial⟩
+  have hcomp := hreg.scalar_continuousOn.comp_continuous hmap hmem
+  simpa [Function.comp_def] using hcomp
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn.continuous_subtype then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn.continuous_subtype"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn.continuous_subtype ``Submission.DifferentialGeometry.PDE.RicciFlow.ScalarSTContOn.continuous_subtype
+
+end ScalarSTContOn
+
+structure CanonicalScalarRegularOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) : Prop where
+  scalar_continuousOn : ContinuousOn (fun q : Real × M => S.scalar q.1 q.2)
+    (D.carrier ×ˢ (Set.univ : Set M))
+  scalar_time_within :
+    ∀ {K : Set Real} {t : Real}, t ∈ K -> K ⊆ D.carrier -> ∀ x : M,
+      DifferentiableWithinAt Real (fun s : Real => S.scalar s x) K t
+  scalar_space :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDifferentiableAt I 𝓘(Real, Real) (S.scalar t) x
+  scalar_grad :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (S.scalar t) y) x
+  scalar_mul_grad :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDiffAt (T% ((S.scalar t) • fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (S.scalar t) y)) x
+  scalar_sq_space :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDifferentiableAt I 𝓘(Real, Real)
+        (fun y : M => S.scalar t y ^ 2) x
+  scalar_sq_grad :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (fun z : M => S.scalar t z ^ 2) y) x
+  scalar_sq_div_space :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDifferentiableAt I 𝓘(Real, Real)
+        (fun y : M => S.scalar t y ^ 2 / 3) x
+  scalar_sq_div_grad :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (fun z : M => S.scalar t z ^ 2 / 3) y) x
+  scalar_grad_sub_const :
+    ∀ t : Real, t ∈ D.carrier -> ∀ c : Real, ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (fun z : M => S.scalar t z - c) y) x
+  scalar_grad_const_mul_sub_const :
+    ∀ t : Real, t ∈ D.carrier -> ∀ a c : Real, ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (fun z : M => a * (S.scalar t z - c)) y) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn ``Submission.DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn
+
+namespace CanonicalScalarRegularOn
+
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem toScalarSTCont
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    {S : SolutionOn (I := I) (M := M) D}
+    (hreg : CanonicalScalarRegularOn (I := I) (M := M) S) :
+    ScalarSTContOn (I := I) (M := M) S where
+  scalar_continuousOn := hreg.scalar_continuousOn
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn.toScalarSTCont then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn.toScalarSTCont"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn.toScalarSTCont ``Submission.DifferentialGeometry.PDE.RicciFlow.CanonicalScalarRegularOn.toScalarSTCont
+
+end CanonicalScalarRegularOn
+
+structure CanonicalRicciRegularOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D) : Prop where
+  ricci_cont :
+    DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet (I := I) (M := M) 2
+      D.carrier
+      (fun t x => S.ricci t x)
+  rm04_cont :
+    DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet (I := I) (M := M) 4
+      D.carrier
+      (fun t x => S.base.rm04 t x)
+  ricci_norm_space :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDifferentiableAt I 𝓘(Real, Real) (ricciNorm (I := I) S t) x
+  ricci_norm_grad :
+    ∀ t : Real, t ∈ D.carrier -> ∀ x : M,
+      MDiffAt (T% fun y : M =>
+        DifferentialGeometry.Geometry.Operator.gradientFun (I := I) (S.family.metric t)
+          (ricciNorm (I := I) S t) y) x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn ``Submission.DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn
+
+namespace CanonicalRicciRegularOn
+
+
+omit [SigmaCompactSpace M] in
+theorem ricciTensorFamilyContinuousOnSet
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    {S : SolutionOn (I := I) (M := M) D}
+    (hreg : CanonicalRicciRegularOn (I := I) (M := M) S) :
+    DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet (I := I) (M := M) 2
+      D.carrier
+      (fun t x => S.ricci t x) :=
+  hreg.ricci_cont
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.ricciTensorFamilyContinuousOnSet then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.ricciTensorFamilyContinuousOnSet"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.ricciTensorFamilyContinuousOnSet ``Submission.DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.ricciTensorFamilyContinuousOnSet
+
+omit [SigmaCompactSpace M] in
+theorem rm04FamilyContinuousOnSet
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    {S : SolutionOn (I := I) (M := M) D}
+    (hreg : CanonicalRicciRegularOn (I := I) (M := M) S) :
+    DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet (I := I) (M := M) 4
+      D.carrier
+      (fun t x => S.base.rm04 t x) :=
+  hreg.rm04_cont
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.rm04FamilyContinuousOnSet then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.rm04FamilyContinuousOnSet"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.rm04FamilyContinuousOnSet ``Submission.DifferentialGeometry.PDE.RicciFlow.CanonicalRicciRegularOn.rm04FamilyContinuousOnSet
+
+end CanonicalRicciRegularOn
+
+namespace SolutionOn
+
+omit [SigmaCompactSpace M] [T2Space M] in
+theorem scalar_continuousOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (hreg : ScalarSTContOn (I := I) (M := M) S)
+    (T : Real)
+    (hT : Set.Icc 0 T ⊆ D.carrier) :
+    ContinuousOn (fun p : Real × M => S.scalar p.1 p.2)
+      ((Set.Icc 0 T).prod (Set.univ : Set M)) := by
+  exact hreg.scalar_continuousOn.mono (Set.prod_mono hT (Set.Subset.rfl))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_continuousOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_continuousOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_continuousOn ``Submission.DifferentialGeometry.PDE.RicciFlow.SolutionOn.scalar_continuousOn
+
+end SolutionOn
+
+omit [SigmaCompactSpace M] in
+theorem isSolutionOn_timeShift
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    {S : SolutionOn (I := I) (M := M) D}
+    (hS : IsSolutionOn (I := I) S) (τ : Real) :
+    IsSolutionOn (I := I) (S.timeShift τ) where
+  smoothMetric := by
+    refine ⟨?_, ?_, ?_, ?_⟩
+    · intro x X Y
+      have hOld := hS.smoothMetric.coeff x X Y
+      have haff : ContDiff Real ∞ (fun s : Real => s + τ) :=
+        contDiff_id.add contDiff_const
+      have hmaps :
+          Set.MapsTo (fun s : Real => s + τ) (D.timeShift τ).regular D.regular := by
+        intro s hs
+        exact hs
+      have hcomp :
+          ContDiffOn Real ∞
+            (fun s : Real => (S.family.metric (s + τ)).inner x X Y)
+            (D.timeShift τ).regular := by
+        simpa [Function.comp_def] using hOld.comp haff.contDiffOn hmaps
+      simpa [SolutionOn.family, SolutionOn.timeShift, SolutionFamily.timeShift] using hcomp
+    · intro x X Y
+      have hOld := hS.smoothMetric.coeff_cont x X Y
+      have htime : Continuous (fun s : Real => s + τ) :=
+        (continuous_id.add continuous_const)
+      have hmaps :
+          Set.MapsTo (fun s : Real => s + τ) (D.timeShift τ).carrier D.carrier := by
+        intro s hs
+        exact hs
+      have hcomp :
+          ContinuousOn
+            (fun s : Real => (S.family.metric (s + τ)).inner x X Y)
+            (D.timeShift τ).carrier := by
+        simpa [Function.comp_def] using hOld.comp htime.continuousOn hmaps
+      simpa [SolutionOn.family, SolutionOn.timeShift, SolutionFamily.timeShift] using hcomp
+    · have hmaps :
+          Set.MapsTo (fun s : Real => s + τ) (D.timeShift τ).carrier D.carrier := by
+        intro s hs
+        exact hs
+      have htime : Continuous (fun s : Real => s + τ) :=
+        (continuous_id.add continuous_const)
+      have hcont :=
+        DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet.comp_time (I := I)
+          (M := M)
+          hS.smoothMetric.metricTensor_cont htime hmaps
+      simpa [SolutionOn.family, SolutionOn.timeShift, SolutionFamily.timeShift]
+        using hcont
+    · intro Idx _ frame u hframe i j
+      have hOld :
+          ContMDiffOn (𝓘(Real, Real).prod I) 𝓘(Real, Real) ∞
+            (fun p : Real × M =>
+              (S.family.metric p.1).inner p.2 (frame i p.2) (frame j p.2))
+            (D.regular ×ˢ u) :=
+        hS.smoothMetric.frameCompSmooth frame hframe i j
+      have hmapSmooth :
+          ContMDiff (𝓘(Real, Real).prod I) (𝓘(Real, Real).prod I) ∞
+            (fun p : Real × M => (p.1 + τ, p.2)) := by
+        exact (contMDiff_fst.add contMDiff_const).prodMk contMDiff_snd
+      have hmaps :
+          Set.MapsTo (fun p : Real × M => (p.1 + τ, p.2))
+            ((D.timeShift τ).regular ×ˢ u) (D.regular ×ˢ u) := by
+        intro p hp
+        exact ⟨hp.1, hp.2⟩
+      have hcomp :
+          ContMDiffOn (𝓘(Real, Real).prod I) 𝓘(Real, Real) ∞
+            (fun p : Real × M =>
+              (S.family.metric (p.1 + τ)).inner p.2
+                (frame i p.2) (frame j p.2))
+            ((D.timeShift τ).regular ×ˢ u) := by
+        simpa [Function.comp_def] using hOld.comp hmapSmooth.contMDiffOn hmaps
+      simpa [SolutionOn.family, SolutionOn.timeShift, SolutionFamily.timeShift]
+        using hcomp
+  smoothConnection := by
+    intro t
+    let t' : DifferentialGeometry.Geometry.Curvature.RealTimeInterval.FlowTime D :=
+      ⟨(t : Real) + τ, t.2⟩
+    have hOld := hS.smoothConnection t'
+    simpa [t', SolutionOn.family, SolutionOn.timeShift, SolutionFamily.timeShift,
+      DifferentialGeometry.Geometry.Curvature.MetricConnectionFamilyOn.connectionAt,
+        SolutionFamily.connection] using hOld
+  equation := by
+    intro t x X Y
+    let t' : DifferentialGeometry.Geometry.Curvature.RealTimeInterval.RegularTime D :=
+      ⟨(t : Real) + τ, t.2⟩
+    have hOld := hS.equation t' x X Y
+    have hshift :
+        HasDerivWithinAt (fun s : Real => s + τ) 1
+          (D.timeShift τ).carrier (t : Real) := by
+      simpa using
+        ((hasDerivWithinAt_id (t : Real) (D.timeShift τ).carrier).add_const τ)
+    have hmaps :
+        Set.MapsTo (fun s : Real => s + τ) (D.timeShift τ).carrier D.carrier := by
+      intro s hs
+      exact hs
+    have hcomp := hOld.scomp (x := (t : Real)) hshift hmaps
+    have hcomp' : HasDerivWithinAt
+        (fun s : Real => ((S.timeShift τ).family.metric s).inner x X Y)
+        ((1 : Real) • ((-2 : Real) * S.ricciAt (t' : Real) x
+          (DifferentialGeometry.Geometry.Curvature.vec2 X Y)))
+        (D.timeShift τ).carrier (t : Real) :=
+      hcomp.congr_of_eventuallyEq (Filter.Eventually.of_forall fun _ => rfl) rfl
+    exact hcomp'.congr_deriv (by
+      simp only [one_smul]
+      rfl)
+  scalarCont := by
+    have hmap : Continuous (fun q : Real × M => (q.1 + τ, q.2)) :=
+      (continuous_fst.add continuous_const).prodMk continuous_snd
+    have hmapOn : ContinuousOn (fun q : Real × M => (q.1 + τ, q.2))
+        ((D.timeShift τ).carrier ×ˢ (Set.univ : Set M)) :=
+      hmap.continuousOn
+    have hmaps : Set.MapsTo (fun q : Real × M => (q.1 + τ, q.2))
+        ((D.timeShift τ).carrier ×ˢ (Set.univ : Set M))
+        (D.carrier ×ˢ (Set.univ : Set M)) := by
+      intro q hq
+      exact ⟨hq.1, trivial⟩
+    have hcomp := hS.scalarCont.comp hmapOn hmaps
+    simpa [SolutionOn.scalar, SolutionFamily.scalar, SolutionOn.timeShift,
+      SolutionFamily.timeShift, Function.comp_def] using hcomp
+  scalarTime := by
+    intro K t ht hK x
+    let shift : Real -> Real := fun s => s + τ
+    have ht' : shift t ∈ shift '' K := ⟨t, ht, rfl⟩
+    have hK' : shift '' K ⊆ D.carrier := by
+      intro r hr
+      rcases hr with ⟨s, hs, rfl⟩
+      exact hK hs
+    have hOld := hS.scalarTime (K := shift '' K) (t := shift t) ht' hK' x
+    have hshift : DifferentiableWithinAt Real shift K t := by
+      simpa [shift] using
+        ((differentiableWithinAt_fun_id (𝕜 := Real) (s := K) (x := t)).add_const τ)
+    have hmaps : Set.MapsTo shift K (shift '' K) := by
+      intro s hs
+      exact ⟨s, hs, rfl⟩
+    have hcomp := hOld.comp t hshift hmaps
+    simpa [shift, Function.comp_def] using hcomp
+  ricciCont := by
+    have hmaps :
+        Set.MapsTo (fun s : Real => s + τ) (D.timeShift τ).carrier D.carrier := by
+      intro s hs
+      exact hs
+    have htime : Continuous (fun s : Real => s + τ) :=
+      continuous_id.add continuous_const
+    have hcont :=
+      DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet.comp_time (I := I)
+        (M := M)
+        hS.ricciCont htime hmaps
+    refine DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet.congr
+      hcont ?_
+    intro s _ x
+    rfl
+  rm04Cont := by
+    have hmaps :
+        Set.MapsTo (fun s : Real => s + τ) (D.timeShift τ).carrier D.carrier := by
+      intro s hs
+      exact hs
+    have htime : Continuous (fun s : Real => s + τ) :=
+      continuous_id.add continuous_const
+    have hcont :=
+      DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet.comp_time (I := I)
+        (M := M)
+        hS.rm04Cont htime hmaps
+    refine DifferentialGeometry.Geometry.Curvature.tensor0SFamilyContinuousOnSet.congr
+      hcont ?_
+    intro s _ x
+    rfl
+  ricciNormSpace := by
+    intro t ht x
+    have h := hS.ricciNormSpace (t + τ) ht x
+    exact h.congr_of_eventuallyEq (Filter.Eventually.of_forall fun _ => rfl)
+  ricciNormGrad := by
+    intro t ht x
+    have h := hS.ricciNormGrad (t + τ) ht x
+    exact h.congr_of_eventuallyEq (Filter.Eventually.of_forall fun _ => rfl)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.isSolutionOn_timeShift then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.isSolutionOn_timeShift"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.isSolutionOn_timeShift ``Submission.DifferentialGeometry.PDE.RicciFlow.isSolutionOn_timeShift
+
+omit [SigmaCompactSpace M] in
+theorem isMetricEvolutionOn_of_isSolutionOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    {S : SolutionOn (I := I) (M := M) D}
+    (hS : IsSolutionOn (I := I) S) :
+    DifferentialGeometry.PDE.RicciFlow.IsMetricEvolutionOn (I := I)
+      S.toMetricEvolutionData := by
+  exact
+    { smoothMetric := hS.smoothMetric
+      smoothConnection := hS.smoothConnection
+      leviCivita := SolutionOn.leviCivita (I := I) S
+      equation := hS.equation }
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.isMetricEvolutionOn_of_isSolutionOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.isMetricEvolutionOn_of_isSolutionOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.isMetricEvolutionOn_of_isSolutionOn ``Submission.DifferentialGeometry.PDE.RicciFlow.isMetricEvolutionOn_of_isSolutionOn
+
+structure CompleteBoundedCurvatureSolutionOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval} where
+  solution : SolutionOn (I := I) (M := M) D
+  isSolution : IsSolutionOn (I := I) solution
+  complete : ∀ t : Real, t ∈ D.carrier →
+    DifferentialGeometry.RiemannianMetricComplete (I := I) (solution.base.metric t)
+  curvatureBound : ∀ t : Real, t ∈ D.carrier → ∃ C : Real, 0 ≤ C ∧
+    ∀ x : M,
+      normSq0S (I := I) (solution.base.metric t) x 4
+        (metricRm04At (I := I) (M := M) (solution.base.metric t) x) ≤ C
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn ``Submission.DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn
+
+namespace CompleteBoundedCurvatureSolutionOn
+
+theorem isMetricEvolutionOn
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : CompleteBoundedCurvatureSolutionOn (I := I) (M := M) (D := D)) :
+    DifferentialGeometry.PDE.RicciFlow.IsMetricEvolutionOn (I := I)
+      S.solution.toMetricEvolutionData :=
+  isMetricEvolutionOn_of_isSolutionOn S.isSolution
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.isMetricEvolutionOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.isMetricEvolutionOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.isMetricEvolutionOn ``Submission.DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.isMetricEvolutionOn
+
+theorem exists_curvature_bound
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : CompleteBoundedCurvatureSolutionOn (I := I) (M := M) (D := D))
+    (t : Real) (ht : t ∈ D.carrier) :
+    ∃ C : Real, 0 ≤ C ∧ ∀ x : M,
+      normSq0S (I := I) (S.solution.base.metric t) x 4
+        (metricRm04At (I := I) (M := M) (S.solution.base.metric t) x) ≤ C :=
+  S.curvatureBound t ht
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.exists_curvature_bound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.exists_curvature_bound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.exists_curvature_bound ``Submission.DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.exists_curvature_bound
+
+theorem complete_slice
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : CompleteBoundedCurvatureSolutionOn (I := I) (M := M) (D := D))
+    (t : Real) (ht : t ∈ D.carrier) :
+    DifferentialGeometry.RiemannianMetricComplete (I := I) (S.solution.base.metric t) :=
+  S.complete t ht
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.complete_slice then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.complete_slice"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.complete_slice ``Submission.DifferentialGeometry.PDE.RicciFlow.CompleteBoundedCurvatureSolutionOn.complete_slice
+
+end CompleteBoundedCurvatureSolutionOn
+
+
+omit [SigmaCompactSpace M] in
+theorem metric_derivWithin_eq_neg_two_ricci
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (hS : IsSolutionOn (I := I) S)
+    (t : DifferentialGeometry.Geometry.Curvature.RealTimeInterval.RegularTime D)
+    (x : M) (X Y : TangentSpace I x) :
+    HasDerivWithinAt
+      (fun s : Real => (S.family.metric s).inner x X Y)
+      ((-2 : Real) * S.ricciAt (t : Real) x (DifferentialGeometry.Geometry.Curvature.vec2 X Y))
+      D.carrier
+      (t : Real) := by
+  simpa [MetricVariationEquationOn, RicciAtFamily.toTensorField] using
+    hS.equation t x X Y
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.metric_derivWithin_eq_neg_two_ricci then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.metric_derivWithin_eq_neg_two_ricci"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.metric_derivWithin_eq_neg_two_ricci ``Submission.DifferentialGeometry.PDE.RicciFlow.metric_derivWithin_eq_neg_two_ricci
+
+omit [SigmaCompactSpace M] in
+theorem metricDerivAt
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (hS : IsSolutionOn (I := I) S)
+    (t : DifferentialGeometry.Geometry.Curvature.RealTimeInterval.RegularTime D)
+    (x : M) (X Y : TangentSpace I x) :
+    HasDerivAt
+      (fun s : Real => (S.family.metric s).inner x X Y)
+      ((-2 : Real) * S.ricciAt (t : Real) x (DifferentialGeometry.Geometry.Curvature.vec2 X Y))
+      (t : Real) :=
+  (metric_derivWithin_eq_neg_two_ricci
+    (I := I) S hS t x X Y).hasDerivAt (D.regular_mem_nhds t.2)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.metricDerivAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.metricDerivAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.metricDerivAt ``Submission.DifferentialGeometry.PDE.RicciFlow.metricDerivAt
+
+end DifferentialGeometry.PDE.RicciFlow
+
+section
+
+open _root_.Submission.DifferentialGeometry.Tensor.RSTensor
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+open _root_.Bundle _root_.Submission.Bundle
+open scoped _root_.Manifold _root_.ContDiff _root_.Topology
+
+namespace DifferentialGeometry
+namespace PDE
+namespace RicciFlow
+
+
+
+universe u uE uH
+
+variable {E : Type uE} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E] [CompleteSpace E]
+variable [NeZero (Module.finrank Real E)]
+variable {H : Type uH} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H}
+variable {M : Type u} [TopologicalSpace M] [ChartedSpace H M]
+variable [IsManifold I ∞ M] [SigmaCompactSpace M] [T2Space M]
+variable [BoundarylessManifold I M]
+variable [IsManifold I 1 M]
+
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+theorem isSolutionOn_of_reg
+    {D : RealTimeInterval}
+    (g : Real -> SmoothRiemannianMetric I M)
+    (hsmooth : MetricFamilySmoothOn (I := I) (M := M) D
+      ({ base := { metric := g } } : SolutionOn (I := I) (M := M) D).family.metric)
+    (hpde : ∀ t ∈ D.regular, ∀ (x : M) (v w : TangentSpace I x),
+      HasDerivAt (fun s : Real => (g s).inner x v w)
+        ((-2 : Real) * ricciTensor (I := I) (g t) x v w) t)
+    (hscalarCont : ContinuousOn
+      (fun q : Real × M => metricScalarAt (I := I) (g q.1) q.2)
+      (D.carrier ×ˢ (Set.univ : Set M)))
+    (hscalarTime : ∀ t ∈ D.carrier, ∀ x : M,
+      DifferentiableWithinAt Real (fun s : Real => metricScalarAt (I := I) (g s) x)
+        D.carrier t)
+    (hricciCont : tensor0SFamilyContinuousOnSet (I := I) (M := M) 2 D.carrier
+      (fun t x => metricRicciAt (I := I) (g t) x))
+    (hrm04Cont : tensor0SFamilyContinuousOnSet (I := I) (M := M) 4 D.carrier
+      (fun t x => metricRm04At (I := I) (g t) x)) :
+    IsSolutionOn (I := I)
+      ({ base := { metric := g } } : SolutionOn (I := I) (M := M) D) := by
+  refine
+    { smoothMetric := hsmooth
+      smoothConnection := ?_
+      equation := ?_
+      scalarCont := ?_
+      scalarTime := ?_
+      ricciCont := ?_
+      rm04Cont := ?_
+      ricciNormSpace := ?_
+      ricciNormGrad := ?_ }
+  · intro t
+    simpa [SolutionOn.family, SolutionFamily.connection,
+      MetricConnectionFamilyOn.connectionAt]
+      using leviCivitaConnectionOfMetric_contMDiffCovariantDerivative (I := I)
+        (g (t : Real))
+  · intro t x X Y
+    have h : HasDerivWithinAt (fun s : Real => (g s).inner x X Y)
+        ((-2 : Real) * ricciTensor (I := I) (g (t : Real)) x X Y)
+        D.carrier (t : Real) :=
+      (hpde (t : Real) t.2 x X Y).hasDerivWithinAt
+    simpa [SolutionFamily.ricciAt, metricRicciAt_apply_eq_ricciTensor] using h
+  · exact hscalarCont.congr (fun q _ => rfl)
+  · intro K t htK hKsub x
+    exact (hscalarTime t (hKsub htK) x).mono hKsub
+  · refine tensor0SFamilyContinuousOnSet.congr hricciCont (fun t _ x => ?_)
+    simp only [SolutionOn.ricci, SolutionFamily.ricci_apply, SolutionFamily.ricciAt]
+  · refine tensor0SFamilyContinuousOnSet.congr hrm04Cont (fun t _ x => ?_)
+    simp only [SolutionFamily.rm04, metricRm04_apply]
+  · intro t ht x
+    have h := (normSq02_smooth (I := I) (M := M)
+      (g (t : Real)) (metricRicci (I := I) (M := M) (g (t : Real)))).mdifferentiableAt
+      (by simp) (x := x)
+    refine h.congr_of_eventuallyEq ?_
+    filter_upwards with y
+    simp only [ricciNorm, SolutionOn.ricci, SolutionOn.family,
+      SolutionFamily.ricci_apply, SolutionFamily.ricciAt, metricRicci_apply]
+  · intro t ht x
+    have hsm : ContMDiff I 𝓘(Real, Real) ∞
+        (ricciNorm (I := I)
+          ({ base := { metric := g } } : SolutionOn (I := I) (M := M) D)
+          (t : Real)) := by
+      refine (normSq02_smooth (I := I) (M := M)
+        (g (t : Real)) (metricRicci (I := I) (M := M) (g (t : Real)))).congr ?_
+      intro y
+      simp only [ricciNorm, SolutionOn.ricci, SolutionOn.family,
+        SolutionFamily.ricci_apply, SolutionFamily.ricciAt, metricRicci_apply]
+    exact gradientFun_mdiffAt (I := I) (g (t : Real)) hsm x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.isSolutionOn_of_reg then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.isSolutionOn_of_reg"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.isSolutionOn_of_reg ``Submission.DifferentialGeometry.PDE.RicciFlow.isSolutionOn_of_reg
+
+end RicciFlow
+end PDE
+
+end DifferentialGeometry
+
+end

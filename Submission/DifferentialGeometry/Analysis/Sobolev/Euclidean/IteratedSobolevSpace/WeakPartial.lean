@@ -1,0 +1,151 @@
+import Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.IteratedSobolevSpace.IteratedSobolev
+import Submission.DifferentialGeometry.Analysis.Sobolev.WeakDerivativeCommutation
+import Submission.DifferentialGeometry.Analysis.Integration.Lp.Product
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+noncomputable section
+
+open _root_.Filter _root_.MeasureTheory _root_.Submission.MeasureTheory _root_.Set
+open scoped _root_.ENNReal
+
+namespace DifferentialGeometry.Analysis.Sobolev.Euclidean
+
+variable {d : ℕ}
+local notation "E" => EuclideanSpace ℝ (Fin d)
+
+theorem MemWkp.iterWeakPartial_mem
+    {k j : ℕ} {p : ℝ≥0∞} {Ω : Set E} {u : E → ℝ}
+    (hu : MemWkp (k + j) p u Ω) (α : Fin j → Fin d) :
+    MemWkp k p (iterWeakPartial p j α u Ω) Ω := by
+  induction j generalizing u with
+  | zero => simpa only [Nat.add_zero, iterWeakPartial_zero] using hu
+  | succ j ih =>
+    rw [iterWeakPartial_succ]
+    exact ih (hu.chosenWeakPartial_mem (α 0)) (fun i => α i.succ)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.iterWeakPartial_mem then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.iterWeakPartial_mem"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.iterWeakPartial_mem ``Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.iterWeakPartial_mem
+
+theorem MemWkp.mem_of_hasWeakPartialDeriv
+    {k : ℕ} {p : ℝ≥0∞} (hp : 1 ≤ p) {Ω : Set E} (hΩ : IsOpen Ω)
+    {u g : E → ℝ} (hu : MemWkp (k + 1) p u Ω)
+    {i : Fin d} (hg : _root_.MeasureTheory.LocallyIntegrable g (volume.restrict Ω))
+    (hweak : DeGiorgi.HasWeakPartialDeriv i g u Ω) :
+    MemWkp k p g Ω := by
+  have hchosen := chosenWeakPartialOrZero_isWeakPartial_of_mem hu.memW1p i
+  have hchosenLp := chosenWeakPartialOrZero_memLp_of_mem hu.memW1p i
+  have hae := DeGiorgi.HasWeakPartialDeriv.ae_eq hΩ hchosen hweak
+    (hchosenLp.locallyIntegrable hp) hg
+  exact (MemWkp_congr_ae hp hΩ hae).mp (hu.chosenWeakPartial_mem i)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.mem_of_hasWeakPartialDeriv then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.mem_of_hasWeakPartialDeriv"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.mem_of_hasWeakPartialDeriv ``Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.MemWkp.mem_of_hasWeakPartialDeriv
+
+theorem chosenWeakPartialOrZero_comm_ae
+    {p : ℝ≥0∞} (hp : 1 ≤ p) {Ω : Set E} (hΩ : IsOpen Ω)
+    {u : E → ℝ} (hu : MemWkp 2 p u Ω) (i j : Fin d) :
+    chosenWeakPartialOrZero p j (chosenWeakPartialOrZero p i u Ω) Ω =ᵐ[volume.restrict Ω]
+      chosenWeakPartialOrZero p i (chosenWeakPartialOrZero p j u Ω) Ω := by
+  have hi := (hu.chosenWeakPartial_mem i).memW1p
+  have hj := (hu.chosenWeakPartial_mem j).memW1p
+  exact Sobolev.ae_eq_of_weak_second_deriv_comm hΩ
+    (_root_.MeasureTheory.ae_restrict_mem hΩ.measurableSet) (EuclideanSpace.single i 1) (EuclideanSpace.single j 1)
+    (chosenWeakPartialOrZero_isWeakPartial_of_mem hu.memW1p i)
+    (chosenWeakPartialOrZero_isWeakPartial_of_mem hu.memW1p j)
+    (chosenWeakPartialOrZero_isWeakPartial_of_mem hi j)
+    (chosenWeakPartialOrZero_isWeakPartial_of_mem hj i)
+    ((chosenWeakPartialOrZero_memLp_of_mem hi j).locallyIntegrable hp)
+    ((chosenWeakPartialOrZero_memLp_of_mem hj i).locallyIntegrable hp)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.Euclidean.chosenWeakPartialOrZero_comm_ae then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.Euclidean.chosenWeakPartialOrZero_comm_ae"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.Euclidean.chosenWeakPartialOrZero_comm_ae ``Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.chosenWeakPartialOrZero_comm_ae
+
+theorem memWkp_succ_of_hasWeakPartialDeriv
+    {k : ℕ} {p : ℝ≥0∞} (hp : 1 ≤ p) {Ω : Set E} (hΩ : IsOpen Ω)
+    {u : E → ℝ} (hu : _root_.MeasureTheory.MemLp u p (volume.restrict Ω))
+    {g : Fin d → E → ℝ} (hg : ∀ i, MemWkp k p (g i) Ω)
+    (hweak : ∀ i, DeGiorgi.HasWeakPartialDeriv i (g i) u Ω) :
+    MemWkp (k + 1) p u Ω := by
+  have hmem : DeGiorgi.MemW1p p u Ω :=
+    ⟨hu, fun i => ⟨g i, (hg i).memLp, hweak i⟩⟩
+  refine ⟨hmem, ?_⟩
+  intro i
+  have hchosen := chosenWeakPartialOrZero_isWeakPartial_of_mem hmem i
+  have hchosenLp := chosenWeakPartialOrZero_memLp_of_mem hmem i
+  have hae := DeGiorgi.HasWeakPartialDeriv.ae_eq hΩ hchosen (hweak i)
+    (hchosenLp.locallyIntegrable hp) ((hg i).memLp.locallyIntegrable hp)
+  exact (MemWkp_congr_ae hp hΩ hae.symm).mp (hg i)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_succ_of_hasWeakPartialDeriv then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_succ_of_hasWeakPartialDeriv"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_succ_of_hasWeakPartialDeriv ``Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_succ_of_hasWeakPartialDeriv
+
+theorem memWkp_two_of_hasWeakPartialDeriv
+    {p : ℝ≥0∞} (hp : 1 ≤ p) {Ω : Set E} (hΩ : IsOpen Ω)
+    {u : E → ℝ} (hu : _root_.MeasureTheory.MemLp u p (volume.restrict Ω))
+    {g : Fin d → E → ℝ} (hg : ∀ i, DeGiorgi.MemW1p p (g i) Ω)
+    (hweak : ∀ i, DeGiorgi.HasWeakPartialDeriv i (g i) u Ω) :
+    MemWkp 2 p u Ω := by
+  exact memWkp_succ_of_hasWeakPartialDeriv hp hΩ hu
+    (fun i => MemWkp.one_iff_memW1p.mpr (hg i)) hweak
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_two_of_hasWeakPartialDeriv then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_two_of_hasWeakPartialDeriv"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_two_of_hasWeakPartialDeriv ``Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.memWkp_two_of_hasWeakPartialDeriv
+
+theorem ae_memWkp_two_of_hasWeakPartialDeriv
+    {Z : Type*} [MeasurableSpace Z] {μ : _root_.MeasureTheory.Measure Z}
+    {p : ℝ≥0∞} (hp : 1 ≤ p)
+    {Ω : Set E} (hΩ : IsOpen Ω)
+    {u : Z × E → ℝ} (hu : _root_.MeasureTheory.MemLp u p (μ.prod (volume.restrict Ω)))
+    {g : Fin d → Z × E → ℝ} (hg : ∀ i, _root_.MeasureTheory.MemLp (g i) p (μ.prod (volume.restrict Ω)))
+    {v : Fin d → Fin d → Z × E → ℝ}
+    (hv : ∀ i k, _root_.MeasureTheory.MemLp (v i k) p (μ.prod (volume.restrict Ω)))
+    (hfirst : ∀ i, ∀ᵐ t ∂μ, DeGiorgi.HasWeakPartialDeriv i
+      (fun x => g i (t, x)) (fun x => u (t, x)) Ω)
+    (hsecond : ∀ i k, ∀ᵐ t ∂μ, DeGiorgi.HasWeakPartialDeriv k
+      (fun x => v i k (t, x)) (fun x => g i (t, x)) Ω) :
+    ∀ᵐ t ∂μ, MemWkp 2 p (fun x => u (t, x)) Ω := by
+  have hslices {f : Z × E → ℝ} (hf : _root_.MeasureTheory.MemLp f p (μ.prod (volume.restrict Ω))) :
+      ∀ᵐ t ∂μ, _root_.MeasureTheory.MemLp (fun x => f (t, x)) p (volume.restrict Ω) := by
+    by_cases hptop : p = ⊤
+    · subst p
+      exact hf.prodMk_left_top
+    · exact hf.prodMk_left hptop
+  have hgLp := ae_all_iff.mpr (fun i => hslices (hg i))
+  have hvLp := ae_all_iff.mpr (fun i => ae_all_iff.mpr (fun k => hslices (hv i k)))
+  have hfirst' := ae_all_iff.mpr hfirst
+  have hsecond' := ae_all_iff.mpr (fun i => ae_all_iff.mpr (hsecond i))
+  filter_upwards [hslices hu, hgLp, hvLp, hfirst', hsecond']
+    with t hut hgt hvt hft hst
+  apply memWkp_two_of_hasWeakPartialDeriv hp hΩ hut (g := fun i x => g i (t, x))
+  · intro i
+    exact ⟨hgt i, fun k => ⟨fun x => v i k (t, x), hvt i k, hst i k⟩⟩
+  · exact hft
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.Euclidean.ae_memWkp_two_of_hasWeakPartialDeriv then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.Euclidean.ae_memWkp_two_of_hasWeakPartialDeriv"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.Euclidean.ae_memWkp_two_of_hasWeakPartialDeriv ``Submission.DifferentialGeometry.Analysis.Sobolev.Euclidean.ae_memWkp_two_of_hasWeakPartialDeriv
+
+end DifferentialGeometry.Analysis.Sobolev.Euclidean

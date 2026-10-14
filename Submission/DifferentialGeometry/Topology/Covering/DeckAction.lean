@@ -1,0 +1,271 @@
+import Mathlib.AlgebraicTopology.FundamentalGroupoid.FundamentalGroup
+import Mathlib.Geometry.Manifold.Diffeomorph
+import Submission.DifferentialGeometry.Topology.Covering.Smooth.Manifold
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+open _root_.Set _root_.Function
+open scoped _root_.Topology _root_.ContDiff _root_.Manifold
+
+noncomputable section
+
+namespace DifferentialGeometry
+namespace Geometry
+namespace Riemannian
+namespace Topology
+namespace UniversalCover
+
+variable {X : Type*} [TopologicalSpace X] [Inhabited X]
+
+def loopShift
+    (g : Path.Homotopic.Quotient (_root_.Inhabited.default : X) _root_.Inhabited.default)
+    (p : UniversalCover X) : UniversalCover X :=
+  ⟨p.1, g.trans p.2⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift
+
+theorem loopShift_preim
+    (g : Path.Homotopic.Quotient (_root_.Inhabited.default : X) _root_.Inhabited.default)
+    (p : UniversalCover X)
+    (U : Set X) :
+    loopShift g ⁻¹' basicOpen p U =
+      basicOpen (loopShift g.symm p) U := by
+  rcases p with ⟨px, pp⟩
+  ext q
+  rcases q with ⟨qx, qp⟩
+  constructor
+  · rintro ⟨η, hη, hq⟩
+    change Path px qx at η
+    change g.trans qp =
+      pp.trans (Path.Homotopic.Quotient.mk η) at hq
+    refine ⟨η, hη, ?_⟩
+    change qp =
+      (g.symm.trans pp).trans (Path.Homotopic.Quotient.mk η)
+    rw [Path.Homotopic.Quotient.trans_assoc, ← hq,
+      ← Path.Homotopic.Quotient.trans_assoc,
+      Path.Homotopic.Quotient.symm_trans,
+      Path.Homotopic.Quotient.refl_trans]
+  · rintro ⟨η, hη, hq⟩
+    change Path px qx at η
+    change qp =
+      (g.symm.trans pp).trans (Path.Homotopic.Quotient.mk η) at hq
+    refine ⟨η, hη, ?_⟩
+    change g.trans qp =
+      pp.trans (Path.Homotopic.Quotient.mk η)
+    rw [hq, ← Path.Homotopic.Quotient.trans_assoc,
+      ← Path.Homotopic.Quotient.trans_assoc,
+      Path.Homotopic.Quotient.trans_symm,
+      Path.Homotopic.Quotient.refl_trans]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_preim then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_preim"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_preim ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_preim
+
+theorem loopShift_cont
+    [LocallyPathConnectedSpace X]
+    (g : Path.Homotopic.Quotient (_root_.Inhabited.default : X) _root_.Inhabited.default) :
+    Continuous (loopShift g) := by
+  rw [(basis_assemble (X := X)).continuous_iff]
+  rintro _ ⟨p, U, hU, hp, rfl⟩
+  rw [loopShift_preim]
+  exact TopologicalSpace.GenerateOpen.basic _
+    ⟨loopShift g.symm p, U, hU, hp, rfl⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_cont then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_cont"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_cont ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.loopShift_cont
+
+def deckAct
+    (g : FundamentalGroup X (_root_.Inhabited.default : X))
+    (p : UniversalCover X) : UniversalCover X :=
+  loopShift (FundamentalGroup.toPath g⁻¹) p
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct
+
+instance deckMulAction :
+    MulAction (FundamentalGroup X (_root_.Inhabited.default : X)) (UniversalCover X) where
+  smul := deckAct
+  one_smul p := by
+    change deckAct 1 p = p
+    refine Sigma.ext (x := deckAct 1 p) (y := p) rfl ?_
+    change HEq
+      ((Path.Homotopic.Quotient.refl _root_.Inhabited.default).trans p.2) p.2
+    exact heq_of_eq (Path.Homotopic.Quotient.refl_trans p.2)
+  mul_smul g h p := by
+    change deckAct (g * h) p = deckAct g (deckAct h p)
+    refine Sigma.ext
+      (x := deckAct (g * h) p) (y := deckAct g (deckAct h p)) rfl ?_
+    simp only [deckAct, loopShift, mul_inv_rev]
+    exact heq_of_eq
+      (Path.Homotopic.Quotient.trans_assoc
+        (FundamentalGroup.toPath g⁻¹)
+        (FundamentalGroup.toPath h⁻¹) p.2)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckMulAction then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckMulAction"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckMulAction ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckMulAction
+
+@[simp]
+theorem proj_deckAct
+    (g : FundamentalGroup X (_root_.Inhabited.default : X)) (p : UniversalCover X) :
+    proj (g • p) = proj p :=
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_deckAct then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_deckAct"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_deckAct ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_deckAct
+
+theorem proj_eq_iff_smul
+    (p q : UniversalCover X) :
+    proj p = proj q ↔
+      ∃ g : FundamentalGroup X (_root_.Inhabited.default : X), g • p = q := by
+  constructor
+  · intro hpq
+    rcases p with ⟨x, a⟩
+    rcases q with ⟨y, b⟩
+    change x = y at hpq
+    subst y
+    refine ⟨(FundamentalGroup.fromPath (b.trans a.symm))⁻¹, ?_⟩
+    refine Sigma.ext
+      (x := deckAct (FundamentalGroup.fromPath (b.trans a.symm))⁻¹
+        (⟨x, a⟩ : UniversalCover X))
+      (y := (⟨x, b⟩ : UniversalCover X)) rfl ?_
+    simp only [deckAct, inv_inv, FundamentalGroup.toPath,
+      FundamentalGroup.fromPath, loopShift]
+    rw [Path.Homotopic.Quotient.trans_assoc,
+      Path.Homotopic.Quotient.symm_trans,
+      Path.Homotopic.Quotient.trans_refl]
+  · rintro ⟨g, rfl⟩
+    exact proj_deckAct g p
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_eq_iff_smul then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_eq_iff_smul"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_eq_iff_smul ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.proj_eq_iff_smul
+
+theorem deckAct_eq_self_iff
+    {g : FundamentalGroup X (_root_.Inhabited.default : X)}
+    (p : UniversalCover X) :
+    g • p = p ↔ g = 1 := by
+  constructor
+  · intro h
+    rcases p with ⟨x, p⟩
+    have hp : (FundamentalGroup.toPath g⁻¹).trans p = p := by
+      exact eq_of_heq (Sigma.mk.inj_iff.mp h).2
+    have hcancel := congrArg
+      (fun q : Path.Homotopic.Quotient (_root_.Inhabited.default : X) x => q.trans p.symm) hp
+    rw [Path.Homotopic.Quotient.trans_assoc,
+      Path.Homotopic.Quotient.trans_symm,
+      Path.Homotopic.Quotient.trans_refl] at hcancel
+    exact inv_eq_one.mp hcancel
+  · rintro rfl
+    exact one_smul _ _
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_eq_self_iff then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_eq_self_iff"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_eq_self_iff ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_eq_self_iff
+
+section Smooth
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+  [I.Boundaryless]
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M]
+  [IsManifold I ∞ M] [T2Space M] [SigmaCompactSpace M]
+  [ConnectedSpace M] [LocallyPathConnectedSpace M]
+  [DifferentialGeometry.Geometry.Riemannian.Topology.SemilocallySimplyConnectedSpace M]
+  [Inhabited M]
+
+omit [FiniteDimensional ℝ E] [I.Boundaryless]
+  [IsManifold I ∞ M] in
+omit [T2Space M]
+  [SigmaCompactSpace M]
+  [ConnectedSpace M] in
+theorem contMDiff_of_proj_eq
+    {f : UniversalCover M → UniversalCover M}
+    (hf : Continuous f)
+    (hproj : ∀ x, proj (f x) = proj x) :
+    ContMDiff I I ∞ f := by
+  intro x
+  rw [contMDiffAt_iff_target]
+  refine ⟨hf.continuousAt, ?_⟩
+  have hcharts :
+      (extChartAt I (f x) : UniversalCover M → E) ∘ f =
+        extChartAt I x := by
+    funext y
+    simp only [Function.comp_apply]
+    rw [extChartAt_proj_eq (I := I) (f x) (f y),
+      extChartAt_proj_eq (I := I) x y, hproj x, hproj y]
+  rw [hcharts]
+  exact contMDiffAt_extChartAt
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.contMDiff_of_proj_eq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.contMDiff_of_proj_eq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.contMDiff_of_proj_eq ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.contMDiff_of_proj_eq
+
+omit [FiniteDimensional ℝ E] [I.Boundaryless]
+  [IsManifold I ∞ M]
+  [T2Space M]
+  [SigmaCompactSpace M]
+  [ConnectedSpace M] in
+theorem deckAct_contMDiff
+    (g : FundamentalGroup M (_root_.Inhabited.default : M)) :
+    ContMDiff I I ∞ (fun p : UniversalCover M => g • p) :=
+  contMDiff_of_proj_eq (loopShift_cont (FundamentalGroup.toPath g⁻¹))
+    (proj_deckAct g)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_contMDiff then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_contMDiff"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_contMDiff ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckAct_contMDiff
+
+noncomputable def deckDiffeo
+    (g : FundamentalGroup M (_root_.Inhabited.default : M)) :
+    Diffeomorph I I (UniversalCover M) (UniversalCover M) ∞ where
+  toEquiv := MulAction.toPerm g
+  contMDiff_toFun := deckAct_contMDiff g
+  contMDiff_invFun := by
+    change ContMDiff I I ∞ (fun p : UniversalCover M => g⁻¹ • p)
+    exact deckAct_contMDiff g⁻¹
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckDiffeo then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckDiffeo"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckDiffeo ``Submission.DifferentialGeometry.Geometry.Riemannian.Topology.UniversalCover.deckDiffeo
+
+end Smooth
+
+end UniversalCover
+end Topology
+end Riemannian
+end Geometry
+end DifferentialGeometry

@@ -1,0 +1,37 @@
+import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+namespace DifferentialGeometry.Analysis.Integration
+
+theorem negMulLog_add_le {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
+    Real.negMulLog (a + b) ≤ Real.negMulLog a + Real.negMulLog b := by
+  rcases ha.eq_or_lt with rfl | ha
+  · simp only [zero_add, Real.negMulLog_zero, zero_add]
+    exact le_rfl
+  rcases hb.eq_or_lt with rfl | hb
+  · simp only [add_zero, Real.negMulLog_zero, add_zero]
+    exact le_rfl
+  have hla : Real.log a ≤ Real.log (a + b) :=
+    Real.log_le_log ha (le_add_of_nonneg_right hb.le)
+  have hlb : Real.log b ≤ Real.log (a + b) :=
+    Real.log_le_log hb (le_add_of_nonneg_left ha.le)
+  have hama : a * Real.log a ≤ a * Real.log (a + b) :=
+    mul_le_mul_of_nonneg_left hla ha.le
+  have hbmb : b * Real.log b ≤ b * Real.log (a + b) :=
+    mul_le_mul_of_nonneg_left hlb hb.le
+  rw [Real.negMulLog, Real.negMulLog, Real.negMulLog]
+  nlinarith
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Integration.negMulLog_add_le then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Integration.negMulLog_add_le"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Integration.negMulLog_add_le ``Submission.DifferentialGeometry.Analysis.Integration.negMulLog_add_le
+
+end DifferentialGeometry.Analysis.Integration

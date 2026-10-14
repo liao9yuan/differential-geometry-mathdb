@@ -1,0 +1,1216 @@
+-- Modified 2026-04-28: updated internal import paths for project namespace
+-- Modified 2026-05-16: style-warning cleanup
+-- Modified 2026-08-20: made square and energy-coefficient comparisons explicit
+import Submission.DifferentialGeometry.External.DeGiorgi.DeGiorgiIteration.Energy
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+/-!
+# De Giorgi Iteration: Pre-Iteration
+
+This module contains the PDE-facing pre-iteration stage that sits between the
+energy estimates and the recurrence / Linfty assembly.
+-/
+
+noncomputable section
+
+open _root_.MeasureTheory _root_.Metric _root_.Filter
+open scoped _root_.ENNReal
+
+namespace DeGiorgi
+
+section PreiterationPDE
+
+variable {d : ℕ} [NeZero d]
+
+local notation "E" => AmbientSpace d
+
+omit [NeZero d] in
+private lemma exists_fderiv_bound_of_contDiff_hasCompactSupport
+    {η : E → ℝ}
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (hη_comp : HasCompactSupport η) :
+    ∃ Cη : ℝ, 0 ≤ Cη ∧ ∀ x, ‖fderiv ℝ η x‖ ≤ Cη := by
+  obtain ⟨Cη, hCη⟩ :=
+    (hη_comp.fderiv (𝕜 := ℝ)).exists_bound_of_continuous
+      (hη.continuous_fderiv (by simp : ((⊤ : ℕ∞) : WithTop ℕ∞) ≠ 0))
+  refine ⟨max Cη 0, le_max_right _ _, ?_⟩
+  intro x
+  exact le_trans (hCη x) (le_max_left _ _)
+
+run_cmd do
+  let target := ``Submission.DeGiorgi.exists_fderiv_bound_of_contDiff_hasCompactSupport
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DeGiorgi.exists_fderiv_bound_of_contDiff_hasCompactSupport target :: scope.openDecls } }
+
+/-- PDE-facing De Giorgi pre-iteration wrapper on concentric balls.
+
+This theorem packages the bookkeeping step that combines:
+
+- a localized De Giorgi energy estimate at level `θ`,
+- a Sobolev/Hölder interpolation input for level `λ`,
+- and the Chebyshev bound already proved in this chapter.
+
+The local Sobolev/Hölder interpolation theorem is kept as an explicit
+hypothesis `hsob`; it can be discharged by a dedicated local Sobolev theorem
+without changing the statement itself. -/
+theorem deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_ballPosPart
+    {u η : E → ℝ} {x₀ : E} {r s θ lam Csob Cη : ℝ}
+    (hd : 0 < (d : ℝ))
+    (A : EllipticCoeff d (Metric.ball x₀ s))
+    (hr : 0 < r) (hrs : r < s)
+    (hθl : θ < lam)
+    (hCsob : 0 ≤ Csob)
+    (hsub : IsSubsolution A u)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (hwθ : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s))
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hCη : 0 ≤ Cη)
+    (hη_grad_bound : ∀ x, ‖fderiv ℝ η x‖ ≤ Cη)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s)
+    (hsob :
+      ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        Csob * (∫ x in Metric.ball x₀ r, ‖hwθ.weakGrad x‖ ^ 2 ∂volume) *
+          ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ))) :
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+      Csob * (4 * ellipticityRatio A * Cη ^ 2) *
+        ((((lam - θ) ^ 2)⁻¹ *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume) ^ (2 / (d : ℝ))) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+  have : _root_.MeasureTheory.IsFiniteMeasure (volume.restrict (Metric.ball x₀ s)) := by
+    rw [_root_.MeasureTheory.isFiniteMeasure_restrict]
+    exact measure_ball_lt_top.ne
+  have hθ_int :
+      _root_.MeasureTheory.Integrable (fun x => |positivePartSub u θ x| ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    simpa [pow_two] using hwθ.memLp.integrable_sq
+  have hIθ_nonneg :
+      0 ≤ ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    refine _root_.MeasureTheory.integral_nonneg ?_
+    intro x
+    positivity
+  have henergy :
+      ∫ x in Metric.ball x₀ r, ‖hwθ.weakGrad x‖ ^ 2 ∂volume ≤
+        (4 * ellipticityRatio A * Cη ^ 2) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    simpa using
+      deGiorgi_energy_estimate_on_concentricBalls_of_ballPosPart
+        A hr hrs hsub hu hwθ hη hη_nonneg hη_eq_one hη_bound hCη
+        hη_grad_bound hη_sub_ball
+  exact
+    deGiorgi_preiter_of_energy
+      (μ := volume.restrict (Metric.ball x₀ s))
+      hd hθl hCsob
+      (by
+        have hRatio_nonneg : 0 ≤ ellipticityRatio A := A.ellipticityRatio_nonneg
+        have hCη_sq_nonneg : 0 ≤ Cη ^ 2 := sq_nonneg Cη
+        nlinarith)
+      hIθ_nonneg hθ_int
+      hsob henergy
+      (by rfl)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_ballPosPart then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_ballPosPart"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_ballPosPart ``Submission.DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_ballPosPart
+
+/-- De Giorgi pre-iteration on concentric balls using the concrete
+positive-part witness constructor on the outer ball. -/
+theorem deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_posPartApprox
+    {u η : E → ℝ} {x₀ : E} {r s θ lam Csob Cη : ℝ}
+    (hd : 0 < (d : ℝ))
+    (A : EllipticCoeff d (Metric.ball x₀ s))
+    (hs : 0 < s) (hr : 0 < r) (hrs : r < s)
+    (hθl : θ < lam)
+    (hCsob : 0 ≤ Csob)
+    (hsub : IsSubsolution A u)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (happroxBallTheta :
+      ∃ ψ : ℕ → E → ℝ,
+        (∀ n, ContDiff ℝ 1 (ψ n)) ∧
+        (∀ n, HasCompactSupport (ψ n)) ∧
+        _root_.Filter.Tendsto
+          (fun n =>
+            _root_.MeasureTheory.eLpNorm (fun x => ψ n x - (u x - θ)) 2
+              (volume.restrict (Metric.ball x₀ s)))
+          _root_.Filter.atTop (nhds 0) ∧
+        (∀ i : Fin d,
+          _root_.Filter.Tendsto
+            (fun n =>
+              _root_.MeasureTheory.eLpNorm
+                (fun x =>
+                  (fderiv ℝ (ψ n) x) (EuclideanSpace.single i 1) - hu.weakGrad x i)
+                2 (volume.restrict (Metric.ball x₀ s)))
+            _root_.Filter.atTop (nhds 0)))
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hCη : 0 ≤ Cη)
+    (hη_grad_bound : ∀ x, ‖fderiv ℝ η x‖ ≤ Cη)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s)
+    (hsob :
+      ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        Csob *
+          (∫ x in Metric.ball x₀ r,
+            ‖(positivePartSubMemW1pWitnessOnBall hs hu θ happroxBallTheta).weakGrad x‖ ^ 2
+              ∂volume) *
+          ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ))) :
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+      Csob * (4 * ellipticityRatio A * Cη ^ 2) *
+        ((((lam - θ) ^ 2)⁻¹ *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume) ^ (2 / (d : ℝ))) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+  have : _root_.MeasureTheory.IsFiniteMeasure (volume.restrict (Metric.ball x₀ s)) := by
+    rw [_root_.MeasureTheory.isFiniteMeasure_restrict]
+    exact measure_ball_lt_top.ne
+  let hwTheta : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s) :=
+    positivePartSubMemW1pWitnessOnBall hs hu θ happroxBallTheta
+  have hθ_int :
+      _root_.MeasureTheory.Integrable (fun x => |positivePartSub u θ x| ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    simpa [pow_two] using hwTheta.memLp.integrable_sq
+  have hIθ_nonneg :
+      0 ≤ ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    refine _root_.MeasureTheory.integral_nonneg ?_
+    intro x
+    positivity
+  have henergy :
+      ∫ x in Metric.ball x₀ r, ‖hwTheta.weakGrad x‖ ^ 2 ∂volume ≤
+        (4 * ellipticityRatio A * Cη ^ 2) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    exact
+      deGiorgi_energy_estimate_on_concentricBalls_of_posPartApprox
+        A hs hr hrs hsub hu happroxBallTheta hη hη_nonneg hη_eq_one
+        hη_bound hCη hη_grad_bound hη_sub_ball
+  have hsob' :
+      ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        Csob * (∫ x in Metric.ball x₀ r, ‖hwTheta.weakGrad x‖ ^ 2 ∂volume) *
+          ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ)) := by
+    exact hsob
+  exact
+    deGiorgi_preiter_of_energy
+      (μ := volume.restrict (Metric.ball x₀ s))
+      hd hθl hCsob
+      (by
+        have hRatio_nonneg : 0 ≤ ellipticityRatio A := A.ellipticityRatio_nonneg
+        have hCη_sq_nonneg : 0 ≤ Cη ^ 2 := sq_nonneg Cη
+        nlinarith)
+      hIθ_nonneg hθ_int
+      hsob' henergy
+      (by rfl)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_posPartApprox then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_posPartApprox"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_posPartApprox ``Submission.DeGiorgi.deGiorgi_preiter_of_ballSobolev_on_concentricBalls_of_posPartApprox
+
+private theorem deGiorgi_cutoffSobolev_prepare
+    {u η : E → ℝ} {x₀ : E} {s θ : ℝ}
+    (hd : 2 < (d : ℝ))
+    (_hs : 0 < s)
+    (_hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (_hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (_hη_bound : ∀ x, |η x| ≤ 1)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s)
+    (hvW01 :
+      MemW01p 2 (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s)) :
+    ∃ hwηθ_real :
+      MemW1pWitness (ENNReal.ofReal (2 : ℝ))
+        (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s),
+      _root_.MeasureTheory.eLpNorm (deGiorgiCutoffTestGeneral η u θ)
+          (ENNReal.ofReal ((d : ℝ) * 2 / ((d : ℝ) - 2)))
+          (volume.restrict (Metric.ball x₀ s)) ≤
+        ENNReal.ofReal (CGns d 2) *
+          _root_.MeasureTheory.eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2
+            (volume.restrict (Metric.ball x₀ s)) := by
+  classical
+  let Ω : Set E := Metric.ball x₀ s
+  let μ : _root_.MeasureTheory.Measure E := volume.restrict Ω
+  let v : E → ℝ := deGiorgiCutoffTestGeneral η u θ
+  have hΩ_open : IsOpen Ω := _root_.Metric.isOpen_ball
+  have hΩ_meas : MeasurableSet Ω := measurableSet_ball
+  have : _root_.MeasureTheory.IsFiniteMeasure μ := by
+    dsimp [μ, Ω]
+    rw [_root_.MeasureTheory.isFiniteMeasure_restrict]
+    exact measure_ball_lt_top.ne
+  have hη_comp : HasCompactSupport η :=
+    hasCompactSupport_of_tsupport_subset_ball hη_sub_ball
+  let hwηθ : MemW1pWitness 2 v Ω := Classical.choose hvW01.2
+  have hv_tsupport : tsupport v ⊆ Ω :=
+    deGiorgiCutoffTestGeneral_tsupport_subset hη_sub_ball
+  have hv_comp : HasCompactSupport v :=
+    deGiorgiCutoffTestGeneral_hasCompactSupport hη_comp
+  have hv_indicator_eq : Ω.indicator v = v := by
+    ext x
+    by_cases hx : x ∈ Ω
+    · simp [hx]
+    · have hvx0 : v x = 0 := by
+        apply eq_zero_of_not_mem_tsupport
+        intro hxt
+        exact hx (hv_tsupport hxt)
+      simp [hx, hvx0]
+  have hvW01_real : MemW01p (ENNReal.ofReal (2 : ℝ)) v Ω := by
+    simpa using hvW01
+  have hwηθ_real : MemW1pWitness (ENNReal.ofReal (2 : ℝ)) v Ω := by
+    simpa using hwηθ
+  let hwηθ_univ_raw :
+      MemW1pWitness (ENNReal.ofReal (2 : ℝ)) (Ω.indicator v) Set.univ :=
+    zeroExtendMemW1pWitnessP (d := d) hΩ_open (p := 2) (by norm_num) hvW01_real hwηθ_real
+  let hwηθ_univ : MemW1pWitness (ENNReal.ofReal (2 : ℝ)) v Set.univ :=
+    { memLp := by
+        simpa [hv_indicator_eq] using hwηθ_univ_raw.memLp
+      weakGrad := hwηθ_univ_raw.weakGrad
+      weakGrad_component_memLp := hwηθ_univ_raw.weakGrad_component_memLp
+      isWeakGrad := by
+        simpa [hv_indicator_eq] using hwηθ_univ_raw.isWeakGrad }
+  have hvW01_univ : MemW01p (ENNReal.ofReal (2 : ℝ)) v Set.univ := by
+    simpa [hv_indicator_eq] using
+      zeroExtend_memW01p_p (d := d) hΩ_open (p := 2) (by norm_num) hvW01_real
+  let q : ℝ≥0∞ := ENNReal.ofReal ((d : ℝ) * 2 / ((d : ℝ) - 2))
+  obtain ⟨hwSob, hSob⟩ :=
+    sobolev_of_memW01p_univ (d := d) (p := 2) (u := v) (by norm_num) hd hvW01_univ
+  have hae_grad :
+      hwSob.weakGrad =ᵐ[_root_.MeasureTheory.MeasureSpace.volume] hwηθ_univ.weakGrad := by
+    simpa [Measure.restrict_univ] using
+      MemW1pWitness.ae_eq_p (d := d) isOpen_univ (p := 2) (by norm_num) hwSob hwηθ_univ
+  have hSob' :
+      _root_.MeasureTheory.eLpNorm v q _root_.MeasureTheory.MeasureSpace.volume ≤
+        ENNReal.ofReal (CGns d 2) *
+          eLpNorm (fun x => ‖hwηθ_univ.weakGrad x‖) 2 volume := by
+    calc
+      _root_.MeasureTheory.eLpNorm v q _root_.MeasureTheory.MeasureSpace.volume
+          ≤ ENNReal.ofReal (CGns d 2) *
+              eLpNorm (fun x => ‖hwSob.weakGrad x‖) 2 volume := by
+                simpa [q] using hSob
+      _ = ENNReal.ofReal (CGns d 2) *
+            eLpNorm (fun x => ‖hwηθ_univ.weakGrad x‖) 2 volume := by
+          congr 1
+          exact _root_.MeasureTheory.eLpNorm_congr_ae (hae_grad.fun_comp (‖·‖))
+  have hgrad_ext_vec :
+      hwηθ_univ.weakGrad = Ω.indicator hwηθ_real.weakGrad := by
+    ext x i
+    by_cases hx : x ∈ Ω
+    · simp [hwηθ_univ, hwηθ_univ_raw, zeroExtendMemW1pWitnessP, hx]
+    · simp [hwηθ_univ, hwηθ_univ_raw, zeroExtendMemW1pWitnessP, hx]
+  have hgrad_ext :
+      (fun x => ‖hwηθ_univ.weakGrad x‖) = Ω.indicator (fun x => ‖hwηθ_real.weakGrad x‖) := by
+    ext x
+    by_cases hx : x ∈ Ω
+    · simp [hgrad_ext_vec, hx]
+    · simp [hgrad_ext_vec, hx]
+  have hgrad_restrict :
+      _root_.MeasureTheory.eLpNorm (fun x => ‖hwηθ_univ.weakGrad x‖) 2 _root_.MeasureTheory.MeasureSpace.volume =
+        eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ := by
+    rw [hgrad_ext, MeasureTheory.eLpNorm_indicator_eq_eLpNorm_restrict hΩ_meas]
+  have hv_support : Function.support v ⊆ Ω := by
+    intro x hx
+    exact hv_tsupport (subset_tsupport _ hx)
+  have hv_restrict :
+      eLpNorm v q μ = _root_.MeasureTheory.eLpNorm v q volume := by
+    simpa [μ] using
+      (MeasureTheory.eLpNorm_restrict_eq_of_support_subset (μ := _root_.MeasureTheory.MeasureSpace.volume) (p := q) hv_support)
+  have hSob'' :
+      _root_.MeasureTheory.eLpNorm v q μ ≤
+        ENNReal.ofReal (CGns d 2) * _root_.MeasureTheory.eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ := by
+    calc
+      eLpNorm v q μ = _root_.MeasureTheory.eLpNorm v q volume := hv_restrict
+      _ ≤ ENNReal.ofReal (CGns d 2) *
+            eLpNorm (fun x => ‖hwηθ_univ.weakGrad x‖) 2 volume := hSob'
+      _ = ENNReal.ofReal (CGns d 2) * _root_.MeasureTheory.eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ := by
+            rw [hgrad_restrict]
+  exact ⟨hwηθ_real, hSob''⟩
+
+run_cmd do
+  let target := ``Submission.DeGiorgi.deGiorgi_cutoffSobolev_prepare
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DeGiorgi.deGiorgi_cutoffSobolev_prepare target :: scope.openDecls } }
+
+private theorem deGiorgi_cutoffSobolev_superlevelStep
+    {u η : E → ℝ} {x₀ : E} {r s θ lam : ℝ}
+    (hd : 2 < (d : ℝ))
+    (_hr : 0 < r) (hrs : r < s)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (hwθ : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s))
+    (hθl : θ < lam)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hwηθ_real :
+      MemW1pWitness (ENNReal.ofReal (2 : ℝ))
+        (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s))
+    (hSob'' :
+      _root_.MeasureTheory.eLpNorm (deGiorgiCutoffTestGeneral η u θ)
+          (ENNReal.ofReal ((d : ℝ) * 2 / ((d : ℝ) - 2)))
+          (volume.restrict (Metric.ball x₀ s)) ≤
+        ENNReal.ofReal (CGns d 2) *
+          _root_.MeasureTheory.eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2
+            (volume.restrict (Metric.ball x₀ s))) :
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+      (CGns d 2) ^ 2 *
+        (∫ x in Metric.ball x₀ s, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+        ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ)) := by
+  classical
+  let Ω : Set E := Metric.ball x₀ s
+  let B : Set E := Metric.ball x₀ r
+  let μ : _root_.MeasureTheory.Measure E := volume.restrict Ω
+  let S : Set E := {x | lam < u x}
+  let T : Set E := _root_.MeasureTheory.toMeasurable μ S
+  let v : E → ℝ := deGiorgiCutoffTestGeneral η u θ
+  let q : ℝ≥0∞ := ENNReal.ofReal ((d : ℝ) * 2 / ((d : ℝ) - 2))
+  have hB_meas : MeasurableSet B := measurableSet_ball
+  have hBsubΩ : B ⊆ Ω := Metric.ball_subset_ball (le_of_lt hrs)
+  have : _root_.MeasureTheory.IsFiniteMeasure μ := by
+    dsimp [μ, Ω]
+    rw [_root_.MeasureTheory.isFiniteMeasure_restrict]
+    exact measure_ball_lt_top.ne
+  have hT_meas : MeasurableSet T := _root_.MeasureTheory.measurableSet_toMeasurable μ S
+  have hSsubT : S ⊆ T := _root_.MeasureTheory.subset_toMeasurable μ S
+  let g : E → ℝ := fun x => |v x| ^ 2
+  have hwηθ_memLp2 : _root_.MeasureTheory.MemLp v 2 μ := by
+    simpa using hwηθ_real.memLp
+  have hgrad_memLp2 : _root_.MeasureTheory.MemLp (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ := by
+    simpa using hwηθ_real.weakGrad_norm_memLp
+  have hθ_int_B :
+      IntegrableOn (fun x => |positivePartSub u θ x| ^ 2) B volume := by
+    change _root_.MeasureTheory.Integrable (fun x => |positivePartSub u θ x| ^ 2) (volume.restrict B)
+    simpa [B, pow_two] using (hwθ.restrict _root_.Metric.isOpen_ball hBsubΩ).memLp.integrable_sq
+  have hlam_sq_aesm :
+      AEStronglyMeasurable (fun x => |positivePartSub u lam x| ^ 2) (volume.restrict B) := by
+    have huB_meas :
+        AEMeasurable u (volume.restrict B) := by
+      exact (hu.restrict _root_.Metric.isOpen_ball hBsubΩ).memLp.aestronglyMeasurable.aemeasurable
+    have hlam_meas :
+        AEMeasurable (fun x => positivePartSub u lam x) (volume.restrict B) := by
+      simpa [positivePartSub] using
+        (huB_meas.sub_const lam).max measurable_const.aemeasurable
+    simpa [Real.norm_eq_abs] using (hlam_meas.norm.pow_const (2 : ℕ)).aestronglyMeasurable
+  have hleft_int :
+      IntegrableOn (fun x => |positivePartSub u lam x| ^ 2) B volume := by
+    refine Integrable.mono' hθ_int_B hlam_sq_aesm ?_
+    filter_upwards with x
+    have hmono : positivePartSub u lam x ≤ positivePartSub u θ x := by
+      dsimp [positivePartSub]
+      exact max_le_max (by linarith) le_rfl
+    have hlam_nonneg : 0 ≤ positivePartSub u lam x := positivePartSub_nonneg
+    have hθ_nonneg : 0 ≤ positivePartSub u θ x := positivePartSub_nonneg
+    have hsq :
+        |positivePartSub u lam x| ^ 2 ≤ |positivePartSub u θ x| ^ 2 := by
+      rw [abs_of_nonneg hlam_nonneg, abs_of_nonneg hθ_nonneg]
+      exact (sq_le_sq₀ hlam_nonneg hθ_nonneg).2 hmono
+    have hlam_sq_nonneg : 0 ≤ |positivePartSub u lam x| ^ 2 := by positivity
+    simpa [Real.norm_eq_abs, abs_of_nonneg hlam_sq_nonneg] using hsq
+  have hg_int :
+      IntegrableOn g Ω volume := by
+    change _root_.MeasureTheory.Integrable g μ
+    simpa [g, pow_two] using hwηθ_memLp2.integrable_sq
+  have hgT_int :
+      IntegrableOn (T.indicator g) Ω volume := hg_int.indicator hT_meas
+  have hpoint :
+      ∀ x ∈ B, |positivePartSub u lam x| ^ 2 ≤ T.indicator g x := by
+    intro x hxB
+    by_cases hxl : lam < u x
+    · have hxT : x ∈ T := hSsubT hxl
+      have hηx : η x = 1 := hη_eq_one x hxB
+      have hvx : v x = positivePartSub u θ x := by
+        simp [v, deGiorgiCutoffTestGeneral, hηx]
+      have hmono : positivePartSub u lam x ≤ positivePartSub u θ x := by
+        dsimp [positivePartSub]
+        gcongr
+      have hlam_nonneg : 0 ≤ positivePartSub u lam x := positivePartSub_nonneg
+      have hθ_nonneg : 0 ≤ positivePartSub u θ x := positivePartSub_nonneg
+      have hsq :
+          |positivePartSub u lam x| ^ 2 ≤ |v x| ^ 2 := by
+        rw [hvx, abs_of_nonneg hlam_nonneg, abs_of_nonneg hθ_nonneg]
+        exact (sq_le_sq₀ hlam_nonneg hθ_nonneg).2 hmono
+      simpa [g, hxT] using hsq
+    · have hzero : positivePartSub u lam x = 0 := by
+        have hux : u x - lam ≤ 0 := by linarith
+        simp [positivePartSub, max_eq_right hux]
+      by_cases hxT : x ∈ T
+      · simp only [g, hxT, hzero, Set.indicator_of_mem, abs_zero,
+          ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow]
+        positivity
+      · simp only [g, hxT, hzero, Set.indicator_of_notMem,
+          not_false_eq_true, abs_zero, ne_eq, OfNat.ofNat_ne_zero, zero_pow, le_refl]
+  have hT_nonneg : ∀ x, 0 ≤ T.indicator g x := by
+    intro x
+    by_cases hxT : x ∈ T
+    · simp only [g, hxT, Set.indicator_of_mem]
+      positivity
+    · simp only [g, hxT, Set.indicator_of_notMem, not_false_eq_true, le_refl]
+  have hleft_le_T :
+      ∫ x in B, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        ∫ x in Ω, T.indicator g x ∂volume := by
+    have hmonoB :
+        ∫ x in B, |positivePartSub u lam x| ^ 2 ∂volume ≤
+          ∫ x in B, T.indicator g x ∂volume := by
+      refine _root_.MeasureTheory.integral_mono_ae hleft_int (hgT_int.mono_set hBsubΩ) ?_
+      refine (_root_.MeasureTheory.ae_restrict_iff' (μ := _root_.MeasureTheory.MeasureSpace.volume) hB_meas).2 ?_
+      filter_upwards with x hx
+      exact hpoint x hx
+    calc
+      ∫ x in B, |positivePartSub u lam x| ^ 2 ∂volume ≤
+          ∫ x in B, T.indicator g x ∂volume := hmonoB
+      _ ≤ ∫ x in Ω, T.indicator g x ∂volume :=
+        _root_.MeasureTheory.setIntegral_mono_set hgT_int (_root_.MeasureTheory.ae_of_all _ hT_nonneg) (_root_.MeasureTheory.ae_of_all _ hBsubΩ)
+  have hμT_real :
+      (μ.restrict T).real Set.univ = μ.real S := by
+    rw [_root_.MeasureTheory.measureReal_restrict_apply_univ]
+    exact (_root_.MeasureTheory.measureReal_eq_measureReal_iff (μ := μ) (ν := μ) (s := T) (t := S)).2
+      (_root_.MeasureTheory.measure_toMeasurable (μ := μ) S)
+  have hq_gt_two : 2 < (d : ℝ) * 2 / ((d : ℝ) - 2) := by
+    have hd' : 0 < (d : ℝ) - 2 := by linarith
+    have hd0 : 0 < (d : ℝ) := by linarith
+    field_simp [hd0.ne', hd'.ne]
+    nlinarith
+  have htwo_le_q : (2 : ℝ≥0∞) ≤ q := by
+    simpa [q] using
+      (ENNReal.ofReal_le_ofReal (le_of_lt hq_gt_two) :
+        ENNReal.ofReal (2 : ℝ) ≤ ENNReal.ofReal ((d : ℝ) * 2 / ((d : ℝ) - 2)))
+  have hq_nonneg : 0 ≤ (d : ℝ) * 2 / ((d : ℝ) - 2) := by
+    linarith
+  have hq_toReal : q.toReal = (d : ℝ) * 2 / ((d : ℝ) - 2) := by
+    simpa [q] using ENNReal.toReal_ofReal hq_nonneg
+  have hexp :
+      (1 / (2 : ℝ)) - 1 / q.toReal = 1 / (d : ℝ) := by
+    rw [hq_toReal]
+    have hd0 : (d : ℝ) ≠ 0 := by linarith
+    have hd2 : (d : ℝ) - 2 ≠ 0 := by linarith
+    field_simp [hd0, hd2]
+    ring
+  have hv_memLp_q :
+      MemLp v q μ := by
+    refine ⟨hwηθ_real.memLp.aestronglyMeasurable, ?_⟩
+    have hgrad_lt_top :
+        eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ < ∞ :=
+      hgrad_memLp2.eLpNorm_lt_top
+    have hrhs_lt_top :
+        ENNReal.ofReal (CGns d 2) *
+          eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ < ∞ := by
+      rw [ENNReal.mul_lt_top_iff]
+      exact Or.inl ⟨by simp, hgrad_lt_top⟩
+    exact lt_of_le_of_lt hSob'' hrhs_lt_top
+  have hv_memLp_q_T :
+      MemLp v q (μ.restrict T) := hv_memLp_q.mono_measure Measure.restrict_le_self
+  have hv_memLp2_T :
+      MemLp v 2 (μ.restrict T) := hwηθ_memLp2.mono_measure Measure.restrict_le_self
+  have hcompare_real :
+      MeasureTheory.lpNorm v 2 (μ.restrict T) ≤
+        MeasureTheory.lpNorm v q (μ.restrict T) *
+          ((μ.restrict T).real Set.univ) ^ ((1 / (2 : ℝ)) - 1 / q.toReal) := by
+    have hcompare :=
+      MeasureTheory.eLpNorm_le_eLpNorm_mul_rpow_measure_univ
+        (μ := μ.restrict T) (f := v) htwo_le_q
+        hwηθ_real.memLp.aestronglyMeasurable.restrict
+    have hexp_nonneg : 0 ≤ (1 / (2 : ℝ)) - 1 / q.toReal := by
+      rw [hexp]
+      positivity
+    have hfactor_ne_top :
+        (μ.restrict T) Set.univ ^ ((1 / (2 : ℝ)) - 1 / q.toReal) ≠ ∞ := by
+      exact (ENNReal.rpow_lt_top_of_nonneg hexp_nonneg (by finiteness)).ne
+    have hrhs_ne_top :
+        _root_.MeasureTheory.eLpNorm v q (μ.restrict T) *
+            (μ.restrict T) Set.univ ^ ((1 / (2 : ℝ)) - 1 / q.toReal) ≠ ∞ := by
+      exact ENNReal.mul_ne_top hv_memLp_q_T.eLpNorm_ne_top hfactor_ne_top
+    have hcompare_toReal :
+        (_root_.MeasureTheory.eLpNorm v 2 (μ.restrict T)).toReal ≤
+          (_root_.MeasureTheory.eLpNorm v q (μ.restrict T) *
+            (μ.restrict T) Set.univ ^ ((1 / (2 : ℝ)) - 1 / q.toReal)).toReal :=
+      (ENNReal.toReal_le_toReal hv_memLp2_T.eLpNorm_ne_top hrhs_ne_top).2 hcompare
+    have hrpow_toReal :
+        ((μ.restrict T) Set.univ ^ ((1 / (2 : ℝ)) - 1 / q.toReal)).toReal =
+          ((μ.restrict T).real Set.univ) ^ ((1 / (2 : ℝ)) - 1 / q.toReal) := by
+      rw [← ENNReal.toReal_rpow]
+      rfl
+    have hcompare_toReal' := hcompare_toReal
+    rw [MeasureTheory.toReal_eLpNorm hv_memLp2_T.aestronglyMeasurable,
+      ENNReal.toReal_mul, MeasureTheory.toReal_eLpNorm hv_memLp_q_T.aestronglyMeasurable,
+      hrpow_toReal] at hcompare_toReal'
+    exact hcompare_toReal'
+  have hq_mono_real :
+      MeasureTheory.lpNorm v q (μ.restrict T) ≤ MeasureTheory.lpNorm v q μ := by
+    rw [← MeasureTheory.toReal_eLpNorm hv_memLp_q_T.aestronglyMeasurable,
+      ← MeasureTheory.toReal_eLpNorm hv_memLp_q.aestronglyMeasurable]
+    exact ENNReal.toReal_mono hv_memLp_q.eLpNorm_ne_top
+      (MeasureTheory.eLpNorm_mono_measure v Measure.restrict_le_self)
+  have hgrad_lp :
+      MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ =
+        (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) ^ (1 / (2 : ℝ)) := by
+    simpa [μ] using
+      (MeasureTheory.lpNorm_eq_integral_norm_rpow_toReal
+        (μ := μ) (f := fun x => ‖hwηθ_real.weakGrad x‖)
+        two_ne_zero ENNReal.ofNat_ne_top hwηθ_real.weakGrad_norm_memLp.aestronglyMeasurable)
+  have hSob_real :
+      MeasureTheory.lpNorm v q μ ≤
+        (CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ := by
+    have hgrad_ne_top :
+        eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ ≠ ∞ :=
+      hgrad_memLp2.eLpNorm_ne_top
+    have hrhs_ne_top :
+        ENNReal.ofReal (CGns d 2) *
+            eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ ≠ ∞ :=
+      ENNReal.mul_ne_top (by simp) hgrad_ne_top
+    have hSob_toReal :
+        (_root_.MeasureTheory.eLpNorm v q μ).toReal ≤
+          (ENNReal.ofReal (CGns d 2) *
+            eLpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ).toReal :=
+      (ENNReal.toReal_le_toReal hv_memLp_q.eLpNorm_ne_top hrhs_ne_top).2 hSob''
+    have hC_toReal : (ENNReal.ofReal (CGns d 2)).toReal = CGns d 2 :=
+      ENNReal.toReal_ofReal (C_gns_nonneg d 2)
+    have hSob_toReal' := hSob_toReal
+    rw [MeasureTheory.toReal_eLpNorm hv_memLp_q.aestronglyMeasurable,
+      ENNReal.toReal_mul, MeasureTheory.toReal_eLpNorm hgrad_memLp2.aestronglyMeasurable,
+      hC_toReal] at hSob_toReal'
+    exact hSob_toReal'
+  have hT_lp_sq :
+      ∫ x in T, |v x| ^ 2 ∂μ = (MeasureTheory.lpNorm v 2 (μ.restrict T)) ^ 2 := by
+    rw [MeasureTheory.lpNorm_eq_integral_norm_rpow_toReal
+      (μ := μ.restrict T) (f := v) two_ne_zero ENNReal.ofNat_ne_top
+      hv_memLp2_T.aestronglyMeasurable]
+    norm_num
+    have hnonneg : 0 ≤ ∫ x in T, v x ^ 2 ∂μ := by
+      refine _root_.MeasureTheory.integral_nonneg ?_
+      intro x
+      exact sq_nonneg (v x)
+    have hsqrt :
+        (∫ x in T, v x ^ 2 ∂μ) ^ (1 / (2 : ℝ)) =
+          Real.sqrt (∫ x in T, v x ^ 2 ∂μ) := by
+      rw [Real.sqrt_eq_rpow]
+    rw [hsqrt, Real.sq_sqrt hnonneg]
+  have hgrad_sq :
+      (MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ) ^ 2 =
+        ∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume := by
+    rw [hgrad_lp]
+    have hnonneg :
+        0 ≤ ∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume := by
+      refine _root_.MeasureTheory.integral_nonneg ?_
+      intro x
+      positivity
+    have hsqrt :
+        (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) ^ (1 / (2 : ℝ)) =
+          Real.sqrt (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) := by
+      rw [Real.sqrt_eq_rpow]
+    rw [hsqrt, Real.sq_sqrt hnonneg]
+  have hmain_lp :
+      MeasureTheory.lpNorm v 2 (μ.restrict T) ≤
+        (CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ *
+          (μ.real S) ^ (1 / (d : ℝ)) := by
+    calc
+      MeasureTheory.lpNorm v 2 (μ.restrict T)
+          ≤ MeasureTheory.lpNorm v q (μ.restrict T) *
+              ((μ.restrict T).real Set.univ) ^ ((1 / (2 : ℝ)) - 1 / q.toReal) :=
+        hcompare_real
+      _ = MeasureTheory.lpNorm v q (μ.restrict T) * (μ.real S) ^ (1 / (d : ℝ)) := by
+        rw [hμT_real, hexp]
+      _ ≤ MeasureTheory.lpNorm v q μ * (μ.real S) ^ (1 / (d : ℝ)) := by
+        gcongr
+      _ ≤ ((CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ) *
+            (μ.real S) ^ (1 / (d : ℝ)) := by
+        gcongr
+      _ = (CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ *
+            (μ.real S) ^ (1 / (d : ℝ)) := by ring
+  have hmain_sq :
+      ∫ x in T, |v x| ^ 2 ∂μ ≤
+        (CGns d 2) ^ 2 *
+          (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+          (μ.real S) ^ (2 / (d : ℝ)) := by
+    have hμ_nonneg : 0 ≤ μ.real S := _root_.MeasureTheory.measureReal_nonneg
+    have hnonneg_left : 0 ≤ MeasureTheory.lpNorm v 2 (μ.restrict T) := MeasureTheory.lpNorm_nonneg
+    have hnonneg_right :
+        0 ≤ (CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ *
+          (μ.real S) ^ (1 / (d : ℝ)) := by
+      have hpow_nonneg : 0 ≤ (μ.real S) ^ (1 / (d : ℝ)) := Real.rpow_nonneg hμ_nonneg _
+      exact mul_nonneg (mul_nonneg (C_gns_nonneg d 2) MeasureTheory.lpNorm_nonneg) hpow_nonneg
+    have hsq :
+        (MeasureTheory.lpNorm v 2 (μ.restrict T)) ^ 2 ≤
+          ((CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ *
+            (μ.real S) ^ (1 / (d : ℝ))) ^ 2 := by
+      exact (sq_le_sq₀ hnonneg_left hnonneg_right).2 hmain_lp
+    calc
+      ∫ x in T, |v x| ^ 2 ∂μ = (MeasureTheory.lpNorm v 2 (μ.restrict T)) ^ 2 := hT_lp_sq
+      _ ≤ ((CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ *
+                (μ.real S) ^ (1 / (d : ℝ))) ^ 2 := hsq
+      _ = (CGns d 2) ^ 2 *
+            (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+            (μ.real S) ^ (2 / (d : ℝ)) := by
+          have hpow :
+              ((μ.real S) ^ (1 / (d : ℝ))) ^ 2 =
+                (μ.real S) ^ (2 / (d : ℝ)) := by
+            rw [pow_two, ← Real.rpow_add' hμ_nonneg]
+            · ring_nf
+            · positivity
+          calc
+            ((CGns d 2) * MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ *
+                (μ.real S) ^ (1 / (d : ℝ))) ^ 2
+                = (CGns d 2) ^ 2 *
+                    (MeasureTheory.lpNorm (fun x => ‖hwηθ_real.weakGrad x‖) 2 μ) ^ 2 *
+                    ((μ.real S) ^ (1 / (d : ℝ))) ^ 2 := by
+                    ring
+            _ = (CGns d 2) ^ 2 *
+                  (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+                  ((μ.real S) ^ (1 / (d : ℝ))) ^ 2 := by
+                  rw [hgrad_sq]
+            _ = (CGns d 2) ^ 2 *
+                  (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+                  (μ.real S) ^ (2 / (d : ℝ)) := by
+                  rw [hpow]
+  calc
+    ∫ x in B, |positivePartSub u lam x| ^ 2 ∂volume
+        ≤ ∫ x in Ω, T.indicator g x ∂volume := hleft_le_T
+    _ = ∫ x in T, |v x| ^ 2 ∂μ := by
+      rw [show ∫ x in Ω, T.indicator g x ∂volume = ∫ x, T.indicator g x ∂μ by rfl,
+        MeasureTheory.integral_indicator hT_meas]
+    _ ≤ (CGns d 2) ^ 2 *
+          (∫ x in Ω, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+          (μ.real S) ^ (2 / (d : ℝ)) := hmain_sq
+    _ = (CGns d 2) ^ 2 *
+          (∫ x in Metric.ball x₀ s, ‖hwηθ_real.weakGrad x‖ ^ 2 ∂volume) *
+          ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ)) := by
+      simp [Ω, μ, S]
+
+run_cmd do
+  let target := ``Submission.DeGiorgi.deGiorgi_cutoffSobolev_superlevelStep
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DeGiorgi.deGiorgi_cutoffSobolev_superlevelStep target :: scope.openDecls } }
+
+/-- Sobolev/Hölder step for De Giorgi pre-iteration on concentric balls.
+
+The argument passes through a zero-trace cutoff witness for
+`η² (u - θ)₊`. The originally intended statement with only the bare
+`θ`-truncation gradient on the right-hand side is false, e.g. for constant
+superlevel functions. The proof here records the actual Chapter 05 mechanism:
+
+1. build a `W₀^{1,2}` witness for `η² (u - θ)₊`,
+2. zero-extend it to the whole space,
+3. apply whole-space Sobolev, and
+4. combine it with the `L²`-to-`L^{2d/(d-2)}` restriction estimate on
+   `{x | λ < u x}`. -/
+theorem deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart
+    {u η : E → ℝ} {x₀ : E} {r s θ lam : ℝ}
+    (hd : 2 < (d : ℝ))
+    (hr : 0 < r) (hrs : r < s)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (hwθ : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s))
+    (hθl : θ < lam)
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (_hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s) :
+    ∃ hwηθ : MemW1pWitness 2 (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s),
+      ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        (CGns d 2) ^ 2 *
+          (∫ x in Metric.ball x₀ s, ‖hwηθ.weakGrad x‖ ^ 2 ∂volume) *
+          ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ)) := by
+  let _ := _hη_nonneg
+  have hs : 0 < s := lt_trans hr hrs
+  let v : E → ℝ := deGiorgiCutoffTestGeneral η u θ
+  have : _root_.MeasureTheory.IsFiniteMeasure (volume.restrict (Metric.ball x₀ s)) := by
+    rw [_root_.MeasureTheory.isFiniteMeasure_restrict]
+    exact measure_ball_lt_top.ne
+  have hη_comp : HasCompactSupport η :=
+    hasCompactSupport_of_tsupport_subset_ball hη_sub_ball
+  obtain ⟨Cη, hCη, hη_grad_bound⟩ :=
+    exists_fderiv_bound_of_contDiff_hasCompactSupport hη hη_comp
+  have hvW01 :
+      MemW01p 2 (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s) :=
+    deGiorgiCutoffTest_memW01p_of_truncWitness
+      _root_.Metric.isOpen_ball hwθ hη (by norm_num) hCη hη_bound hη_grad_bound hη_comp hη_sub_ball
+  obtain ⟨hwηθ_real, hSob''⟩ :=
+    deGiorgi_cutoffSobolev_prepare (d := d) hd hs hu hη hη_bound hη_sub_ball hvW01
+  let hwηθ : MemW1pWitness 2 v (Metric.ball x₀ s) :=
+    { memLp := by
+        simpa [v] using hwηθ_real.memLp
+      weakGrad := hwηθ_real.weakGrad
+      weakGrad_component_memLp := by
+        simpa using hwηθ_real.weakGrad_component_memLp
+      isWeakGrad := by
+        simpa [v] using hwηθ_real.isWeakGrad }
+  refine ⟨hwηθ, ?_⟩
+  simpa [v, hwηθ] using
+    deGiorgi_cutoffSobolev_superlevelStep (d := d) hd hr hrs hu hwθ hθl hη_eq_one
+      hwηθ_real hSob''
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart ``Submission.DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart
+
+/-- Sobolev/Hölder step for De Giorgi pre-iteration on concentric balls,
+using the concrete positive-part approximation input. -/
+theorem deGiorgi_cutoffSobolev_on_concentricBalls_of_posPartApprox
+    {u η : E → ℝ} {x₀ : E} {r s θ lam : ℝ}
+    (hd : 2 < (d : ℝ))
+    (hs : 0 < s) (hr : 0 < r) (hrs : r < s)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (happroxBallTheta :
+      ∃ ψ : ℕ → E → ℝ,
+        (∀ n, ContDiff ℝ 1 (ψ n)) ∧
+        (∀ n, HasCompactSupport (ψ n)) ∧
+        _root_.Filter.Tendsto
+          (fun n =>
+            _root_.MeasureTheory.eLpNorm (fun x => ψ n x - (u x - θ)) 2
+              (volume.restrict (Metric.ball x₀ s)))
+          _root_.Filter.atTop (nhds 0) ∧
+        (∀ i : Fin d,
+          _root_.Filter.Tendsto
+            (fun n =>
+              _root_.MeasureTheory.eLpNorm
+                (fun x =>
+                  (fderiv ℝ (ψ n) x) (EuclideanSpace.single i 1) - hu.weakGrad x i)
+                2 (volume.restrict (Metric.ball x₀ s)))
+            _root_.Filter.atTop (nhds 0)))
+    (hθl : θ < lam)
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (_hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s) :
+    ∃ hwηθ : MemW1pWitness 2 (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s),
+      ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        (CGns d 2) ^ 2 *
+          (∫ x in Metric.ball x₀ s, ‖hwηθ.weakGrad x‖ ^ 2 ∂volume) *
+          ((volume.restrict (Metric.ball x₀ s)).real {x | lam < u x}) ^ (2 / (d : ℝ)) := by
+  let _ := _hη_nonneg
+  let v : E → ℝ := deGiorgiCutoffTestGeneral η u θ
+  have hη_comp : HasCompactSupport η :=
+    hasCompactSupport_of_tsupport_subset_ball hη_sub_ball
+  obtain ⟨Cη, hCη, hη_grad_bound⟩ :=
+    exists_fderiv_bound_of_contDiff_hasCompactSupport hη hη_comp
+  have hvW01 :
+      MemW01p 2 (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s) :=
+    deGiorgiCutoffTest_memW01p_on_ball_of_ballPosPartApprox
+      hs hu hη hη_bound hCη hη_grad_bound hη_sub_ball θ happroxBallTheta
+  obtain ⟨hwηθ_real, hSob''⟩ :=
+    deGiorgi_cutoffSobolev_prepare (d := d) hd hs hu hη hη_bound hη_sub_ball hvW01
+  let hwηθ : MemW1pWitness 2 v (Metric.ball x₀ s) :=
+    { memLp := by
+        simpa [v] using hwηθ_real.memLp
+      weakGrad := hwηθ_real.weakGrad
+      weakGrad_component_memLp := by
+        simpa using hwηθ_real.weakGrad_component_memLp
+      isWeakGrad := by
+        simpa [v] using hwηθ_real.isWeakGrad }
+  let hwθ : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s) :=
+    positivePartSubMemW1pWitnessOnBall hs hu θ happroxBallTheta
+  refine ⟨hwηθ, ?_⟩
+  simpa [v, hwηθ, hwθ] using
+    deGiorgi_cutoffSobolev_superlevelStep (d := d) hd hr hrs hu hwθ hθl hη_eq_one
+      hwηθ_real hSob''
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_posPartApprox then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_posPartApprox"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_posPartApprox ``Submission.DeGiorgi.deGiorgi_cutoffSobolev_on_concentricBalls_of_posPartApprox
+
+lemma deGiorgi_cutoff_gradient_bound_of_weighted
+    {u η : E → ℝ} {x₀ : E} {s k Cη Cw : ℝ}
+    (hCw : 0 ≤ Cw)
+    (hw_trunc : MemW1pWitness 2 (positivePartSub u k) (Metric.ball x₀ s))
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hCη : 0 ≤ Cη)
+    (hη_grad_bound : ∀ x, ‖fderiv ℝ η x‖ ≤ Cη)
+    (hweighted :
+      ∫ x in Metric.ball x₀ s, η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 ∂volume ≤
+        4 * Cw *
+          ∫ x in Metric.ball x₀ s,
+            ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2 ∂volume) :
+    let hwφ : MemW1pWitness 2 (deGiorgiCutoffTestGeneral η u k) (Metric.ball x₀ s) :=
+      deGiorgiCutoffTestWitnessWeighted
+        _root_.Metric.isOpen_ball hw_trunc hη (by norm_num) hCη hη_bound hη_grad_bound
+    ∫ x in Metric.ball x₀ s, ‖hwφ.weakGrad x‖ ^ 2 ∂volume ≤
+      (8 * (Cw + 1) * Cη ^ 2) *
+        ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+  dsimp
+  let hwφ : MemW1pWitness 2 (deGiorgiCutoffTestGeneral η u k) (Metric.ball x₀ s) :=
+    deGiorgiCutoffTestWitnessWeighted
+      _root_.Metric.isOpen_ball hw_trunc hη (by norm_num) hCη hη_bound hη_grad_bound
+  have hhwφ_int :
+      _root_.MeasureTheory.Integrable (fun x => ‖hwφ.weakGrad x‖ ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    simpa [pow_two] using hwφ.weakGrad_norm_memLp.integrable_sq
+  have htrunc_sq_int :
+      _root_.MeasureTheory.Integrable (fun x => ‖hw_trunc.weakGrad x‖ ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    simpa [pow_two] using hw_trunc.weakGrad_norm_memLp.integrable_sq
+  have hpos_sq_int :
+      _root_.MeasureTheory.Integrable (fun x => |positivePartSub u k x| ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    simpa [pow_two] using hw_trunc.memLp.integrable_sq
+  have hweighted_int :
+      _root_.MeasureTheory.Integrable (fun x => η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    refine Integrable.mono' htrunc_sq_int ?_ ?_
+    · exact
+        (((hη.continuous.pow 2).aemeasurable).mul
+          htrunc_sq_int.aestronglyMeasurable.aemeasurable).aestronglyMeasurable
+    · filter_upwards with x
+      have hηx_nonneg : 0 ≤ η x := hη_nonneg x
+      have hηx_le_one : η x ≤ 1 := by
+        simpa [abs_of_nonneg hηx_nonneg] using hη_bound x
+      have hηx_sq_le_one : η x ^ 2 ≤ 1 := by nlinarith
+      have hgw_nonneg : 0 ≤ ‖hw_trunc.weakGrad x‖ ^ 2 := by positivity
+      have hprod_nonneg : 0 ≤ η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 := by positivity
+      have hle : η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 ≤ ‖hw_trunc.weakGrad x‖ ^ 2 := by
+        nlinarith
+      simpa [Real.norm_eq_abs, abs_of_nonneg hprod_nonneg, abs_of_nonneg hgw_nonneg] using hle
+  have hgrad_term_int :
+      _root_.MeasureTheory.Integrable (fun x => ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    refine Integrable.mono' (hpos_sq_int.const_mul (Cη ^ 2)) ?_ ?_
+    · exact
+        ((((hη.continuous_fderiv (by simp : ((⊤ : ℕ∞) : WithTop ℕ∞) ≠ 0)).norm.pow
+          2).aemeasurable).mul
+          hpos_sq_int.aestronglyMeasurable.aemeasurable).aestronglyMeasurable
+    · filter_upwards with x
+      have hfd_sq_le : ‖fderiv ℝ η x‖ ^ 2 ≤ Cη ^ 2 := by
+        exact sq_le_sq.mpr (by
+          simpa [abs_of_nonneg (norm_nonneg _), abs_of_nonneg hCη] using hη_grad_bound x)
+      have hpos_nonneg : 0 ≤ |positivePartSub u k x| ^ 2 := by positivity
+      have hterm_nonneg :
+          0 ≤ ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2 := by positivity
+      have hle :
+          ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2 ≤
+            Cη ^ 2 * |positivePartSub u k x| ^ 2 :=
+        mul_le_mul_of_nonneg_right hfd_sq_le hpos_nonneg
+      simpa [Real.norm_eq_abs, abs_of_nonneg hterm_nonneg] using hle
+  have hgrad_term_bound :
+      ∫ x in Metric.ball x₀ s, ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2 ∂volume ≤
+        Cη ^ 2 * ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+    calc
+      ∫ x in Metric.ball x₀ s, ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2 ∂volume
+          ≤ ∫ x in Metric.ball x₀ s, Cη ^ 2 * |positivePartSub u k x| ^ 2 ∂volume := by
+            refine _root_.MeasureTheory.integral_mono_ae hgrad_term_int (hpos_sq_int.const_mul (Cη ^ 2)) ?_
+            refine (_root_.MeasureTheory.ae_restrict_iff' (μ := _root_.MeasureTheory.MeasureSpace.volume) isOpen_ball.measurableSet).2 ?_
+            filter_upwards with x hx
+            have hfd_sq_le : ‖fderiv ℝ η x‖ ^ 2 ≤ Cη ^ 2 := by
+              exact sq_le_sq.mpr (by
+                simpa [abs_of_nonneg (norm_nonneg _), abs_of_nonneg hCη] using hη_grad_bound x)
+            have hpos_nonneg : 0 ≤ |positivePartSub u k x| ^ 2 := by positivity
+            exact mul_le_mul_of_nonneg_right hfd_sq_le hpos_nonneg
+      _ = Cη ^ 2 * ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+            rw [_root_.MeasureTheory.integral_const_mul]
+  have hpointwise :
+      ∀ x,
+        ‖hwφ.weakGrad x‖ ^ 2 ≤
+          2 * (η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2) +
+            8 * Cη ^ 2 * |positivePartSub u k x| ^ 2 := by
+    intro x
+    let a : E := η x ^ 2 • hw_trunc.weakGrad x
+    let b : E := (2 * η x * positivePartSub u k x) • deGiorgiFderivVec η x
+    have hdecomp : hwφ.weakGrad x = a + b := by
+      simp [hwφ, a, b, deGiorgiCutoffTestWitnessWeighted_grad]
+    have hnorm_sq :
+        ‖hwφ.weakGrad x‖ ^ 2 ≤ 2 * ‖a‖ ^ 2 + 2 * ‖b‖ ^ 2 := by
+      rw [hdecomp]
+      calc
+        ‖a + b‖ ^ 2 ≤ (‖a‖ + ‖b‖) ^ 2 := by
+          exact sq_le_sq.mpr (by
+            have hsum_nonneg : 0 ≤ ‖a‖ + ‖b‖ := by positivity
+            simpa [abs_of_nonneg (norm_nonneg _), abs_of_nonneg hsum_nonneg] using norm_add_le a b)
+        _ ≤ 2 * ‖a‖ ^ 2 + 2 * ‖b‖ ^ 2 := by
+          nlinarith [sq_nonneg (‖a‖ - ‖b‖)]
+    have hηx_nonneg : 0 ≤ η x := hη_nonneg x
+    have hηx_le_one : η x ≤ 1 := by
+      simpa [abs_of_nonneg hηx_nonneg] using hη_bound x
+    have hηx_sq_le_one : η x ^ 2 ≤ 1 := by nlinarith
+    have htrunc_nonneg : 0 ≤ positivePartSub u k x := positivePartSub_nonneg
+    have ha_sq :
+        ‖a‖ ^ 2 ≤ η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 := by
+      calc
+        ‖a‖ ^ 2 = (η x ^ 2) ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 := by
+          dsimp [a]
+          rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (sq_nonneg (η x))]
+          ring
+        _ ≤ η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 := by
+          have hη_four_le : (η x ^ 2) ^ 2 ≤ η x ^ 2 := by nlinarith
+          have hgw_nonneg : 0 ≤ ‖hw_trunc.weakGrad x‖ ^ 2 := by positivity
+          exact mul_le_mul_of_nonneg_right hη_four_le hgw_nonneg
+    have hb_sq :
+        ‖b‖ ^ 2 ≤ 4 * Cη ^ 2 * |positivePartSub u k x| ^ 2 := by
+      calc
+        ‖b‖ ^ 2
+            = (2 * η x * positivePartSub u k x) ^ 2 * ‖deGiorgiFderivVec η x‖ ^ 2 := by
+                dsimp [b]
+                rw [norm_smul, Real.norm_eq_abs]
+                have hcoeff_nonneg : 0 ≤ 2 * η x * positivePartSub u k x := by positivity
+                rw [abs_of_nonneg hcoeff_nonneg]
+                ring
+        _ ≤ (2 * η x * positivePartSub u k x) ^ 2 * Cη ^ 2 := by
+              have hnorm_sq_le : ‖deGiorgiFderivVec η x‖ ^ 2 ≤ Cη ^ 2 := by
+                rw [deGiorgi_norm_fderivVec_eq_norm_fderiv]
+                exact sq_le_sq.mpr (by
+                  simpa [abs_of_nonneg (norm_nonneg _), abs_of_nonneg hCη] using hη_grad_bound x)
+              have hcoeff_nonneg : 0 ≤ (2 * η x * positivePartSub u k x) ^ 2 := by positivity
+              exact mul_le_mul_of_nonneg_left hnorm_sq_le hcoeff_nonneg
+        _ ≤ 4 * Cη ^ 2 * |positivePartSub u k x| ^ 2 := by
+              have hcoeff_le :
+                  (2 * η x * positivePartSub u k x) ^ 2 ≤ 4 * (positivePartSub u k x) ^ 2 := by
+                nlinarith
+              have hCη_sq_nonneg : 0 ≤ Cη ^ 2 := sq_nonneg Cη
+              calc
+                (2 * η x * positivePartSub u k x) ^ 2 * Cη ^ 2
+                    ≤ (4 * (positivePartSub u k x) ^ 2) * Cη ^ 2 :=
+                      mul_le_mul_of_nonneg_right hcoeff_le hCη_sq_nonneg
+                _ = 4 * Cη ^ 2 * |positivePartSub u k x| ^ 2 := by
+                      rw [abs_of_nonneg htrunc_nonneg]
+                      ring
+    nlinarith
+  have hupper_int :
+      _root_.MeasureTheory.Integrable
+        (fun x =>
+          2 * (η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2) +
+            8 * Cη ^ 2 * |positivePartSub u k x| ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    exact (hweighted_int.const_mul 2).add (hpos_sq_int.const_mul (8 * Cη ^ 2))
+  have hmain :
+      ∫ x in Metric.ball x₀ s, ‖hwφ.weakGrad x‖ ^ 2 ∂volume ≤
+        ∫ x in Metric.ball x₀ s,
+          2 * (η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2) +
+            8 * Cη ^ 2 * |positivePartSub u k x| ^ 2 ∂volume := by
+    refine _root_.MeasureTheory.integral_mono_ae hhwφ_int hupper_int ?_
+    refine (_root_.MeasureTheory.ae_restrict_iff' (μ := _root_.MeasureTheory.MeasureSpace.volume) isOpen_ball.measurableSet).2 ?_
+    filter_upwards with x hx
+    exact hpointwise x
+  have hweighted' :
+      2 * ∫ x in Metric.ball x₀ s, η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 ∂volume ≤
+        8 * Cw * Cη ^ 2 *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+    calc
+      2 * ∫ x in Metric.ball x₀ s, η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 ∂volume
+          ≤ 2 * (4 * Cw *
+              ∫ x in Metric.ball x₀ s, ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2
+                ∂volume) := by
+                gcongr
+      _ = 8 * Cw *
+            ∫ x in Metric.ball x₀ s, ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u k x| ^ 2 ∂volume := by
+              ring
+      _ ≤ 8 * Cw * (Cη ^ 2 *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume) := by
+              gcongr
+      _ = 8 * Cw * Cη ^ 2 *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+              ring
+  calc
+    ∫ x in Metric.ball x₀ s, ‖hwφ.weakGrad x‖ ^ 2 ∂volume
+        ≤ ∫ x in Metric.ball x₀ s,
+            2 * (η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2) +
+              8 * Cη ^ 2 * |positivePartSub u k x| ^ 2 ∂volume := hmain
+    _ = 2 * ∫ x in Metric.ball x₀ s, η x ^ 2 * ‖hw_trunc.weakGrad x‖ ^ 2 ∂volume +
+          8 * Cη ^ 2 *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+            rw [_root_.MeasureTheory.integral_add (hweighted_int.const_mul 2) (hpos_sq_int.const_mul (8 * Cη ^ 2))]
+            rw [_root_.MeasureTheory.integral_const_mul, _root_.MeasureTheory.integral_const_mul]
+    _ ≤ 8 * Cw * Cη ^ 2 *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume +
+        8 * Cη ^ 2 *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+            gcongr
+    _ = (8 * (Cw + 1) * Cη ^ 2) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u k x| ^ 2 ∂volume := by
+            ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_cutoff_gradient_bound_of_weighted then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_cutoff_gradient_bound_of_weighted"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_cutoff_gradient_bound_of_weighted ``Submission.DeGiorgi.deGiorgi_cutoff_gradient_bound_of_weighted
+
+/-- PDE-facing De Giorgi pre-iteration theorem on concentric balls.
+
+This now factors through the explicit cutoff-Sobolev bridge
+`deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart` instead of keeping
+the local Sobolev argument bundled into one monolithic proof. -/
+theorem deGiorgi_preiter_on_concentricBalls_of_ballPosPart
+    {u η : E → ℝ} {x₀ : E} {r s θ lam Cη : ℝ}
+    (hd : 2 < (d : ℝ))
+    (A : EllipticCoeff d (Metric.ball x₀ s))
+    (hr : 0 < r) (hrs : r < s)
+    (hsub : IsSubsolution A u)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (hwθ : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s))
+    (hθl : θ < lam)
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hCη : 0 ≤ Cη)
+    (hη_grad_bound : ∀ x, ‖fderiv ℝ η x‖ ≤ Cη)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s) :
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+      (CGns d 2) ^ 2 * (8 * (ellipticityRatio A + 1) * Cη ^ 2) *
+        ((((lam - θ) ^ 2)⁻¹ *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume) ^ (2 / (d : ℝ))) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+  have hs : 0 < s := lt_trans hr hrs
+  have hd_pos : 0 < (d : ℝ) := by
+    linarith
+  have hRatio_nonneg : 0 ≤ ellipticityRatio A := A.ellipticityRatio_nonneg
+  have hCenergy_nonneg : 0 ≤ 8 * (ellipticityRatio A + 1) * Cη ^ 2 := by
+    exact mul_nonneg
+      (mul_nonneg (by norm_num) (add_nonneg hRatio_nonneg zero_le_one))
+      (sq_nonneg Cη)
+  have hθ_int :
+      _root_.MeasureTheory.Integrable (fun x => |positivePartSub u θ x| ^ 2)
+        (volume.restrict (Metric.ball x₀ s)) := by
+    simpa [pow_two] using hwθ.memLp.integrable_sq
+  have hIθ_nonneg :
+      0 ≤ ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    refine _root_.MeasureTheory.integral_nonneg ?_
+    intro x
+    positivity
+  obtain ⟨hwηθ, hsob⟩ :=
+    deGiorgi_cutoffSobolev_on_concentricBalls_of_ballPosPart
+      (d := d) hd hr hrs hu hwθ hθl hη hη_nonneg hη_eq_one hη_bound hη_sub_ball
+  let hwφ : MemW1pWitness 2 (deGiorgiCutoffTestGeneral η u θ) (Metric.ball x₀ s) :=
+    deGiorgiCutoffTestWitnessWeighted
+      _root_.Metric.isOpen_ball hwθ hη (by norm_num) hCη hη_bound hη_grad_bound
+  have hweighted :
+      ∫ x in Metric.ball x₀ s, η x ^ 2 * ‖hwθ.weakGrad x‖ ^ 2 ∂volume ≤
+        (4 * ellipticityRatio A) *
+          ∫ x in Metric.ball x₀ s, ‖fderiv ℝ η x‖ ^ 2 * |positivePartSub u θ x| ^ 2
+            ∂volume := by
+    simpa [mul_assoc, mul_left_comm, mul_comm] using
+      caccioppoli_weighted_on_ball_of_ballPosPart
+        A hs hsub hu hwθ hη hη_nonneg hη_bound hCη hη_grad_bound hη_sub_ball
+  have hgrad_bound_phi :
+      ∫ x in Metric.ball x₀ s, ‖hwφ.weakGrad x‖ ^ 2 ∂volume ≤
+        (8 * (ellipticityRatio A + 1) * Cη ^ 2) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    simpa [hwφ] using
+      deGiorgi_cutoff_gradient_bound_of_weighted
+        (x₀ := x₀) (s := s) (u := u) (η := η) (k := θ)
+        (Cη := Cη) (Cw := ellipticityRatio A)
+        hRatio_nonneg hwθ hη hη_nonneg hη_bound hCη hη_grad_bound hweighted
+  have hgrad_ae :
+      hwηθ.weakGrad =ᵐ[volume.restrict (Metric.ball x₀ s)] hwφ.weakGrad :=
+    MemW1pWitness.ae_eq _root_.Metric.isOpen_ball hwηθ hwφ
+  have hgrad_eq :
+      ∫ x in Metric.ball x₀ s, ‖hwηθ.weakGrad x‖ ^ 2 ∂volume =
+        ∫ x in Metric.ball x₀ s, ‖hwφ.weakGrad x‖ ^ 2 ∂volume := by
+    refine _root_.MeasureTheory.integral_congr_ae ?_
+    filter_upwards [hgrad_ae] with x hx
+    simp [hx]
+  have henergy :
+      ∫ x in Metric.ball x₀ s, ‖hwηθ.weakGrad x‖ ^ 2 ∂volume ≤
+        (8 * (ellipticityRatio A + 1) * Cη ^ 2) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+    rw [hgrad_eq]
+    exact hgrad_bound_phi
+  have : _root_.MeasureTheory.IsFiniteMeasure (volume.restrict (Metric.ball x₀ s)) := by
+    rw [_root_.MeasureTheory.isFiniteMeasure_restrict]
+    exact measure_ball_lt_top.ne
+  have hpre := deGiorgi_preiter_of_energy
+      (μ := volume.restrict (Metric.ball x₀ s))
+      (d := d) hd_pos (u := u) (θ := θ) (lam := lam)
+      (Ilam := ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume)
+      (Iθ := ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume)
+      (G := ∫ x in Metric.ball x₀ s, ‖hwηθ.weakGrad x‖ ^ 2 ∂volume)
+      (Csob := (CGns d 2) ^ 2)
+      (Cenergy := 8 * (ellipticityRatio A + 1) * Cη ^ 2)
+      hθl
+      (sq_nonneg _)
+      hCenergy_nonneg
+      hIθ_nonneg
+      hθ_int
+      hsob
+      henergy
+      (by rfl)
+  calc
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+        (CGns d 2) ^ 2 * (8 * (ellipticityRatio A + 1) * Cη ^ 2) *
+          ((((lam - θ) ^ 2)⁻¹ *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume) ^
+              (2 / (d : ℝ))) *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+              convert hpre using 1
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_ballPosPart then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_ballPosPart"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_ballPosPart ``Submission.DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_ballPosPart
+
+/-- Approximation-based version of the PDE-facing De Giorgi pre-iteration
+theorem.
+
+This is the approximation-driven counterpart of
+`deGiorgi_preiter_on_concentricBalls_of_ballPosPart`: instead of taking a
+pre-built witness for `(u - θ)_+` or a generic positive-part closure axiom, it
+uses the outer-ball smooth approximation package for `u - θ`. The analytic
+proof still runs through the same weighted-Caccioppoli and ball-Sobolev layer. -/
+theorem deGiorgi_preiter_on_concentricBalls_of_posPartApprox
+    {u η : E → ℝ} {x₀ : E} {r s θ lam Cη : ℝ}
+    (hd : 2 < (d : ℝ))
+    (A : EllipticCoeff d (Metric.ball x₀ s))
+    (hs : 0 < s) (hr : 0 < r) (hrs : r < s)
+    (hsub : IsSubsolution A u)
+    (hu : MemW1pWitness 2 u (Metric.ball x₀ s))
+    (happroxBallTheta :
+      ∃ ψ : ℕ → E → ℝ,
+        (∀ n, ContDiff ℝ 1 (ψ n)) ∧
+        (∀ n, HasCompactSupport (ψ n)) ∧
+        _root_.Filter.Tendsto
+          (fun n =>
+            _root_.MeasureTheory.eLpNorm (fun x => ψ n x - (u x - θ)) 2
+              (volume.restrict (Metric.ball x₀ s)))
+          _root_.Filter.atTop (nhds 0) ∧
+        (∀ i : Fin d,
+          _root_.Filter.Tendsto
+            (fun n =>
+              _root_.MeasureTheory.eLpNorm
+                (fun x =>
+                  (fderiv ℝ (ψ n) x) (EuclideanSpace.single i 1) - hu.weakGrad x i)
+                2 (volume.restrict (Metric.ball x₀ s)))
+            _root_.Filter.atTop (nhds 0)))
+    (hθl : θ < lam)
+    (hη : ContDiff ℝ (⊤ : ℕ∞) η)
+    (hη_nonneg : ∀ x, 0 ≤ η x)
+    (hη_eq_one : ∀ x ∈ Metric.ball x₀ r, η x = 1)
+    (hη_bound : ∀ x, |η x| ≤ 1)
+    (hCη : 0 ≤ Cη)
+    (hη_grad_bound : ∀ x, ‖fderiv ℝ η x‖ ≤ Cη)
+    (hη_sub_ball : tsupport η ⊆ Metric.ball x₀ s) :
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+      (CGns d 2) ^ 2 * (8 * (ellipticityRatio A + 1) * Cη ^ 2) *
+        ((((lam - θ) ^ 2)⁻¹ *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume) ^ (2 / (d : ℝ))) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume := by
+  let hwθ : MemW1pWitness 2 (positivePartSub u θ) (Metric.ball x₀ s) :=
+    positivePartSubMemW1pWitnessOnBall hs hu θ happroxBallTheta
+  change
+    ∫ x in Metric.ball x₀ r, |positivePartSub u lam x| ^ 2 ∂volume ≤
+      (CGns d 2) ^ 2 * (8 * (ellipticityRatio A + 1) * Cη ^ 2) *
+        ((((lam - θ) ^ 2)⁻¹ *
+            ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume) ^ (2 / (d : ℝ))) *
+          ∫ x in Metric.ball x₀ s, |positivePartSub u θ x| ^ 2 ∂volume
+  exact
+    deGiorgi_preiter_on_concentricBalls_of_ballPosPart
+      (d := d) hd A hr hrs hsub hu hwθ hθl hη hη_nonneg hη_eq_one hη_bound
+      hCη hη_grad_bound hη_sub_ball
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_posPartApprox then
+    throwError "Refusing to shadow existing declaration DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_posPartApprox"
+  Lean.modifyEnv fun env => Lean.addAlias env `DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_posPartApprox ``Submission.DeGiorgi.deGiorgi_preiter_on_concentricBalls_of_posPartApprox
+
+end PreiterationPDE
+
+end DeGiorgi

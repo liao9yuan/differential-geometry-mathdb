@@ -1,0 +1,389 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Evolution.Curvature.CovariantDerivativeFields
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Tensor.RSTensor
+open _root_.Submission.DifferentialGeometry.Tensor.RicciIdentity
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+
+set_option autoImplicit false
+
+noncomputable section
+
+namespace DifferentialGeometry.PDE.RicciFlow
+
+attribute [local instance] Fintype.ofFinite Classical.propDecidable
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open _root_.Submission.DifferentialGeometry.Tensor.Coordinates
+open scoped _root_.Manifold _root_.ContDiff _root_.BigOperators
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+variable [IsManifold I 1 M] [IsManifold I 2 M]
+variable [CompleteSpace E] [SigmaCompactSpace M] [T2Space M]
+
+section Field
+
+variable {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+variable {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+
+def nablaKRm04Field
+    (S : SolutionOn (I := I) (M := M) D) (t : Real) :
+    (k : ℕ) →
+      Tensor0SField (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        (n := (∞ : WithTop ℕ∞)) (4 + k)
+  | 0 => S.base.rm04 t
+  | (k + 1) =>
+      totalNabla0S (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        (4 + k) (S.family.connection t) (nablaKRm04Field S t k)
+        (totalNabla0S_regularity (E := E) (H := H) (I := I) (M := M)
+          (4 + k) (S.family.connection t) (connSmoothInf (I := I) S t)
+          (nablaKRm04Field S t k))
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+@[simp] theorem nablaKRm04Field_zero
+    (S : SolutionOn (I := I) (M := M) D) (t : Real) :
+    nablaKRm04Field (I := I) S t 0 = S.base.rm04 t := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_zero with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_zero"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_zero ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_zero
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem nablaKRm04Field_succ
+    (S : SolutionOn (I := I) (M := M) D) (t : Real) (k : ℕ) :
+    nablaKRm04Field (I := I) S t (k + 1) =
+      totalNabla0S (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        (4 + k) (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+        (totalNabla0S_regularity (E := E) (H := H) (I := I) (M := M)
+          (4 + k) (S.family.connection t) (connSmoothInf (I := I) S t)
+          (nablaKRm04Field (I := I) S t k)) := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_succ with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_succ"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_succ ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_succ
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem nablaKRm04Field_realizes
+    (S : SolutionOn (I := I) (M := M) D) (t : Real) (k : ℕ) :
+    TotalNabla0SRealizes (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+      (4 + k) (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+      (nablaKRm04Field (I := I) S t (k + 1)) := by
+  rw [nablaKRm04Field_succ]
+  exact totalNabla0S_realizes (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+    (4 + k) (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+    (totalNabla0S_regularity (E := E) (H := H) (I := I) (M := M)
+      (4 + k) (S.family.connection t) (connSmoothInf (I := I) S t)
+      (nablaKRm04Field (I := I) S t k))
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_realizes with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_realizes"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_realizes ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_realizes
+
+end Field
+
+section Bridge
+
+variable {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+variable {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem iteratedRmComp_eq_nablaKRm04Field
+    (S : SolutionOn (I := I) (M := M) D)
+    (x₀ : M) (t : Real) :
+    ∀ (k : ℕ) {x : M}, x ∈ coordinateFrameSet (I := I) x₀ →
+      ∀ n : Fin (4 + k) → CoordinateIdx (𝕜 := Real) E,
+        iteratedRmComp (I := I) (coordinateFrameAt (I := I) x₀)
+            (solutionChristoffelComponents (I := I) S x₀) (solutionCurvatureComponents (I := I) S x₀) k t x n =
+          nablaKRm04Field (I := I) S t k x
+            (frameTuple (I := I) (coordinateFrameAt (I := I) x₀) x n) := by
+  classical
+  set frame := coordinateFrameAt (I := I) x₀ with hframe_def
+  intro k
+  induction k with
+  | zero =>
+      intro x hx n
+      simp only [iteratedRmComp_zero, nablaKRm04Field_zero, solutionCurvatureComponents,
+        frameComp0S, hframe_def]
+  | succ k ih =>
+      intro x hx n
+      have hlevelk :
+          (fun y : M =>
+              iteratedRmComp (I := I) frame
+                (solutionChristoffelComponents (I := I) S x₀) (solutionCurvatureComponents (I := I) S x₀) k t y) =ᶠ[nhds x]
+            fun y : M =>
+              frameComp0S (I := I) (nablaKRm04Field (I := I) S t k) frame y := by
+        refine Filter.eventually_of_mem
+          ((coordinateFrameSet_open (I := I) x₀).mem_nhds hx) ?_
+        intro y hy
+        funext m
+        simpa [frameComp0S, hframe_def] using ih hy m
+      rw [iteratedRmComp_succ]
+      have hext :
+          frameDirectionalDerivatives (I := I) frame
+              (fun y : M =>
+                iteratedRmComp (I := I) frame
+                  (solutionChristoffelComponents (I := I) S x₀) (solutionCurvatureComponents (I := I) S x₀) k t y) x =
+            frameDirectionalDerivatives (I := I) frame
+              (frameComp0S (I := I) (nablaKRm04Field (I := I) S t k) frame) x := by
+        funext m d
+        simp only [frameDirectionalDerivatives]
+        refine mvfderiv_eventuallyEq_congr (I := I) _ ?_
+        exact hlevelk.mono fun y hy => congrFun hy m
+      have hbase :
+          iteratedRmComp (I := I) frame
+              (solutionChristoffelComponents (I := I) S x₀) (solutionCurvatureComponents (I := I) S x₀) k t x =
+            frameComp0S (I := I) (nablaKRm04Field (I := I) S t k) frame x :=
+        hlevelk.self_of_nhds
+      rw [hext, hbase]
+      have hstep :=
+        covDerivStepComp_frameComp_eq
+          (I := I) (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+          (nablaKRm04Field (I := I) S t (k + 1))
+          (nablaKRm04Field_realizes (I := I) S t k)
+          frame
+          (coordinateFrameAt_isLocalFrame_one (I := I) x₀)
+          (coordinateFrameSet_open (I := I) x₀) hx n
+      simpa [solutionChristoffelComponents, hframe_def] using hstep
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_eq_nablaKRm04Field with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_eq_nablaKRm04Field"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_eq_nablaKRm04Field ``Submission.DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_eq_nablaKRm04Field
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem iteratedRmComp_one_eq_nablaKRm04Field
+    (S : SolutionOn (I := I) (M := M) D)
+    (x₀ : M) (t : Real)
+    {x : M} (hx : x ∈ coordinateFrameSet (I := I) x₀)
+    (n : Fin (4 + 1) → CoordinateIdx (𝕜 := Real) E) :
+    iteratedRmComp (I := I) (coordinateFrameAt (I := I) x₀)
+        (solutionChristoffelComponents (I := I) S x₀) (solutionCurvatureComponents (I := I) S x₀) 1 t x n =
+      nablaKRm04Field (I := I) S t 1 x
+        (frameTuple (I := I) (coordinateFrameAt (I := I) x₀) x n) :=
+  iteratedRmComp_eq_nablaKRm04Field (I := I) S x₀ t 1 hx n
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_one_eq_nablaKRm04Field with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_one_eq_nablaKRm04Field"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_one_eq_nablaKRm04Field ``Submission.DifferentialGeometry.PDE.RicciFlow.iteratedRmComp_one_eq_nablaKRm04Field
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem iterRmLF_eq_nabla
+    {Idx : Type*} [Fintype Idx]
+    (S : SolutionOn (I := I) (M := M) D) (t : Real)
+    (frame : Idx → (y : M) → TangentSpace I y) {u : Set M}
+    (hframe : IsLocalFrameOn I E (1 : WithTop ℕ∞) frame u) (hu : IsOpen u) :
+    ∀ (k : ℕ) {x : M}, x ∈ u →
+      ∀ n : Fin (4 + k) → Idx,
+        iteratedRmComp (I := I) frame
+            (fun s y => christoffelSymbolInFrame (S.family.connection s) frame hframe y)
+            (fun s => frameComp0S (I := I) (S.base.rm04 s) frame) k t x n =
+          nablaKRm04Field (I := I) S t k x (frameTuple (I := I) frame x n) := by
+  classical
+  intro k
+  induction k with
+  | zero =>
+      intro x _hx n
+      simp only [iteratedRmComp_zero, nablaKRm04Field_zero, frameComp0S]
+  | succ k ih =>
+      intro x hx n
+      have hlevelk :
+          (fun y : M =>
+              iteratedRmComp (I := I) frame
+                (fun s y => christoffelSymbolInFrame (S.family.connection s) frame hframe y)
+                (fun s => frameComp0S (I := I) (S.base.rm04 s) frame) k t y) =ᶠ[nhds x]
+            fun y : M =>
+              frameComp0S (I := I) (nablaKRm04Field (I := I) S t k) frame y := by
+        refine Filter.eventually_of_mem (hu.mem_nhds hx) ?_
+        intro y hy
+        funext m
+        simpa [frameComp0S] using ih hy m
+      rw [iteratedRmComp_succ]
+      have hext :
+          frameDirectionalDerivatives (I := I) frame
+              (fun y : M =>
+                iteratedRmComp (I := I) frame
+                  (fun s y => christoffelSymbolInFrame (S.family.connection s) frame hframe y)
+                  (fun s => frameComp0S (I := I) (S.base.rm04 s) frame) k t y) x =
+            frameDirectionalDerivatives (I := I) frame
+              (frameComp0S (I := I) (nablaKRm04Field (I := I) S t k) frame) x := by
+        funext m d
+        simp only [frameDirectionalDerivatives]
+        refine mvfderiv_eventuallyEq_congr (I := I) _ ?_
+        exact hlevelk.mono fun y hy => congrFun hy m
+      have hbase :
+          iteratedRmComp (I := I) frame
+              (fun s y => christoffelSymbolInFrame (S.family.connection s) frame hframe y)
+              (fun s => frameComp0S (I := I) (S.base.rm04 s) frame) k t x =
+            frameComp0S (I := I) (nablaKRm04Field (I := I) S t k) frame x :=
+        hlevelk.self_of_nhds
+      rw [hext, hbase]
+      have hstep :=
+        covDerivStepComp_frameComp_eq
+          (I := I) (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+          (nablaKRm04Field (I := I) S t (k + 1))
+          (nablaKRm04Field_realizes (I := I) S t k)
+          frame hframe hu hx n
+      simpa using hstep
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.iterRmLF_eq_nabla with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.iterRmLF_eq_nabla"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.iterRmLF_eq_nabla ``Submission.DifferentialGeometry.PDE.RicciFlow.iterRmLF_eq_nabla
+
+end Bridge
+
+section RicciIdentity
+
+variable {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+variable {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem nablaKRm04_nabla0SSectionRealizes
+    (S : SolutionOn (I := I) (M := M) D) (t : Real) (k : ℕ) :
+    DifferentialGeometry.Tensor.RicciIdentity.Nabla0SSectionRealizes (I := I) (4 + k)
+      (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+      (nablaKRm04Field (I := I) S t (k + 1)) := by
+  intro y X slots
+  exact nablaKRm04Field_realizes (I := I) S t k X y slots
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla0SSectionRealizes with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla0SSectionRealizes"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla0SSectionRealizes ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla0SSectionRealizes
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem nablaKRm04_nabla20SRealizesAt
+    (S : SolutionOn (I := I) (M := M) D) (t : Real) (k : ℕ) (x : M) :
+    DifferentialGeometry.Tensor.RicciIdentity.Nabla20SRealizesAt (I := I) (4 + k)
+      (S.family.connection t) (nablaKRm04Field (I := I) S t k)
+      (nablaKRm04Field (I := I) S t (k + 1)) x
+      (nablaKRm04Field (I := I) S t (k + 2) x) := by
+  refine ⟨nablaKRm04_nabla0SSectionRealizes (I := I) S t k, ?_⟩
+  intro X slots
+  exact nablaKRm04Field_realizes (I := I) S t (k + 1) X x slots
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla20SRealizesAt with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla20SRealizesAt"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla20SRealizesAt ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04_nabla20SRealizesAt
+
+omit [I.Boundaryless] in
+omit [SigmaCompactSpace M] in
+theorem nablaKRm04_ricciIdentityAt
+    (S : SolutionOn (I := I) (M := M) D)
+    (t : DifferentialGeometry.Geometry.Curvature.RealTimeInterval.RegularTime D)
+    (k : ℕ) (x : M) :
+    DifferentialGeometry.Tensor.RSTensor.Tensor0SRicciIdentityAt (I := I)
+      (S.base.rm13 (t : Real)) (nablaKRm04Field (I := I) S (t : Real) k x)
+      (nablaKRm04Field (I := I) S (t : Real) (k + 2) x) := by
+  have hcov :
+      CovariantDerivative.ContMDiffCovariantDerivativeLocally
+        (S.family.connection (t : Real)) (1 : WithTop ℕ∞) :=
+    connSmoothOfSolution (I := I) S (t : Real)
+  have htor : (S.family.connection (t : Real)).torsion x = 0 := by
+    have htf :=
+      DifferentialGeometry.Geometry.Connection.torsionFree_of_isLeviCivita
+        (I := I) (lcAt_regular (I := I) S t)
+    simpa [DifferentialGeometry.Geometry.Connection.IsTorsionFreeAt] using htf x
+  exact DifferentialGeometry.Tensor.RicciIdentity.tensor0S_ricciIdentity_of_torsionFree
+    (I := I) (S.family.connection (t : Real)) hcov (S.base.rm13 (t : Real))
+    (nablaKRm04Field (I := I) S (t : Real) k)
+    (nablaKRm04Field (I := I) S (t : Real) (k + 1))
+    (nablaKRm04Field (I := I) S (t : Real) k x)
+    (nablaKRm04Field (I := I) S (t : Real) (k + 1) x)
+    (nablaKRm04Field (I := I) S (t : Real) (k + 2) x)
+    (rm13OfSolution (I := I) S (t : Real)) rfl rfl
+    (nablaKRm04_nabla20SRealizesAt (I := I) S (t : Real) k x) htor
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04_ricciIdentityAt with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04_ricciIdentityAt"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04_ricciIdentityAt ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04_ricciIdentityAt
+
+end RicciIdentity
+
+end DifferentialGeometry.PDE.RicciFlow
+
+namespace DifferentialGeometry.PDE.RicciFlow
+open scoped _root_.Manifold _root_.ContDiff
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E]
+  {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+  {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [T2Space M]
+
+theorem nablaKRm04Field_eq_of_metric_eq
+    {D₁ D₂ : RealTimeInterval}
+    {S₁ : SolutionOn (I := I) (M := M) D₁}
+    {S₂ : SolutionOn (I := I) (M := M) D₂} {t₁ t₂ : ℝ}
+    (hmetric : S₁.base.metric t₁ = S₂.base.metric t₂) (k : ℕ) :
+    nablaKRm04Field S₁ t₁ k = nablaKRm04Field S₂ t₂ k := by
+  induction k with
+  | zero =>
+      change metricRm04 (S₁.base.metric t₁) = metricRm04 (S₂.base.metric t₂)
+      rw [hmetric]
+  | succ k ih =>
+      have hconn : S₁.family.connection t₁ = S₂.family.connection t₂ := by
+        change Geometry.Connection.LeviCivita (S₁.base.metric t₁) =
+          Geometry.Connection.LeviCivita (S₂.base.metric t₂)
+        rw [hmetric]
+      rw [nablaKRm04Field_succ, nablaKRm04Field_succ]
+      simp only [hconn, ih]
+
+run_cmd do
+  let env ← Lean.getEnv
+  match env.contains `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_eq_of_metric_eq with
+  | true => throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_eq_of_metric_eq"
+  | false => pure ()
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_eq_of_metric_eq ``Submission.DifferentialGeometry.PDE.RicciFlow.nablaKRm04Field_eq_of_metric_eq
+
+end DifferentialGeometry.PDE.RicciFlow

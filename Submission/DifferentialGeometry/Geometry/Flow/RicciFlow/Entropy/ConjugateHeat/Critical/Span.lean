@@ -1,0 +1,172 @@
+import Submission.DifferentialGeometry.Analysis.Spectral.Intrinsic.Garding.Scalar.Nonautonomous.FiniteSpan
+import Submission.DifferentialGeometry.Analysis.Spectral.Intrinsic.Garding.Scalar.Potential.Pairing
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Entropy.ConjugateHeat.Potential.Basic
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow _root_.Submission.DifferentialGeometry.Analysis.Spectral
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+noncomputable section
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.MeasureTheory _root_.Submission.MeasureTheory _root_.Set _root_.Filter
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.ENNReal _root_.BigOperators
+  RealInnerProductSpace InnerProductSpace
+
+namespace DifferentialGeometry.PDE.RicciFlow.Entropy
+
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral
+open _root_.Submission.DifferentialGeometry.Analysis.Sobolev.TensorHilbert
+
+open _root_.Submission.DifferentialGeometry.Integral.L2
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+  [FiniteDimensional Real E] [NeZero (Module.finrank Real E)]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M]
+  [IsManifold I ∞ M] [CompactSpace M] [I.Boundaryless]
+  [BoundarylessManifold I M] [T2Space M]
+
+private local instance _root_.Submission.DifferentialGeometry.PDE.RicciFlow.Entropy.instCompleteSpace_differentialGeometry : CompleteSpace E := FiniteDimensional.complete Real E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.PDE.RicciFlow.Entropy.instCompleteSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.PDE.RicciFlow.Entropy.instCompleteSpace_differentialGeometry target :: scope.openDecls } }
+
+theorem scalar_crit_span
+    {D : RealTimeInterval} (S : SolutionOn (I := I) (M := M) D)
+    (hS : IsSolutionOn (I := I) S)
+    {a b : Real} (hab : Set.Icc a b ⊆ D.regular) :
+    ∃ ρ : Real, 0 < ρ ∧ ρ ≤ 1 ∧
+      ∀ (T : D.RegularTime), (T : Real) ∈ Set.Icc a b →
+        ∀ h : Real, 0 < h → h ≤ ρ → a ≤ (T : Real) - h →
+          (∀ s ∈ Set.Icc (0 : Real) h, (T : Real) - s ∈ D.regular) ∧
+          ∃ Cmid : ℕ → Real, (∀ n, 0 ≤ Cmid n) ∧
+            ∀ (n : ℕ) s, s ∈ Set.Icc (0 : Real) h →
+              ∀ (F : Finset
+                  (DifferentialGeometry.Analysis.Parabolic.TensorHeatEquation.TensorEigenIdx
+                    (I := I) (M := M) (S.family.metric (T : Real)) 0 0))
+                (v : TensorHs (I := I) (M := M)
+                  (S.family.metric (T : Real)) 0 0 0)
+                (hv : (Function.support v.coeff).Finite),
+                hv.toFinset ⊆ F →
+                  2 * ∑ i ∈ F,
+                      tensorSobolevWeight (I := I) (M := M) i (n : Real) *
+                        (v.coeff i *
+                          tensorL2Coeff (I := I) (M := M)
+                            (tensorResolventL2_isCompactOperator
+                              (I := I) (M := M)
+                              (S.family.metric (T : Real)) 0 0)
+                            (SmoothCcTensor.toL2
+                              (scalarLapDiffCc (I := I)
+                                  (S.family.metric (T : Real))
+                                  (S.family.metric ((T : Real) - s))
+                                  (tensorHsSmoothRepr (I := I) (M := M) v hv) +
+                                scalarSmul (I := I) (M := M)
+                                  (S.family.metric (T : Real)) 0 0
+                                  (conjCoeff (I := I) (M := M) S
+                                    ((T : Real) - s))
+                                  (tensorHsSmoothRepr (I := I) (M := M) v hv))) i) ≤
+                    ((23 : Real) / 12) *
+                        (∑ i ∈ F,
+                          tensorSobolevWeight (I := I) (M := M) i
+                              ((n + 1 : ℕ) : Real) * (v.coeff i) ^ 2) +
+                      Cmid n *
+                        (∑ i ∈ F,
+                          tensorSobolevWeight (I := I) (M := M) i (n : Real) *
+                            (v.coeff i) ^ 2) := by
+  classical
+  obtain ⟨ρ, hρ, hρone, hA2span⟩ :=
+    cc_a2_span (I := I) (M := M) S.family.metric hS.smoothMetric hab
+  refine ⟨ρ, hρ, hρone, ?_⟩
+  intro T hT h hh hhρ hleft
+  obtain ⟨hreg, hA2⟩ := hA2span T hT h hh hhρ hleft
+  let K : Set Real := Set.Icc (0 : Real) h
+  let R : Set Real := {s : Real | (T : Real) - s ∈ D.regular}
+  let ζ : Real → C^∞⟮I, M; Real⟯ := fun s ↦
+    conjCoeff (I := I) (M := M) S ((T : Real) - s)
+  have hK : IsCompact K := by
+    simpa only [K] using _root_.CompactIccSpace.isCompact_Icc
+  have hKR : K ⊆ R := by
+    intro s hs
+    with_unfolding_all
+      exact hreg s hs
+  have hζ : ContMDiffOn (I.prod 𝓘(Real, Real)) 𝓘(Real, Real) ∞
+      (fun p : M × Real ↦ (ζ p.2 : M → Real) p.1)
+      ((Set.univ : Set M) ×ˢ R) := by
+    with_unfolding_all
+      exact conjCoeff_rev (I := I) S hS T
+  choose C2 hC2_nn hC2 using hA2
+  choose C1 hC1_nn hC1 using fun n : ℕ ↦
+    cc_a1_uniform (I := I) (M := M) (S.family.metric (T : Real)) ζ
+      (R := R) (K := K) hK hKR hζ n
+  refine ⟨hreg, fun n ↦ C2 n + C1 n,
+    fun n ↦ add_nonneg (hC2_nn n) (hC1_nn n), ?_⟩
+  intro n s hs F v hv hsub
+  let U : SmoothCcTensor (S.family.metric (T : Real)) 0 0 :=
+    tensorHsSmoothRepr (I := I) (M := M) v hv
+  let A2 : SmoothCcTensor (S.family.metric (T : Real)) 0 0 :=
+    scalarLapDiffCc (I := I) (S.family.metric (T : Real))
+      (S.family.metric ((T : Real) - s)) U
+  let A1 : SmoothCcTensor (S.family.metric (T : Real)) 0 0 :=
+    scalarSmul (I := I) (M := M) (S.family.metric (T : Real)) 0 0
+      (ζ s) U
+  let L2 : Real :=
+    ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i (n : Real) *
+      (v.coeff i * tensorL2Coeff (I := I) (M := M)
+        (tensorResolventL2_isCompactOperator (I := I) (M := M)
+          (S.family.metric (T : Real)) 0 0)
+        (SmoothCcTensor.toL2 A2) i)
+  let L1 : Real :=
+    ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i (n : Real) *
+      (v.coeff i * tensorL2Coeff (I := I) (M := M)
+        (tensorResolventL2_isCompactOperator (I := I) (M := M)
+          (S.family.metric (T : Real)) 0 0)
+        (SmoothCcTensor.toL2 A1) i)
+  let L : Real :=
+    ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i (n : Real) *
+      (v.coeff i * tensorL2Coeff (I := I) (M := M)
+        (tensorResolventL2_isCompactOperator (I := I) (M := M)
+          (S.family.metric (T : Real)) 0 0)
+        (SmoothCcTensor.toL2 (A2 + A1)) i)
+  let Ehi : Real :=
+    ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i
+      ((n + 1 : ℕ) : Real) * (v.coeff i) ^ 2
+  let Elo : Real :=
+    ∑ i ∈ F, tensorSobolevWeight (I := I) (M := M) i (n : Real) *
+      (v.coeff i) ^ 2
+  have h2 : 2 * L2 ≤ ((5 : Real) / 3) * Ehi + C2 n * Elo := by
+    simpa only [L2, Ehi, Elo, A2, U] using hC2 n s hs F v hv hsub
+  have h1 : 2 * L1 ≤ ((1 : Real) / 4) * Ehi + C1 n * Elo := by
+    simpa only [L1, Ehi, Elo, A1, U, ζ, K] using
+      hC1 n s hs F v hv hsub
+  have htoL2 : SmoothCcTensor.toL2 (A2 + A1) =
+      SmoothCcTensor.toL2 A2 + SmoothCcTensor.toL2 A1 := by
+    exact map_add _ _ _
+  have hsplit : L = L2 + L1 := by
+    simp only [L, L2, L1]
+    rw [htoL2]
+    simp only [tensorL2Coeff_add, mul_add, Finset.sum_add_distrib]
+  have htotal :
+      2 * L ≤ ((23 : Real) / 12) * Ehi + (C2 n + C1 n) * Elo := by
+    rw [hsplit]
+    nlinarith [h2, h1]
+  simpa only [L, Ehi, Elo, A2, A1, U, ζ] using htotal
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Entropy.scalar_crit_span then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Entropy.scalar_crit_span"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Entropy.scalar_crit_span ``Submission.DifferentialGeometry.PDE.RicciFlow.Entropy.scalar_crit_span
+
+end DifferentialGeometry.PDE.RicciFlow.Entropy
+
+end

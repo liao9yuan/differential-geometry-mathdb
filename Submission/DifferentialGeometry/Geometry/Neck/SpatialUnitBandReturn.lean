@@ -1,0 +1,54 @@
+import Submission.DifferentialGeometry.Geometry.Neck.CompactSide
+import Submission.DifferentialGeometry.Geometry.Neck.SpatialFixedRecentering
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+set_option autoImplicit false
+noncomputable section
+open _root_.Set _root_.Submission.Set _root_.Manifold _root_.Submission.Manifold
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.ContDiff _root_.Submission.ContDiff
+
+namespace DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn
+
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
+
+theorem exists_spatial_neck_unit_band_return_in_compact
+    {M : Type*} [TopologicalSpace M] [ChartedSpace ThreeSpace M] [IsManifold I3 ∞ M]
+    [T2Space M] (g : SmoothRiemannianMetric I3 M) {eps : ℝ} {K : Set M}
+    (hK : IsCompact K) (heps : eps ≤ 1 / 156000) (p : ℕ → M)
+    (neck : ∀ n, SpatialNeck g eps (p n))
+    (hp : ∀ n, (neck n).map ((neck n).center, 3 / 2) ∈ K) :
+    ∃ i j : ℕ, i < j ∧
+      (neck j).map ((neck j).center, 3 / 2) ∈
+        (neck i).map '' (_root_.Set.univ ×ˢ _root_.Set.Icc (1 : ℝ) 2) := by
+  classical
+  let q : ℕ → M := fun n => (neck n).map ((neck n).center, 3 / 2)
+  have hchoose (n : ℕ) : ∃ out : SpatialNeck g (13000 * eps) (q n),
+      out.center = (neck n).center ∧
+      out.map = partialDiffeomorphTransMixed
+        (DifferentialGeometry.Geometry.Metric.cylinderAxialDiffeomorph
+          (I := I2) (M := Sphere 2) (3 / 2) 1 (by norm_num)).toPartialDiffeomorph
+        (neck n).map :=
+    ((neck n).exists_at_coordinate_mul heps (neck n).center (by norm_num)).2
+  choose out hcenter hmap using hchoose
+  obtain ⟨i, j, hij, hj⟩ :=
+    exists_spatial_neck_half_slab_return_in_compact g hK q out hp
+  obtain ⟨⟨v, t⟩, ht, heq⟩ := hj
+  refine ⟨i, j, hij, (v, 3 / 2 + t), ?_, ?_⟩
+  · exact ⟨mem_univ _, by constructor <;> linarith [ht.2.1, ht.2.2]⟩
+  · rw [(neck i).translated_map_apply (neck i).center (out i) (hmap i) v t] at heq
+    exact heq
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn.exists_spatial_neck_unit_band_return_in_compact then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn.exists_spatial_neck_unit_band_return_in_compact"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn.exists_spatial_neck_unit_band_return_in_compact ``Submission.DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn.exists_spatial_neck_unit_band_return_in_compact
+
+end DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn

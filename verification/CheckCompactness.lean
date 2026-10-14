@@ -1,5 +1,0 @@
-import Mathlib
-import DifferentialGeometry.Topology.Homology.Spheres.HomotopySphereCompactness
-import DifferentialGeometry.Topology.Sphere.SphereSimplyConnected
-#print axioms DifferentialGeometry.Topology.compactSpace_of_homotopyEquiv_sphere
-#print axioms DifferentialGeometry.Topology.simplyConnectedSpace_sphere_of_two_le

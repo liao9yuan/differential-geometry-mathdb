@@ -1,0 +1,348 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Evolution.Curvature.Derivatives.StarSum.HeatEquation
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Evolution.Curvature.Derivatives.StarSum.Residual
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Evolution.Curvature.Derivatives.Regularity.Swap
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Estimates.Uhlenbeck.CurvatureEvolution
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+
+namespace DifferentialGeometry.PDE.RicciFlow
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open _root_.Submission.DifferentialGeometry.Tensor.Coordinates _root_.Submission.DifferentialGeometry.Integral.Measure
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.ContDiff _root_.BigOperators
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E]
+variable [NeZero (Module.finrank Real E)] [CompleteSpace E]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M]
+variable [IsManifold I ∞ M] [IsManifold I 1 M] [IsManifold I 2 M]
+variable [SigmaCompactSpace M] [T2Space M] [BoundarylessManifold I M]
+
+noncomputable def rmResidualField
+    {D : RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (t : RealTimeInterval.RegularTime D) :
+    (k : Nat) → Tensor0SField (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+      (n := (∞ : WithTop ℕ∞)) (4 + k)
+  | 0 => e0Field (I := I) S (t : Real)
+  | k + 1 => resStarNext (I := I) S t k (rmResidualField S t k)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.rmResidualField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.rmResidualField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.rmResidualField ``Submission.DifferentialGeometry.PDE.RicciFlow.rmResidualField
+
+omit [BoundarylessManifold I M] [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+theorem rmResidualField_cost
+    {D : RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (hS : IsSolutionOn (I := I) S)
+    (t : RealTimeInterval.RegularTime D)
+    {Idx : Type*} [Fintype Idx]
+    (k : Nat) :
+    StarSum2Cost (I := I) Idx S (t : Real) k
+      (rmResidualField (I := I) S t k)
+      (rmResidualCost (Fintype.card Idx) k) := by
+  classical
+  induction k with
+  | zero =>
+      simpa only [rmResidualField] using
+        (e0Residual (I := I) S hS t (Idx := Idx)).1
+  | succ k ih =>
+      simpa only [rmResidualField] using
+        resStarNext_cost (I := I) S k t
+          (rmResidualField (I := I) S t k) ih
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.rmResidualField_cost then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.rmResidualField_cost"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.rmResidualField_cost ``Submission.DifferentialGeometry.PDE.RicciFlow.rmResidualField_cost
+
+omit [BoundarylessManifold I M] [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+private theorem rmResidual_local
+    {D : RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (hS : IsSolutionOn (I := I) S)
+    (t : RealTimeInterval.RegularTime D)
+    {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
+    {u : Set M}
+    (frame : Idx → (y : M) → TangentSpace I y)
+    (hframe : IsLocalFrameOn I E (1 : WithTop ℕ∞) frame u)
+    (hu : IsOpen u)
+    (horthU : ∀ y : M, y ∈ u → ∀ i j : Idx,
+      (S.base.metric (t : Real)).inner y (frame i y) (frame j y) =
+        if i = j then (1 : Real) else 0)
+    (baseDt : Real → M → (Fin 4 → Idx) → Real)
+    (chrDt : Real → M → Idx → Idx → Idx → Real)
+    (hrm : ∀ (y : M), y ∈ u → ∀ m : Fin 4 → Idx,
+      HasDerivWithinAt (fun s : Real => lfBase (I := I) S frame s y m)
+        (baseDt (t : Real) y m) D.carrier (t : Real))
+    (hchr : ∀ (y : M), y ∈ u → ∀ i a p : Idx,
+      HasDerivWithinAt (fun s : Real => lfChr (I := I) S frame hframe s y i a p)
+        (chrDt (t : Real) y i a p) D.carrier (t : Real))
+    (hchrId : ∀ (y : M), y ∈ u → ∀ i j p : Idx,
+      chrDt (t : Real) y i j p =
+        -ricciCovDerivCompInFrame (I := I) S frame (t : Real) y i j p
+        -ricciCovDerivCompInFrame (I := I) S frame (t : Real) y j i p
+        +ricciCovDerivCompInFrame (I := I) S frame (t : Real) y p i j)
+    (hswap : ∀ (y : M), y ∈ u → ∀ (k : Nat) (d : Idx)
+        (m : Fin (4 + k) → Idx),
+      HasDerivWithinAt
+        (fun s : Real =>
+          mvfderiv (I := I)
+            (fun z : M =>
+              iteratedRmComp (I := I) frame (lfChr (I := I) S frame hframe)
+                (lfBase (I := I) S frame) k s z m) y (frame d y))
+        (mvfderiv (I := I)
+          (fun z : M =>
+            iteratedRmCompDt (I := I) frame (lfChr (I := I) S frame hframe) chrDt
+              (lfBase (I := I) S frame) baseDt k (t : Real) z m) y (frame d y))
+        D.carrier (t : Real)) :
+    ∀ (k : Nat) (y : M) (hy : y ∈ u) (I0 : Fin (4 + k) → Idx),
+      HasDerivWithinAt
+        (fun r : Real =>
+          tensor0SComponent (I := I) (nablaKRm04Field (I := I) S r k y)
+            (fun i => frame i y) I0)
+        (tensor0SComponent (I := I)
+          (metricTrace0S2TensorInBasis (I := I) (hframe.toBasisAt hy)
+              (identityInvMetric (Idx := Idx))
+              (nablaKRm04Field (I := I) S (t : Real) (k + 2) y) +
+            rmResidualField (I := I) S t k y)
+          (fun i => frame i y) I0)
+        D.carrier (t : Real) := by
+  intro k
+  induction k with
+  | zero =>
+      intro y hy I0
+      have horth : ∀ i j : Idx,
+          (S.base.metric (t : Real)).inner y
+              ((hframe.toBasisAt hy) i) ((hframe.toBasisAt hy) j) =
+            if i = j then (1 : Real) else 0 := by
+        intro i j
+        rw [hframe.toBasisAt_coe hy i, hframe.toBasisAt_coe hy j]
+        exact horthU y hy i j
+      simpa only [rmResidualField, hframe.toBasisAt_coe hy] using
+        (e0Residual (I := I) S hS t (Idx := Idx)).2
+          y (hframe.toBasisAt hy) horth I0
+  | succ k ih =>
+      have hnext := resStarNext_spec (I := I) S k t frame hframe hu horthU
+        baseDt chrDt hrm hchr hchrId hswap
+        (rmResidualField (I := I) S t k)
+        (rmResidualField_cost (I := I) S hS t k)
+        (fun y hy I0 => ih y hy I0)
+      intro y hy I0
+      simpa only [rmResidualField] using hnext.2 y hy I0
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.PDE.RicciFlow.rmResidual_local
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.PDE.RicciFlow.rmResidual_local target :: scope.openDecls } }
+
+omit [SigmaCompactSpace M] in
+theorem rmResidual_cost
+    {D : RealTimeInterval}
+    (S : SolutionOn (I := I) (M := M) D)
+    (hS : IsSolutionOn (I := I) S)
+    (k : Nat) (t : RealTimeInterval.RegularTime D) :
+    ∃ T : Tensor0SField (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        (n := (∞ : WithTop ℕ∞)) (4 + k),
+      StarSum2Cost (I := I) (Fin (Module.finrank Real E)) S (t : Real) k T
+          (rmResidualCost (Module.finrank Real E) k) ∧
+      ∀ x : M,
+        ∃ basis : Module.Basis (Fin (Module.finrank Real E)) Real (TangentSpace I x),
+          (∀ i j : Fin (Module.finrank Real E),
+            (S.base.metric (t : Real)).inner x (basis i) (basis j) =
+              if i = j then (1 : Real) else 0) ∧
+          ∀ I0 : Fin (4 + k) → Fin (Module.finrank Real E),
+            HasDerivWithinAt
+              (fun r : Real =>
+                tensor0SComponent (I := I) (nablaKRm04Field (I := I) S r k x)
+                  (fun i => basis i) I0)
+              (tensor0SComponent (I := I)
+                (metricTrace0S2TensorInBasis (I := I) basis
+                    (identityInvMetric (Idx := Fin (Module.finrank Real E)))
+                    (nablaKRm04Field (I := I) S (t : Real) (k + 2) x) + T x)
+                (fun i => basis i) I0)
+              D.carrier (t : Real) := by
+  classical
+  let T := rmResidualField (I := I) S t k
+  refine ⟨T, by
+    simpa only [Fintype.card_fin] using
+      rmResidualField_cost (I := I) S hS t
+        (Idx := Fin (Module.finrank Real E)) k, ?_⟩
+  intro x
+  let g := S.base.metric (t : Real)
+  let frame := smoothOrthoFrame (I := I) g x
+  let u := smoothOrthoOpen (I := I) (M := M) x
+  have hu : IsOpen u := by
+    simpa only [u] using smoothOrthoOpen_open (I := I) (M := M) x
+  have hx : x ∈ u := by
+    simpa only [u] using mem_smoothOrthoOpen (I := I) (M := M) x
+  have hframe : IsLocalFrameOn I E (∞ : WithTop ℕ∞) frame u := by
+    simpa only [frame, u] using smoothOrtho_local (I := I) g x
+  have horthU : ∀ y : M, y ∈ u → ∀ i j : Fin (Module.finrank Real E),
+      (S.base.metric (t : Real)).inner y (frame i y) (frame j y) =
+        if i = j then (1 : Real) else 0 := by
+    intro y hy i j
+    simpa only [g, frame, u] using
+      smoothOrthoFrame_orthonormal (I := I) g x (interior_subset hy) i j
+  obtain ⟨hframe1, baseDt, chrDt, hrm, hchr, hchrId, hswap⟩ :=
+    towerDataAt (I := I) S hS t frame hframe hu horthU
+  let basis := hframe1.toBasisAt hx
+  have horth : ∀ i j : Fin (Module.finrank Real E),
+      (S.base.metric (t : Real)).inner x (basis i) (basis j) =
+        if i = j then (1 : Real) else 0 := by
+    intro i j
+    simpa only [basis, IsLocalFrameOn.toBasisAt_coe] using horthU x hx i j
+  refine ⟨basis, horth, ?_⟩
+  intro I0
+  simpa only [T, basis, IsLocalFrameOn.toBasisAt_coe] using
+    rmResidual_local (I := I) S hS t frame hframe1 hu horthU
+      baseDt chrDt hrm hchr hchrId hswap k x hx I0
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.rmResidual_cost then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.rmResidual_cost"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.rmResidual_cost ``Submission.DifferentialGeometry.PDE.RicciFlow.rmResidual_cost
+
+omit [NeZero (Module.finrank ℝ E)] [SigmaCompactSpace M] in
+theorem resStarSolution
+    {alpha t0 omega : Real} {hAlphaOmega : alpha < omega}
+    {S : SolutionOn (I := I) (M := M)
+      (RealTimeInterval.closedOpen alpha omega hAlphaOmega)}
+    (hS : IsSolutionOn (I := I) S)
+    (hAlphaT0 : alpha < t0) (hT0Omega : t0 < omega)
+    (k : Nat)
+    (t : RealTimeInterval.RegularTime
+      (RealTimeInterval.closedOpen t0 omega hT0Omega))
+    {u : Set M}
+    (frame : Fin 3 -> (y : M) -> TangentSpace I y)
+    (hframe : IsLocalFrameOn I E (∞ : WithTop ℕ∞) frame u)
+    (hu : IsOpen u)
+    (hdim : ∀ y : M, Module.finrank Real (TangentSpace I y) = 3)
+    (horthU : ∀ y : M, y ∈ u -> ∀ i j : Fin 3,
+      ((S.timeRestrict
+        (RealTimeInterval.closedOpen t0 omega hT0Omega)).base.metric
+          (t : Real)).inner y (frame i y) (frame j y) =
+        if i = j then (1 : Real) else 0) :
+    ∃ T : Tensor0SField (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        (n := (∞ : WithTop ℕ∞)) (4 + k),
+      StarSum2 (I := I)
+          (S.timeRestrict (RealTimeInterval.closedOpen t0 omega hT0Omega))
+          (t : Real) k T ∧
+      ∃ C : Real, C = resStarCost k ∧ 0 ≤ C ∧
+        (∀ (y : M) (hy : y ∈ u) (I0 : Fin (4 + k) -> Fin 3),
+          HasDerivWithinAt
+            (fun r : Real =>
+              tensor0SComponent (I := I)
+                (nablaKRm04Field (I := I)
+                  (S.timeRestrict
+                    (RealTimeInterval.closedOpen t0 omega hT0Omega))
+                  r k y)
+                (fun i => frame i y) I0)
+            (tensor0SComponent (I := I)
+              (metricTrace0S2TensorInBasis (I := I) (hframe.toBasisAt hy)
+                  (identityInvMetric (Idx := Fin 3))
+                  (nablaKRm04Field (I := I)
+                    (S.timeRestrict
+                      (RealTimeInterval.closedOpen t0 omega hT0Omega))
+                    (t : Real) (k + 2) y) + T y)
+              (fun i => frame i y) I0)
+            (RealTimeInterval.closedOpen t0 omega hT0Omega).carrier (t : Real)) ∧
+        (∀ (y : M) (hy : y ∈ u) (m : Fin (4 + k) -> Fin 3),
+          |T y (fun p => frame (m p) y)| ≤
+            C * ∑ j ∈ Finset.range (k + 1),
+              Real.sqrt (stNormSq (I := I)
+                (S.timeRestrict
+                  (RealTimeInterval.closedOpen t0 omega hT0Omega))
+                (t : Real) j y (hframe.toBasisAt hy)) *
+              Real.sqrt (stNormSq (I := I)
+                (S.timeRestrict
+                  (RealTimeInterval.closedOpen t0 omega hT0Omega))
+                (t : Real) (k - j) y (hframe.toBasisAt hy))) := by
+  classical
+  let D' := RealTimeInterval.closedOpen t0 omega hT0Omega
+  let S' := S.timeRestrict D'
+  have hS' : IsSolutionOn (I := I) S' := by
+    simpa [S', D'] using isSolutionOn_tailRestrict (I := I) hS hAlphaT0 hT0Omega
+  obtain ⟨hframe1, baseDt, chrDt, hrm, hchr, hchrId, hswap⟩ :=
+    exists_tail_curvature_component_time_derivative_tower (I := I) hS hAlphaT0 hT0Omega frame hframe hu
+  have hbase := riemann_component_evolution_in_orthonormal_frame_of_solution
+    (I := I) S' hS' t hdim
+  have hrm' : ∀ (y : M), y ∈ u -> ∀ m : Fin 4 -> Fin 3,
+      HasDerivWithinAt (fun s : Real => lfBase (I := I) S' frame s y m)
+        (baseDt (t : Real) y m) D'.carrier (t : Real) := by
+    intro y hy m
+    simpa only [lfBase, S', D'] using hrm t y hy m
+  have hchr' : ∀ (y : M), y ∈ u -> ∀ i a p : Fin 3,
+      HasDerivWithinAt
+        (fun s : Real => lfChr (I := I) S' frame hframe1 s y i a p)
+        (chrDt (t : Real) y i a p) D'.carrier (t : Real) := by
+    intro y hy i a p
+    simpa only [lfChr, S', D'] using hchr t y hy i a p
+  have hchrId' : ∀ (y : M), y ∈ u -> ∀ i j p : Fin 3,
+      chrDt (t : Real) y i j p =
+        -ricciCovDerivCompInFrame (I := I) S' frame (t : Real) y i j p
+        -ricciCovDerivCompInFrame (I := I) S' frame (t : Real) y j i p
+        +ricciCovDerivCompInFrame (I := I) S' frame (t : Real) y p i j := by
+    intro y hy i j p
+    simpa only [S', D'] using hchrId t y hy (horthU y hy) i j p
+  have hswap' : ∀ (y : M), y ∈ u -> ∀ (k' : Nat) (d : Fin 3)
+      (m : Fin (4 + k') -> Fin 3),
+      HasDerivWithinAt
+        (fun s : Real =>
+          mvfderiv (I := I)
+            (fun z : M =>
+              iteratedRmComp (I := I) frame (lfChr (I := I) S' frame hframe1)
+                (lfBase (I := I) S' frame) k' s z m)
+            y (frame d y))
+        (mvfderiv (I := I)
+          (fun z : M =>
+            iteratedRmCompDt (I := I) frame (lfChr (I := I) S' frame hframe1)
+              chrDt (lfBase (I := I) S' frame) baseDt k' (t : Real) z m)
+          y (frame d y))
+        D'.carrier (t : Real) := by
+    intro y hy k' d m
+    unfold lfChr lfBase
+    exact hswap k' m (t : Real) t.2 y hy (frame d y)
+  have hbasis (y : M) (hy : y ∈ u) :
+      hframe1.toBasisAt hy = hframe.toBasisAt hy := by
+    ext i
+    simp only [IsLocalFrameOn.toBasisAt_coe]
+  obtain ⟨T, hstar, C, hcost, hC, hderiv, hbound⟩ :=
+    resStarBoundLF (I := I) S' k t frame hframe1 hu hdim horthU
+      hbase baseDt chrDt hrm' hchr' hchrId' hswap'
+  refine ⟨T, hstar, C, hcost, hC, ?_, ?_⟩
+  · intro y hy I0
+    rw [← hbasis y hy]
+    exact hderiv y hy I0
+  · intro y hy m
+    rw [← hbasis y hy]
+    exact hbound y hy m
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.resStarSolution then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.resStarSolution"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.resStarSolution ``Submission.DifferentialGeometry.PDE.RicciFlow.resStarSolution
+
+end DifferentialGeometry.PDE.RicciFlow

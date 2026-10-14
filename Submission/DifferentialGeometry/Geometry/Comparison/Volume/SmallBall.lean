@@ -1,0 +1,343 @@
+import Submission.DifferentialGeometry.Geometry.Comparison.Volume.Ball.Basic
+import Submission.DifferentialGeometry.Geometry.Metric.Comparison.DistanceScaling
+import Submission.DifferentialGeometry.Geometry.Comparison.Distance.Continuity
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+set_option autoImplicit false
+
+noncomputable section
+
+open scoped _root_.Topology _root_.Manifold _root_.Submission.Manifold _root_.ContDiff _root_.Bundle _root_.Submission.Bundle _root_.ENNReal
+
+namespace DifferentialGeometry.Geometry.Riemannian.VolumeComparison
+
+open _root_.Submission.DifferentialGeometry.Geometry.Riemannian.NormalCoordinates
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Bundle _root_.Submission.Bundle _root_.Set _root_.MeasureTheory
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E]
+  [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M]
+  [IsManifold I ∞ M]
+
+private local instance _root_.Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instMeasurableSpace_differentialGeometry : MeasurableSpace E := borel E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instMeasurableSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instMeasurableSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instBorelSpace_differentialGeometry : BorelSpace E := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instBorelSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instBorelSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instMeasurableSpace_differentialGeometry_1 : MeasurableSpace M := borel M
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instMeasurableSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instMeasurableSpace_differentialGeometry_1 target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instBorelSpace_differentialGeometry_1 : BorelSpace M := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instBorelSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.instBorelSpace_differentialGeometry_1 target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] in
+attribute [-instance] Tensor0SBundle.tangentSpaceNormedAddCommGroup
+  Tensor0SBundle.tangentSpaceNormedSpace in
+theorem edist_vol_pos
+    [T2Space M] [CompactSpace M]
+    (g : SmoothRiemannianMetric I M) (a : M) {r : ℝ} (hr : 0 < r) :
+    0 < (riemannianVolumeMeasure (I := I) (M := M) g
+      {x : M | riemannianEDistOf (I := I) g a x < ENNReal.ofReal r}).toReal := by
+  let μ := riemannianVolumeMeasure (I := I) (M := M) g
+  let U : Set M :=
+    {x : M | riemannianEDistOf (I := I) g a x < ENNReal.ofReal r}
+  have hUopen : IsOpen U := by
+    dsimp only [U]
+    exact isOpen_lt
+      (by
+        unfold riemannianEDistOf
+        exact DifferentialGeometry.Geometry.Riemannian.continuous_riemannianEDist g a)
+      continuous_const
+  have hUne : U.Nonempty := by
+    refine ⟨a, ?_⟩
+    simp only [U, _root_.Set.mem_ofPred_eq, riemannianEDistOf,
+      Manifold.riemannianEDist_self]
+    exact ENNReal.ofReal_pos.mpr hr
+  let : μ.IsOpenPosMeasure :=
+    riemannianVolumeMeasure_isOpenPosMeasure (I := I) (M := M) g
+  let : _root_.MeasureTheory.IsFiniteMeasure μ :=
+    riemannianVolumeMeasure_isFiniteMeasure_of_compactSpace
+      (I := I) (M := M) g
+  exact ENNReal.toReal_pos (hUopen.measure_pos μ hUne).ne' (_root_.MeasureTheory.measure_ne_top μ U)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.edist_vol_pos then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.VolumeComparison.edist_vol_pos"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.edist_vol_pos ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.edist_vol_pos
+
+variable [I.Boundaryless] [CompleteSpace E] [T2Space M]
+  [T2Space (TangentBundle I M)]
+
+omit [T2Space M] in
+omit [NeZero (Module.finrank ℝ E)] in
+private theorem normal_dens_lower
+    (g : SmoothRiemannianMetric I M) (p : M) :
+    ∃ c δ : ℝ, 0 < c ∧ 0 < δ ∧
+      ∀ w ∈ Metric.ball (0 : E) δ,
+        c ≤ normalChartDensity (I := I) g p w := by
+  let Ψ := expMapDiffeo (I := I) g p
+  let U : Set E := Ψ.source ∩
+    Ψ ⁻¹' (_root_.FiberBundle.trivializationAt E (TangentSpace I) p).baseSet
+  have hUopen : IsOpen U := by
+    dsimp only [U]
+    exact Ψ.contMDiffOn_toFun.continuousOn.isOpen_inter_preimage
+      Ψ.open_source (_root_.FiberBundle.trivializationAt E (TangentSpace I) p).open_baseSet
+  have hzero_source : (0 : E) ∈ Ψ.source := by
+    simpa only [Ψ] using zero_mem_expMapDiffeo_source (I := I) g p
+  have hzeroU : (0 : E) ∈ U := by
+    refine ⟨hzero_source, ?_⟩
+    change Ψ (0 : E) ∈ (_root_.FiberBundle.trivializationAt E (TangentSpace I) p).baseSet
+    rw [show Ψ (0 : E) = p by simpa only [Ψ] using expMapDiffeo_zero (I := I) g p]
+    exact _root_.FiberBundle.mem_baseSet_trivializationAt E (TangentSpace I) p
+  have hcont : ContinuousOn (normalChartDensity (I := I) g p) U := by
+    simpa only [normalChartDensity, Ψ] using
+      paramDensity_continuousOn_chart (I := I) g p Ψ hUopen
+        Set.inter_subset_left (fun w hw => hw.2)
+  have hzero_pos : 0 < normalChartDensity (I := I) g p 0 := by
+    simpa only [normalChartDensity, Ψ] using
+      paramDensity_pos (I := I) g Ψ hzero_source
+  let c : ℝ := normalChartDensity (I := I) g p 0 / 2
+  have hc : 0 < c := half_pos hzero_pos
+  have hc_lt : c < normalChartDensity (I := I) g p 0 := by
+    dsimp only [c]
+    linarith
+  have hcontAt : ContinuousAt (normalChartDensity (I := I) g p) 0 :=
+    hcont.continuousAt (hUopen.mem_nhds hzeroU)
+  have hdens_nhds :
+      {w : E | c < normalChartDensity (I := I) g p w} ∈ 𝓝 (0 : E) :=
+    (tendsto_order.1 hcontAt).1 c hc_lt
+  have hsafe : U ∩ {w : E | c < normalChartDensity (I := I) g p w} ∈
+      𝓝 (0 : E) :=
+    Filter.inter_mem (hUopen.mem_nhds hzeroU) hdens_nhds
+  obtain ⟨δ, hδ, hδsub⟩ := Metric.mem_nhds_iff.mp hsafe
+  refine ⟨c, δ, hc, hδ, ?_⟩
+  intro w hw
+  exact (hδsub hw).2.le
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.normal_dens_lower
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.normal_dens_lower target :: scope.openDecls } }
+
+omit [FiniteDimensional ℝ E]
+  [NeZero (Module.finrank ℝ E)] [I.Boundaryless] [CompleteSpace E]
+  [T2Space M] [T2Space (TangentBundle I M)] in
+private lemma sqrt_inner_le_norm
+    (g : SmoothRiemannianMetric I M) (p : M) (w : E) :
+    Real.sqrt (g.inner p w w) ≤
+      (Real.sqrt ‖tangentBilinearFormToModel (I := I) p (g.inner p)‖ + 1) * ‖w‖ := by
+  let gp := tangentBilinearFormToModel (I := I) p (g.inner p)
+  have hgp : gp w w = g.inner p w w := by
+    rfl
+  have hop : |gp w w| ≤ ‖gp‖ * ‖w‖ * ‖w‖ := by
+    simpa only [Real.norm_eq_abs] using gp.le_opNorm₂ w w
+  have hquad : g.inner p w w ≤ ‖gp‖ * ‖w‖ ^ 2 := by
+    calc
+      g.inner p w w = gp w w := hgp.symm
+      _ ≤ |gp w w| := le_abs_self _
+      _ ≤ ‖gp‖ * ‖w‖ * ‖w‖ := hop
+      _ = ‖gp‖ * ‖w‖ ^ 2 := by ring
+  have hsqrt := Real.sqrt_le_sqrt hquad
+  rw [Real.sqrt_mul (norm_nonneg gp), Real.sqrt_sq (norm_nonneg w)] at hsqrt
+  exact hsqrt.trans (by
+    nlinarith [Real.sqrt_nonneg ‖gp‖, norm_nonneg w])
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.sqrt_inner_le_norm
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.sqrt_inner_le_norm target :: scope.openDecls } }
+
+omit [FiniteDimensional ℝ E]
+  [NeZero (Module.finrank ℝ E)] [I.Boundaryless] [CompleteSpace E]
+  [T2Space M] [T2Space (TangentBundle I M)] in
+private lemma exists_inner_bound
+    (g : SmoothRiemannianMetric I M) (p : M) :
+    ∃ C : ℝ, 1 ≤ C ∧ ∀ w : E,
+      Real.sqrt (g.inner p w w) ≤ C * ‖w‖ := by
+  refine ⟨Real.sqrt ‖tangentBilinearFormToModel (I := I) p (g.inner p)‖ + 1, ?_, ?_⟩
+  · nlinarith [Real.sqrt_nonneg
+      ‖tangentBilinearFormToModel (I := I) p (g.inner p)‖]
+  · exact sqrt_inner_le_norm (I := I) g p
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_inner_bound
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_inner_bound target :: scope.openDecls } }
+
+attribute [-instance] Tensor0SBundle.tangentSpaceNormedAddCommGroup
+  Tensor0SBundle.tangentSpaceNormedSpace in
+theorem exists_ball_vol_low
+    [_root_.Bundle.RiemannianBundle (fun x : M => TangentSpace I x)]
+    [PseudoEMetricSpace M] [IsRiemannianManifold I M] [CompleteSpace M]
+    [T3Space M] [ConnectedSpace M] [CompactSpace M]
+    [IsContinuousRiemannianBundle E (fun x : M => TangentSpace I x)]
+    (g : SmoothRiemannianMetric I M)
+    (hEnorm : IsMetricNorm (I := I) (M := M) g)
+    (p : M) :
+    ∃ ε ρ : ℝ, 0 < ε ∧ 0 < ρ ∧ ∀ s : ℝ, 0 < s → s ≤ ρ →
+      letI : MetricSpace M := HopfRinow.riemMetricSpace (I := I) (M := M)
+      ε * s ^ Module.finrank ℝ E ≤
+        (riemannianVolumeMeasure (I := I) (M := M) g (Metric.ball p s)).toReal := by
+  obtain ⟨c, δ, hc, hδ, hdens⟩ := normal_dens_lower (I := I) g p
+  obtain ⟨ρv, hρv, hvol⟩ :=
+    exists_metricBall_vol_ge_sc_local (I := I) (M := M) g hEnorm p
+  have hC2 : 0 < expMapC2Radius (I := I) g p := expMapC2Radius_pos (I := I) g p
+  obtain ⟨C, hC1, hinner⟩ := exists_inner_bound (I := I) g p
+  have hC : 0 < C := zero_lt_one.trans_le hC1
+  let a : ℝ := 1 / (2 * C)
+  have ha : 0 < a := one_div_pos.mpr (mul_pos (by norm_num) hC)
+  have ha_le : a ≤ 1 := by
+    dsimp only [a]
+    rw [div_le_one₀ (mul_pos (by norm_num) hC)]
+    linarith
+  let unitBallVol : ℝ≥0∞ :=
+    (modelHaar (E := E)) (Metric.ball (0 : E) (1 : ℝ))
+  let unitVol : ℝ := unitBallVol.toReal
+  have hunitVol : 0 < unitVol := by
+    dsimp only [unitVol, unitBallVol]
+    exact ENNReal.toReal_pos
+      (Metric.measure_ball_pos (μ := modelHaar (E := E))
+        (0 : E) (by norm_num : (0 : ℝ) < 1)).ne'
+      (_root_.MeasureTheory.measure_ball_lt_top (μ := modelHaar (E := E))
+        (x := (0 : E)) (r := (1 : ℝ))).ne
+  let ε : ℝ := c * a ^ Module.finrank ℝ E * unitVol
+  have hε : 0 < ε := mul_pos (mul_pos hc (by positivity)) hunitVol
+  let ρ : ℝ := _root_.Min.min δ (_root_.Min.min ρv (expMapC2Radius (I := I) g p))
+  have hρ : 0 < ρ := by
+    dsimp only [ρ]
+    exact lt_min hδ (lt_min hρv hC2)
+  refine ⟨ε, ρ, hε, hρ, ?_⟩
+  intro s hs hsρ
+  let : MetricSpace M := HopfRinow.riemMetricSpace (I := I) (M := M)
+  have hsδ : s ≤ δ := hsρ.trans (min_le_left _ _)
+  have hsρv : s ≤ ρv := hsρ.trans ((min_le_right _ _).trans (min_le_left _ _))
+  have hsC2 : s ≤ expMapC2Radius (I := I) g p :=
+    hsρ.trans ((min_le_right _ _).trans (min_le_right _ _))
+  have hlower := hvol (c := c) (R := a * s) (s := s)
+    (mul_pos ha hs)
+    ((mul_le_of_le_one_left hs.le ha_le).trans hsC2)
+    (by
+      intro w hw
+      have hwnorm : ‖w‖ < a * s := by
+        simpa only [Metric.mem_ball, dist_zero_right] using hw
+      have hCa : C * a = 1 / 2 := by
+        dsimp only [a]
+        field_simp
+      have : Real.sqrt (g.inner p w w) < s / 2 := by
+        calc
+          Real.sqrt (g.inner p w w) ≤ C * ‖w‖ := hinner w
+          _ < C * (a * s) := mul_lt_mul_of_pos_left hwnorm hC
+          _ = s / 2 := by rw [← mul_assoc, hCa]; ring
+      exact this.trans_le ((half_le_self hs.le).trans hsρv))
+    (by
+      intro w hw
+      have hwnorm : ‖w‖ < a * s := by
+        simpa only [Metric.mem_ball, dist_zero_right] using hw
+      have hCa : C * a = 1 / 2 := by
+        dsimp only [a]
+        field_simp
+      calc
+        Real.sqrt (g.inner p w w) ≤ C * ‖w‖ := hinner w
+        _ < C * (a * s) := mul_lt_mul_of_pos_left hwnorm hC
+        _ = s / 2 := by rw [← mul_assoc, hCa]; ring
+        _ < s := half_lt_self hs)
+    (by
+      intro w hw
+      apply hdens w
+      have hwnorm : ‖w‖ < a * s := by
+        simpa only [Metric.mem_ball, dist_zero_right] using hw
+      have : ‖w‖ < δ := hwnorm.trans_le
+        ((mul_le_of_le_one_left hs.le ha_le).trans hsδ)
+      simpa only [Metric.mem_ball, dist_zero_right] using this)
+  let : _root_.MeasureTheory.IsFiniteMeasure (riemannianVolumeMeasure (I := I) (M := M) g) :=
+    riemannianVolumeMeasure_isFiniteMeasure_of_compactSpace (I := I) (M := M) g
+  have hreal := ENNReal.toReal_mono (_root_.MeasureTheory.measure_ne_top _ _) hlower
+  have hpow : 0 ≤ (a * s) ^ Module.finrank ℝ E := by positivity
+  simp only [ENNReal.toReal_mul, ENNReal.toReal_ofReal hc.le,
+    ENNReal.toReal_ofReal hpow] at hreal
+  dsimp only [ε, unitVol]
+  convert hreal using 1
+  simp only [unitBallVol]
+  ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_ball_vol_low then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_ball_vol_low"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_ball_vol_low ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_ball_vol_low
+
+attribute [-instance] Tensor0SBundle.tangentSpaceNormedAddCommGroup
+  Tensor0SBundle.tangentSpaceNormedSpace in
+theorem exists_edist_vol
+    [T3Space M] [ConnectedSpace M] [CompactSpace M]
+    (g : SmoothRiemannianMetric I M) (p : M) :
+    ∃ ε ρ : ℝ, 0 < ε ∧ 0 < ρ ∧ ∀ s : ℝ, 0 < s → s ≤ ρ →
+      ε * s ^ Module.finrank ℝ E ≤
+        (riemannianVolumeMeasure (I := I) (M := M) g
+          {x : M | riemannianEDistOf (I := I) g p x < ENNReal.ofReal s}).toReal := by
+  let : _root_.Bundle.RiemannianBundle (fun x : M => TangentSpace I x) :=
+    ⟨g.toRiemannianMetric⟩
+  let : IsContinuousRiemannianBundle E (fun x : M => TangentSpace I x) :=
+    ⟨g.inner, g.contMDiff.continuous, fun _ _ _ => rfl⟩
+  let : PseudoEMetricSpace M := PseudoEMetricSpace.ofRiemannianMetric I M
+  let : CompleteSpace M := inferInstance
+  have hEnorm : ∀ x : M, ∀ w : TangentSpace I x,
+      ‖w‖ₑ = ENNReal.ofReal (Real.sqrt (g.inner x w w)) := by
+    intro x w
+    rw [← ofReal_norm, norm_eq_sqrt_real_inner]
+    rfl
+  obtain ⟨ε, ρ, hε, hρ, hvol⟩ :=
+    exists_ball_vol_low (I := I) (M := M) g hEnorm p
+  refine ⟨ε, ρ, hε, hρ, ?_⟩
+  intro s hs hsρ
+  let : MetricSpace M := HopfRinow.riemMetricSpace (I := I) (M := M)
+  have hset : Metric.ball p s =
+      {x : M | riemannianEDistOf (I := I) g p x < ENNReal.ofReal s} := by
+    ext x
+    simp only [Metric.mem_ball, _root_.Set.mem_ofPred_eq, riemannianEDistOf]
+    rw [dist_comm]
+    rw [HopfRinow.riemMetric_dist_eq (I := I) (M := M) p x]
+    exact (ENNReal.lt_ofReal_iff_toReal_lt
+      (Exponential.riemannianEDist_ne_top (I := I) p x)).symm
+  rw [← hset]
+  exact hvol s hs hsρ
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_edist_vol then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_edist_vol"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_edist_vol ``Submission.DifferentialGeometry.Geometry.Riemannian.VolumeComparison.exists_edist_vol
+
+end DifferentialGeometry.Geometry.Riemannian.VolumeComparison

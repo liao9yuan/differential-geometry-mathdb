@@ -1,0 +1,262 @@
+import Submission.DifferentialGeometry.Geometry.Metric.Basic
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Chart.Local
+import Submission.DifferentialGeometry.Analysis.Spectral.Tensor.TrivProj.ChristoffelBilinear
+import Submission.DifferentialGeometry.Analysis.Sobolev.Tensor.Chart.Components
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+
+
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+namespace DifferentialGeometry.Analysis.Sobolev.HebeyBlock
+
+open _root_.Bundle _root_.Submission.Bundle
+open scoped _root_.Manifold _root_.ContDiff _root_.BigOperators
+open _root_.Submission.DifferentialGeometry.Analysis.Sobolev.Chart
+open _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [CompactSpace M] [BoundarylessManifold I M] [T2Space M] [SigmaCompactSpace M]
+
+noncomputable local instance instNormedAddCommGroupContinuousLinearMapRealIdChristoffelCkBound :
+    NormedAddCommGroup (E →L[ℝ] E) :=
+  ContinuousLinearMap.toNormedAddCommGroup
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapRealIdChristoffelCkBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapRealIdChristoffelCkBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapRealIdChristoffelCkBound ``Submission.DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapRealIdChristoffelCkBound
+
+noncomputable local instance instNormedSpaceRealContinuousLinearMapIdChristoffelCkBound :
+    NormedSpace ℝ (E →L[ℝ] E) :=
+  ContinuousLinearMap.toNormedSpace
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapIdChristoffelCkBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapIdChristoffelCkBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapIdChristoffelCkBound ``Submission.DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapIdChristoffelCkBound
+
+noncomputable local instance instNormedAddCommGroupContinuousLinearMapBilinearChristoffelCkBound :
+    NormedAddCommGroup (E →L[ℝ] E →L[ℝ] E) :=
+  ContinuousLinearMap.toNormedAddCommGroup
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapBilinearChristoffelCkBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapBilinearChristoffelCkBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapBilinearChristoffelCkBound ``Submission.DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedAddCommGroupContinuousLinearMapBilinearChristoffelCkBound
+
+noncomputable local instance instNormedSpaceRealContinuousLinearMapBilinearChristoffelCkBound :
+    NormedSpace ℝ (E →L[ℝ] E →L[ℝ] E) :=
+  ContinuousLinearMap.toNormedSpace
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapBilinearChristoffelCkBound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapBilinearChristoffelCkBound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapBilinearChristoffelCkBound ``Submission.DifferentialGeometry.Analysis.Sobolev.HebeyBlock.instNormedSpaceRealContinuousLinearMapBilinearChristoffelCkBound
+
+private theorem exists_iteratedFDeriv_norm_bound_on_compact
+    {F G : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+    [NormedAddCommGroup G] [NormedSpace ℝ G]
+    (f : F → G) (U K : Set F) (hU_open : IsOpen U)
+    (hK_compact : IsCompact K) (hK_sub : K ⊆ U)
+    (hf : ContDiffOn ℝ ∞ f U) (j : ℕ) :
+    ∃ C : ℝ, 0 ≤ C ∧ ∀ y ∈ K, ‖iteratedFDeriv ℝ j f y‖ ≤ C := by
+  have hU_uniqueDiff : UniqueDiffOn ℝ U := hU_open.uniqueDiffOn
+  have hwithin_eq : ∀ y ∈ U,
+      iteratedFDerivWithin ℝ j f U y = iteratedFDeriv ℝ j f y :=
+    fun y hy => iteratedFDerivWithin_of_isOpen j hU_open hy
+  have hcont : ContinuousOn (fun y => iteratedFDerivWithin ℝ j f U y) U :=
+    hf.continuousOn_iteratedFDerivWithin (by exact_mod_cast le_top) hU_uniqueDiff
+  by_cases hKne : K.Nonempty
+  · have hiter : ContinuousOn (iteratedFDerivWithin ℝ j f U) K :=
+      hcont.mono hK_sub
+    have hnorm : ContinuousOn (fun y =>
+        ‖iteratedFDerivWithin ℝ j f U y‖) K :=
+      continuous_norm.comp_continuousOn hiter
+    obtain ⟨y₀, hy₀_K, hy₀_max⟩ := hK_compact.exists_isMaxOn hKne hnorm
+    refine ⟨‖iteratedFDerivWithin ℝ j f U y₀‖, norm_nonneg _, ?_⟩
+    intro y hy
+    have hle : ‖iteratedFDerivWithin ℝ j f U y‖ ≤
+        ‖iteratedFDerivWithin ℝ j f U y₀‖ := hy₀_max hy
+    rw [hwithin_eq y (hK_sub hy)] at hle
+    exact hle
+  · refine ⟨0, le_refl _, ?_⟩
+    intro y hy
+    exact (hKne ⟨y, hy⟩).elim
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Sobolev.HebeyBlock.exists_iteratedFDeriv_norm_bound_on_compact
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.exists_iteratedFDeriv_norm_bound_on_compact target :: scope.openDecls } }
+
+omit [CompactSpace M] [BoundarylessManifold I M] [T2Space M] [SigmaCompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+theorem christoffel_Ck_bound_from_metric_Ck1 [I.Boundaryless]
+    (g : SmoothRiemannianMetric I M) (k : ℕ) (α : M)
+    {K : Set (EuclideanSpace ℝ (Fin (Module.finrank ℝ E)))}
+    (hK_compact : IsCompact K)
+    (hK_sub : K ⊆ chartTargetEuclid (I := I) (M := M) α) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      ∀ j ∈ Finset.range k,
+        ∀ y ∈ K,
+          ‖iteratedFDeriv ℝ j
+              (fun z : EuclideanSpace ℝ (Fin (Module.finrank ℝ E)) =>
+                chartChristoffelBilin (I := I) (M := M) g α
+                  ((extChartAt I α).symm ((toEuclidean (E := E)).symm z)))
+              y‖ ≤ C := by
+  classical
+  let n : ℕ := Module.finrank ℝ E
+  let Φ : EuclideanSpace ℝ (Fin n) → (E →L[ℝ] E →L[ℝ] E) := fun z =>
+    chartChristoffelBilin (I := I) (M := M) g α
+      ((extChartAt I α).symm ((toEuclidean (E := E)).symm z))
+  have hΦ : Φ = fun z =>
+    chartChristoffelBilin (I := I) (M := M) g α
+      ((extChartAt I α).symm ((toEuclidean (E := E)).symm z)) := rfl
+  let U : Set (EuclideanSpace ℝ (Fin n)) := chartTargetEuclid (I := I) (M := M) α
+  have hU_open : IsOpen U := chartTargetEuclid_isOpen (I := I) (M := M) α
+  let Ψ : EuclideanSpace ℝ (Fin n) → (E →L[ℝ] E →L[ℝ] E) := fun z =>
+    ∑ i : Fin n, ∑ j : Fin n, ∑ κ : Fin n,
+      ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord i).toContinuousLinearMap.smulRight
+        (((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+          (chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z) •
+            (DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ))
+  have hΨ : Ψ = fun z =>
+    ∑ i : Fin n, ∑ j : Fin n, ∑ κ : Fin n,
+      ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord i).toContinuousLinearMap.smulRight
+        (((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+          (chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z) •
+            (DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ)) := rfl
+  have h_toE_symm_mem_target : ∀ {y : EuclideanSpace ℝ (Fin n)},
+      y ∈ U → (toEuclidean (E := E)).symm y ∈ (extChartAt I α).target := by
+    intro y hy
+    rcases hy with ⟨z, hz_target, hz_eq⟩
+    have hyz : (toEuclidean (E := E)).symm y = z := by
+      rw [← hz_eq]; simp
+    rw [hyz]
+    exact hz_target
+  have hΦΨ_on_U : Set.EqOn Φ Ψ U := by
+    intro y hy
+    have hy_target : (toEuclidean (E := E)).symm y ∈ (extChartAt I α).target :=
+      h_toE_symm_mem_target hy
+    have h_right_inv :
+        (extChartAt I α) ((extChartAt I α).symm ((toEuclidean (E := E)).symm y)) =
+          (toEuclidean (E := E)).symm y :=
+      (extChartAt I α).right_inv hy_target
+    simp only [hΦ, hΨ, chartChristoffelBilin]
+    refine Finset.sum_congr rfl (fun i _ => ?_)
+    refine Finset.sum_congr rfl (fun j _ => ?_)
+    refine Finset.sum_congr rfl (fun κ _ => ?_)
+    rw [h_right_inv]
+  have h_target_eq_interior :
+      (extChartAt I α).target = interior ((extChartAt I α).target : Set E) :=
+    (isOpen_extChartAt_target (I := I) α).interior_eq.symm
+  have h_toE_symm_contDiff : ContDiff ℝ ∞
+      (fun z : EuclideanSpace ℝ (Fin n) => (toEuclidean (E := E)).symm z) :=
+    (toEuclidean (E := E)).symm.contDiff
+  have h_chart_chr_scalar_contDiffOn : ∀ i j κ : Fin n,
+      ContDiffOn ℝ ∞
+        (fun z : EuclideanSpace ℝ (Fin n) =>
+          chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z)) U := by
+    intro i j κ
+    have h_inner_contDiff : ContDiffOn ℝ ∞
+        (fun z : EuclideanSpace ℝ (Fin n) => (toEuclidean (E := E)).symm z) Set.univ :=
+      h_toE_symm_contDiff.contDiffOn
+    have h_outer_contDiffOn : ContDiffOn ℝ ∞
+        (chartChristoffel (I := I) g α i j κ)
+        (interior ((extChartAt I α).target : Set E)) :=
+      chartChristoffel_contDiffOn_interior (I := I) g α i j κ
+    have h_maps : Set.MapsTo (fun z : EuclideanSpace ℝ (Fin n) =>
+        (toEuclidean (E := E)).symm z)
+        U (interior ((extChartAt I α).target : Set E)) := by
+      intro z hz
+      have hz_target : (toEuclidean (E := E)).symm z ∈ (extChartAt I α).target :=
+        h_toE_symm_mem_target hz
+      rw [← h_target_eq_interior]
+      exact hz_target
+    exact h_outer_contDiffOn.comp (h_inner_contDiff.mono (Set.subset_univ _)) h_maps
+  let N : Fin n → Fin n → Fin n → (E →L[ℝ] E →L[ℝ] E) := fun i j κ =>
+    ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord i).toContinuousLinearMap.smulRight
+      (((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+        ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ))
+  have h_summand_eq : ∀ (i j κ : Fin n) (z : EuclideanSpace ℝ (Fin n)),
+      ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord i).toContinuousLinearMap.smulRight
+          (((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+            (chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z) •
+              (DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ)) =
+        chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z) •
+          N i j κ := by
+    intro i j κ z
+    set s : ℝ := chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z)
+    have h_inner : ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+        (s • (DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ) =
+        s • ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+              ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ) := by
+      ext w
+      simp [ContinuousLinearMap.smulRight_apply, smul_apply,
+        smul_smul, mul_comm]
+    rw [h_inner]
+    ext v w
+    simp [N, ContinuousLinearMap.smulRight_apply, smul_apply,
+      smul_smul, mul_comm]
+  have hΨ_contDiffOn : ContDiffOn ℝ ∞ Ψ U := by
+    refine ContDiffOn.sum (fun i _ => ?_)
+    refine ContDiffOn.sum (fun j _ => ?_)
+    refine ContDiffOn.sum (fun κ _ => ?_)
+    have h_scalar := h_chart_chr_scalar_contDiffOn i j κ
+    have h_eq : (fun z : EuclideanSpace ℝ (Fin n) =>
+        ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord i).toContinuousLinearMap.smulRight
+          (((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E).coord j).toContinuousLinearMap.smulRight
+            (chartChristoffel (I := I) g α i j κ ((toEuclidean (E := E)).symm z) •
+              (DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) κ))) =
+        fun z => chartChristoffel (I := I) g α i j κ
+          ((toEuclidean (E := E)).symm z) • N i j κ := by
+      funext z
+      exact h_summand_eq i j κ z
+    rw [h_eq]
+    exact h_scalar.smul_const (N i j κ)
+  have hΦ_contDiffOn : ContDiffOn ℝ ∞ Φ U :=
+    hΨ_contDiffOn.congr (fun y hy => hΦΨ_on_U hy)
+  have h_per_order : ∀ j_idx : ℕ, ∃ Cj : ℝ, 0 ≤ Cj ∧ ∀ y ∈ K,
+      ‖iteratedFDeriv ℝ j_idx Φ y‖ ≤ Cj :=
+    fun j_idx => exists_iteratedFDeriv_norm_bound_on_compact
+      Φ U K hU_open hK_compact hK_sub hΦ_contDiffOn j_idx
+  choose Cj hCj_nn hCj_bd using h_per_order
+  by_cases hk : k = 0
+  · refine ⟨0, le_refl _, ?_⟩
+    intro j_idx hj
+    subst hk
+    simp at hj
+  · have hk_pos : 0 < k := Nat.pos_of_ne_zero hk
+    have h_nonempty : (Finset.range k).Nonempty :=
+      ⟨0, Finset.mem_range.mpr hk_pos⟩
+    let C : ℝ := (Finset.range k).sup' h_nonempty Cj
+    have hC_ge : ∀ j_idx ∈ Finset.range k, Cj j_idx ≤ C := fun j_idx hj =>
+      Finset.le_sup' Cj hj
+    have hC_nn : 0 ≤ C := le_trans (hCj_nn 0) (hC_ge 0 (Finset.mem_range.mpr hk_pos))
+    refine ⟨C, hC_nn, ?_⟩
+    intro j_idx hj y hy
+    exact (hCj_bd j_idx y hy).trans (hC_ge j_idx hj)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.christoffel_Ck_bound_from_metric_Ck1 then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Sobolev.HebeyBlock.christoffel_Ck_bound_from_metric_Ck1"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Sobolev.HebeyBlock.christoffel_Ck_bound_from_metric_Ck1 ``Submission.DifferentialGeometry.Analysis.Sobolev.HebeyBlock.christoffel_Ck_bound_from_metric_Ck1
+
+end DifferentialGeometry.Analysis.Sobolev.HebeyBlock

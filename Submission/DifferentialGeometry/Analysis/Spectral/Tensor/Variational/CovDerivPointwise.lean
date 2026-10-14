@@ -1,0 +1,541 @@
+import Submission.DifferentialGeometry.Analysis.Integration.L2.SmoothSections.PreHilbert
+import Submission.DifferentialGeometry.Analysis.Integration.L2.SmoothSections.Integrability
+import Submission.DifferentialGeometry.Geometry.Metric.PointwiseInner.Algebra
+import Submission.DifferentialGeometry.Geometry.Connection.TensorNabla.TensorRS.Basic
+import Submission.DifferentialGeometry.Geometry.Curvature.CurvatureOperator.Defs
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Defs
+import Submission.DifferentialGeometry.Analysis.Integration.Measure.Riemannian.Properties
+import Submission.DifferentialGeometry.Geometry.Metric.PointwiseInner.MetricLowering
+import Submission.DifferentialGeometry.Tensor.Multilinear.Bundle.Evaluation
+import Submission.DifferentialGeometry.Geometry.Metric.TensorInner.TensorRS.Riemannian
+import Submission.DifferentialGeometry.Geometry.Operator.Gradient.Basic
+import Mathlib.Analysis.InnerProductSpace.Defs
+import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.MeasureTheory.Function.L1Space.Integrable
+import Mathlib.MeasureTheory.Function.LocallyIntegrable
+import Mathlib.Topology.ContinuousOn
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+
+
+noncomputable section
+
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.MeasureTheory _root_.Set _root_.Filter _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.ENNReal _root_.BigOperators _root_.Matrix
+  RealInnerProductSpace InnerProductSpace
+
+namespace DifferentialGeometry
+namespace Analysis
+namespace Parabolic
+namespace TensorSpectral
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.L2
+
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+open _root_.Submission.DifferentialGeometry.Tensor.TensorRSRiemannian
+open _root_.Submission.DifferentialGeometry.TensorRSNabla
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [Module.Finite ℝ E]
+  [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [CompactSpace M] [I.Boundaryless] [T2Space M] [SigmaCompactSpace M]
+
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instMeasurableSpace_differentialGeometry : MeasurableSpace E := borel E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instMeasurableSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instMeasurableSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instBorelSpace_differentialGeometry : BorelSpace E := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instBorelSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instBorelSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instMeasurableSpace_differentialGeometry_1 : MeasurableSpace M := borel M
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instMeasurableSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instMeasurableSpace_differentialGeometry_1 target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instBorelSpace_differentialGeometry_1 : BorelSpace M := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instBorelSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instBorelSpace_differentialGeometry_1 target :: scope.openDecls } }
+
+noncomputable def tensorCovDerivAt
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S : SmoothCcTensor g r s) (x : M) (v : E) :
+    TensorRSSpace r s I x :=
+  tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)
+    (fun y : M => S.toSection y) x
+      ((tangentSpaceModelContinuousLinearEquiv (I := I) x).symm v)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+lemma tensorCovDerivAt_def
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S : SmoothCcTensor g r s) (x : M) (v : E) :
+    tensorCovDerivAt (I := I) (M := M) g r s S x v =
+      tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)
+        (fun y : M => S.toSection y) x
+          ((tangentSpaceModelContinuousLinearEquiv (I := I) x).symm v) := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_def then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_def"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_def ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_def
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+lemma tensorCovDerivAt_add
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S₁ S₂ : SmoothCcTensor g r s) (x : M) (v : E) :
+    tensorCovDerivAt (I := I) (M := M) g r s (S₁ + S₂) x v =
+      tensorCovDerivAt (I := I) (M := M) g r s S₁ x v +
+        tensorCovDerivAt (I := I) (M := M) g r s S₂ x v := by
+  unfold tensorCovDerivAt
+  have hpt : (fun y : M => (S₁ + S₂).toSection y) =
+      (fun y : M => S₁.toSection y) + (fun y : M => S₂.toSection y) := by
+    funext y
+    rw [SmoothCcTensor.toSection_add]
+    rfl
+  rw [hpt]
+  have hadd := (tensorRSCovariantDerivative I M r s
+    (LeviCivita (I := I) g)).isCovariantDerivativeOn.add
+    (σ := fun y : M => S₁.toSection y)
+    (σ' := fun y : M => S₂.toSection y)
+    (S₁.toSection.contMDiff.mdifferentiable (by norm_num)).mdifferentiableAt
+    (S₂.toSection.contMDiff.mdifferentiable (by norm_num)).mdifferentiableAt
+    (by trivial : x ∈ (Set.univ : Set M))
+  have hclm : (tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)).toFun
+        (fun y : M => S₁.toSection y + S₂.toSection y) x =
+      (tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)).toFun
+          (fun y : M => S₁.toSection y) x +
+      (tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)).toFun
+          (fun y : M => S₂.toSection y) x := hadd
+  change (tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)).toFun
+      (fun y : M => S₁.toSection y + S₂.toSection y) x
+        ((tangentSpaceModelContinuousLinearEquiv (I := I) x).symm v) = _
+  rw [hclm]
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_add then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_add"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_add ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_add
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+lemma tensorCovDerivAt_smul
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (c : ℝ) (S : SmoothCcTensor g r s) (x : M) (v : E) :
+    tensorCovDerivAt (I := I) (M := M) g r s (c • S) x v =
+      c • tensorCovDerivAt (I := I) (M := M) g r s S x v := by
+  unfold tensorCovDerivAt
+  have hpt : (fun y : M => (c • S).toSection y) =
+      (fun _ : M => c) • (fun y : M => S.toSection y) := by
+    funext y
+    rw [SmoothCcTensor.toSection_smul]
+    rfl
+  rw [hpt]
+  have hf_smooth : ContMDiff I 𝓘(ℝ, ℝ) ∞ (fun _ : M => c) := contMDiff_const
+  have hf_mdiff : MDiffAt (fun y : M => c) x :=
+    (hf_smooth.mdifferentiable (by norm_num)).mdifferentiableAt
+  have hcov_leibniz :=
+    (tensorRSCovariantDerivative I M r s
+        (LeviCivita (I := I) g)).isCovariantDerivativeOn.leibniz
+      (σ := fun y : M => S.toSection y)
+      (g := fun _ : M => c)
+      (hσ := (S.toSection.contMDiff.mdifferentiable (by norm_num)).mdifferentiableAt)
+      (hg := hf_mdiff)
+      (hx := (by trivial : x ∈ (Set.univ : Set M)))
+  have hext_zero : mvfderiv (I := I) (fun _ : M => c) x = 0 := by
+    unfold mvfderiv
+    simp [mfderiv_const]
+  change (tensorRSCovariantDerivative I M r s (LeviCivita (I := I) g)).toFun
+      ((fun _ : M => c) • fun y : M => S.toSection y) x
+        ((tangentSpaceModelContinuousLinearEquiv (I := I) x).symm v) = _
+  rw [hcov_leibniz]
+  rw [hext_zero]
+  rw [ContinuousLinearMap.zero_smulRight, add_zero]
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_smul then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_smul"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_smul ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivAt_smul
+
+noncomputable def tensorCovDerivPointwiseInner
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S T : SmoothCcTensor g r s) (x : M) : ℝ :=
+  ∑ i : Fin (Module.finrank ℝ E), ∑ j : Fin (Module.finrank ℝ E),
+    (gramMatrixAt (I := I) (M := M) g x)⁻¹ i j *
+      tensorInnerPointwise (I := I) (M := M) g r s x
+        (TensorRSSpace.toModel
+          (tensorCovDerivAt (I := I) (M := M) g r s S x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i)))
+        (TensorRSSpace.toModel
+          (tensorCovDerivAt (I := I) (M := M) g r s T x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) j)))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+lemma tensorCovDerivPointwiseInner_def
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S T : SmoothCcTensor g r s) (x : M) :
+    tensorCovDerivPointwiseInner (I := I) (M := M) g r s S T x =
+      ∑ i : Fin (Module.finrank ℝ E), ∑ j : Fin (Module.finrank ℝ E),
+        (gramMatrixAt (I := I) (M := M) g x)⁻¹ i j *
+          tensorInnerPointwise (I := I) (M := M) g r s x
+            (TensorRSSpace.toModel
+              (tensorCovDerivAt (I := I) (M := M) g r s S x
+                ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i)))
+            (TensorRSSpace.toModel
+              (tensorCovDerivAt (I := I) (M := M) g r s T x
+                ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) j))) := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_def then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_def"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_def ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_def
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+lemma tensorCovDerivPointwiseInner_symm
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S T : SmoothCcTensor g r s) (x : M) :
+    tensorCovDerivPointwiseInner (I := I) (M := M) g r s S T x =
+      tensorCovDerivPointwiseInner (I := I) (M := M) g r s T S x := by
+  unfold tensorCovDerivPointwiseInner
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  refine Finset.sum_congr rfl ?_
+  intro j _
+  have hG : (gramMatrixAt (I := I) (M := M) g x)⁻¹ j i =
+      (gramMatrixAt (I := I) (M := M) g x)⁻¹ i j := by
+    have hherm := gramMatrixAt_inv_isHermitian (I := I) (M := M) g x
+    have := hherm.apply i j
+    simpa [_root_.TrivialStar.star_trivial] using this
+  rw [hG]
+  rw [tensorInnerPointwise_symm]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_symm then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_symm"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_symm ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_symm
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] [SigmaCompactSpace M] in
+lemma tensorCovDerivPointwiseInner_add_left
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S₁ S₂ T : SmoothCcTensor g r s) (x : M) :
+    tensorCovDerivPointwiseInner (I := I) (M := M) g r s (S₁ + S₂) T x =
+      tensorCovDerivPointwiseInner (I := I) (M := M) g r s S₁ T x +
+        tensorCovDerivPointwiseInner (I := I) (M := M) g r s S₂ T x := by
+  unfold tensorCovDerivPointwiseInner
+  rw [← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  rw [← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl ?_
+  intro j _
+  have hAdd : tensorCovDerivAt (I := I) (M := M) g r s (S₁ + S₂) x
+        ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i) =
+      tensorCovDerivAt (I := I) (M := M) g r s S₁ x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i) +
+        tensorCovDerivAt (I := I) (M := M) g r s S₂ x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i) :=
+    tensorCovDerivAt_add (I := I) (M := M) g r s S₁ S₂ x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i)
+  rw [hAdd, TensorRSSpace.toModel_add, tensorInnerPointwise_add_left]
+  ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_add_left then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_add_left"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_add_left ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_add_left
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] [SigmaCompactSpace M] in
+lemma tensorCovDerivPointwiseInner_smul_left
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (c : ℝ) (S T : SmoothCcTensor g r s) (x : M) :
+    tensorCovDerivPointwiseInner (I := I) (M := M) g r s (c • S) T x =
+      c * tensorCovDerivPointwiseInner (I := I) (M := M) g r s S T x := by
+  unfold tensorCovDerivPointwiseInner
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro i _
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro j _
+  have hSmul : tensorCovDerivAt (I := I) (M := M) g r s (c • S) x
+        ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i) =
+      c • tensorCovDerivAt (I := I) (M := M) g r s S x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i) :=
+    tensorCovDerivAt_smul (I := I) (M := M) g r s c S x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i)
+  rw [hSmul, TensorRSSpace.toModel_smul, tensorInnerPointwise_smul_left]
+  ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_smul_left then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_smul_left"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_smul_left ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_smul_left
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+lemma tensorCovDerivPointwiseInner_nonneg
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S : SmoothCcTensor g r s) (x : M) :
+    0 ≤ tensorCovDerivPointwiseInner (I := I) (M := M) g r s S S x := by
+  classical
+  set n := Module.finrank ℝ E with hn_def
+  set Ginv : Matrix (Fin n) (Fin n) ℝ :=
+    (gramMatrixAt (I := I) (M := M) g x)⁻¹ with hGinv
+  have hGinv_psd : Ginv.PosSemidef := by
+    simpa [hGinv] using gramMatrixAt_inv_posSemidef (I := I) (M := M) g x
+  have hGinv_herm : Ginv.IsHermitian := hGinv_psd.isHermitian
+  set vfam : Fin n → TensorRSModel r s ℝ E :=
+    fun i => TensorRSSpace.toModel
+      (tensorCovDerivAt (I := I) (M := M) g r s S x ((DifferentialGeometry.Tensor.Coordinates.chartModelBasis E) i))
+    with hvfam_def
+  have hspec := hGinv_herm.spectral_theorem
+  set U : Matrix (Fin n) (Fin n) ℝ :=
+    (hGinv_herm.eigenvectorUnitary : Matrix (Fin n) (Fin n) ℝ) with hU_def
+  set μ : Fin n → ℝ := hGinv_herm.eigenvalues with hμ_def
+  have hμ_nonneg : ∀ k, 0 ≤ μ k := hGinv_psd.eigenvalues_nonneg
+  have hGinv_entry :
+      ∀ i j : Fin n,
+        Ginv i j = ∑ k : Fin n, μ k * (U i k * U j k) := by
+    intro i j
+    have hUDstar : Ginv = U * (Matrix.diagonal μ) * _root_.Star.star U := by
+      have := hspec
+      simp only [Unitary.conjStarAlgAut_apply] at this
+      have hofReal : (RCLike.ofReal ∘ hGinv_herm.eigenvalues :
+          Fin n → ℝ) = hGinv_herm.eigenvalues := by
+        funext k
+        simp
+      rw [hofReal] at this
+      exact this
+    rw [hUDstar]
+    rw [Matrix.mul_apply]
+    have hUD_entry : ∀ k : Fin n,
+        (U * Matrix.diagonal μ) i k = U i k * μ k := by
+      intro k
+      rw [Matrix.mul_apply]
+      rw [Finset.sum_eq_single k]
+      · simp [Matrix.diagonal]
+      · intro l _ hl
+        simp [Matrix.diagonal, hl]
+      · intro hk
+        exact absurd (Finset.mem_univ k) hk
+    refine Finset.sum_congr rfl ?_
+    intro k _
+    rw [hUD_entry k]
+    have hstar : (_root_.Star.star U) k j = U j k := by
+      simp [Matrix.star_apply, _root_.TrivialStar.star_trivial]
+    rw [hstar]
+    ring
+  unfold tensorCovDerivPointwiseInner
+  change 0 ≤ ∑ i : Fin n, ∑ j : Fin n,
+    Ginv i j * tensorInnerPointwise (I := I) (M := M) g r s x (vfam i) (vfam j)
+  have hrewrite :
+      ∑ i : Fin n, ∑ j : Fin n,
+        Ginv i j *
+          tensorInnerPointwise (I := I) (M := M) g r s x (vfam i) (vfam j)
+        = ∑ k : Fin n, μ k *
+          tensorInnerPointwise (I := I) (M := M) g r s x
+            (∑ i : Fin n, U i k • vfam i)
+            (∑ j : Fin n, U j k • vfam j) := by
+    have hsum_left :
+        ∀ (A : Finset (Fin n)) (a : Fin n → ℝ)
+          (φ : Fin n → TensorRSModel r s ℝ E)
+          (T₀ : TensorRSModel r s ℝ E),
+          tensorInnerPointwise (I := I) (M := M) g r s x
+              (∑ i ∈ A, a i • φ i) T₀
+              =
+            ∑ i ∈ A,
+              tensorInnerPointwise (I := I) (M := M) g r s x
+                (a i • φ i) T₀ := by
+      intro A a φ T₀
+      classical
+      induction A using Finset.induction with
+      | empty =>
+          simp [tensorInnerPointwise_zero_left]
+      | insert i A hi ih =>
+          rw [Finset.sum_insert hi]
+          rw [tensorInnerPointwise_add_left]
+          rw [ih]
+          rw [Finset.sum_insert hi]
+    have hsum_right :
+        ∀ (A : Finset (Fin n))
+          (S₀ : TensorRSModel r s ℝ E)
+          (a : Fin n → ℝ) (φ : Fin n → TensorRSModel r s ℝ E),
+          tensorInnerPointwise (I := I) (M := M) g r s x
+              S₀ (∑ j ∈ A, a j • φ j)
+              =
+            ∑ j ∈ A,
+              tensorInnerPointwise (I := I) (M := M) g r s x
+                S₀ (a j • φ j) := by
+      intro A S₀ a φ
+      classical
+      induction A using Finset.induction with
+      | empty =>
+          simp [tensorInnerPointwise_zero_right]
+      | insert j A hj ih =>
+          rw [Finset.sum_insert hj]
+          rw [tensorInnerPointwise_add_right]
+          rw [ih]
+          rw [Finset.sum_insert hj]
+    have hbilin :
+        ∀ k : Fin n,
+          tensorInnerPointwise (I := I) (M := M) g r s x
+              (∑ i : Fin n, U i k • vfam i)
+              (∑ j : Fin n, U j k • vfam j)
+            = ∑ i : Fin n, ∑ j : Fin n,
+              U i k * U j k *
+                tensorInnerPointwise (I := I) (M := M) g r s x
+                  (vfam i) (vfam j) := by
+      intro k
+      rw [hsum_left Finset.univ (fun i => U i k) vfam
+        (∑ j : Fin n, U j k • vfam j)]
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [hsum_right Finset.univ (U i k • vfam i) (fun j => U j k) vfam]
+      refine Finset.sum_congr rfl ?_
+      intro j _
+      rw [tensorInnerPointwise_smul_left, tensorInnerPointwise_smul_right]
+      ring
+    have hRHS :
+        ∑ k : Fin n, μ k *
+          tensorInnerPointwise (I := I) (M := M) g r s x
+            (∑ i : Fin n, U i k • vfam i)
+            (∑ j : Fin n, U j k • vfam j)
+          = ∑ k : Fin n, ∑ i : Fin n, ∑ j : Fin n,
+              (μ k * (U i k * U j k)) *
+                tensorInnerPointwise (I := I) (M := M) g r s x
+                  (vfam i) (vfam j) := by
+      refine Finset.sum_congr rfl ?_
+      intro k _
+      rw [hbilin k, Finset.mul_sum]
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [Finset.mul_sum]
+      refine Finset.sum_congr rfl ?_
+      intro j _
+      ring
+    rw [hRHS]
+    have hLHS :
+        ∑ i : Fin n, ∑ j : Fin n,
+          Ginv i j *
+            tensorInnerPointwise (I := I) (M := M) g r s x (vfam i) (vfam j)
+          = ∑ i : Fin n, ∑ j : Fin n,
+              ∑ k : Fin n,
+                (μ k * (U i k * U j k)) *
+                  tensorInnerPointwise (I := I) (M := M) g r s x
+                    (vfam i) (vfam j) := by
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      refine Finset.sum_congr rfl ?_
+      intro j _
+      rw [hGinv_entry i j, Finset.sum_mul]
+    rw [hLHS]
+    have h_swap_inner :
+        ∑ i : Fin n, ∑ j : Fin n, ∑ k : Fin n,
+            (μ k * (U i k * U j k)) *
+              tensorInnerPointwise (I := I) (M := M) g r s x
+                (vfam i) (vfam j)
+          = ∑ i : Fin n, ∑ k : Fin n, ∑ j : Fin n,
+            (μ k * (U i k * U j k)) *
+              tensorInnerPointwise (I := I) (M := M) g r s x
+                (vfam i) (vfam j) := by
+      refine Finset.sum_congr rfl ?_
+      intro i _
+      rw [Finset.sum_comm]
+    rw [h_swap_inner, Finset.sum_comm]
+  rw [hrewrite]
+  refine Finset.sum_nonneg ?_
+  intro k _
+  refine mul_nonneg (hμ_nonneg k) ?_
+  exact tensorInnerPointwise_nonneg (I := I) (M := M) g r s x
+    (∑ i : Fin n, U i k • vfam i)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_nonneg then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_nonneg"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_nonneg ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorCovDerivPointwiseInner_nonneg
+
+noncomputable def tensorH1Inner
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S T : SmoothCcTensor g r s) : ℝ :=
+  tensorL2Inner (I := I) (M := M) g r s S.toFun T.toFun +
+    ∫ x, tensorCovDerivPointwiseInner (I := I) (M := M) g r s S T x
+      ∂(riemannianVolumeMeasure (I := I) (M := M) g)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner
+
+omit [CompactSpace M] in
+omit [NeZero (Module.finrank ℝ E)] in
+lemma tensorH1Inner_def
+    (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (S T : SmoothCcTensor g r s) :
+    tensorH1Inner (I := I) (M := M) g r s S T =
+      tensorL2Inner (I := I) (M := M) g r s S.toFun T.toFun +
+        ∫ x, tensorCovDerivPointwiseInner (I := I) (M := M) g r s S T x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner_def then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner_def"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner_def ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorH1Inner_def
+
+end TensorSpectral
+end Parabolic
+end Analysis
+end DifferentialGeometry
+
+end

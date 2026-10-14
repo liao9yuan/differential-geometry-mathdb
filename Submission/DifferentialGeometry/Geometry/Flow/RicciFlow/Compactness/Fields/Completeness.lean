@@ -1,0 +1,69 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Fields.MetricLowerBound
+
+import Submission.DifferentialGeometry.Geometry.Compactness.CheegerGromov.Pointed.Metric.Completeness
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+set_option autoImplicit false
+
+noncomputable section
+
+open _root_.Set _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Submission.Manifold
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.Topology _root_.ContDiff
+open _root_.Submission.DifferentialGeometry.Integral.Connection
+
+namespace DifferentialGeometry
+namespace CheegerGromovCompactness
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace Real E]
+  [FiniteDimensional Real E] [CompleteSpace E]
+  [NeZero (Module.finrank Real E)]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+
+variable {X : PointedFlowSeq (I := I)}
+variable {P : PointedRiemannianManifold (I := I)}
+variable {subseq : Nat → Nat}
+variable (Φ : PointedCGHMaps (I := I) X P subseq)
+
+namespace FlowMetricConvergenceData
+
+omit [NeZero (Module.finrank ℝ E)] [I.Boundaryless] in
+theorem complete_at
+    (hP : MetricComplete (I := I) P)
+    {bf : BumpFamily (I := I) Φ} {hsrc : SourceIsSigmaCompact Φ} {htgt : TargetIsSigmaCompact Φ}
+    {β ψ c : Real}
+    (co : FlowMetricConvergenceData (I := I) Φ P.metric bf hsrc htgt β ψ)
+    (hc : 0 < c)
+    (hseq : letI : TopologicalSpace P.M := P.topology;
+      letI : ChartedSpace H P.M := P.charted;
+      letI : IsManifold I ∞ P.M := P.smooth;
+      ∀ (k : Nat) (t : Real), t ∈ Set.Icc β ψ →
+        ∀ (x : P.M) (v : TangentSpace I x),
+          c * P.metric.inner x v v ≤
+            (gSeqExt (I := I) Φ P.metric bf hsrc htgt (co.φ k) t).inner x v v)
+    {t : Real} (ht : t ∈ Set.Icc β ψ) :
+    MetricComplete (I := I)
+      ({ P with metric := co.gInf t } : PointedRiemannianManifold (I := I)) := by
+  let : TopologicalSpace P.M := P.topology
+  let : ChartedSpace H P.M := P.charted
+  let : IsManifold I ∞ P.M := P.smooth
+  exact MetricComplete.complete_of_lower P hP (co.gInf t) c hc
+    (FlowMetricConvergenceData.lower_of (I := I) (Φ := Φ) co hseq t ht)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.FlowMetricConvergenceData.complete_at then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.FlowMetricConvergenceData.complete_at"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.FlowMetricConvergenceData.complete_at ``Submission.DifferentialGeometry.CheegerGromovCompactness.FlowMetricConvergenceData.complete_at
+
+end FlowMetricConvergenceData
+end CheegerGromovCompactness
+end DifferentialGeometry
+
+end

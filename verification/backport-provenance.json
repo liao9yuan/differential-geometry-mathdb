@@ -1,0 +1,47 @@
+{
+  "upstream_mathlib_commit": "c55e6e786f49471c72fbddbec5415808896aec1e",
+  "target_mathlib_commit": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "target_toolchain": "leanprover/lean4:v4.33.1",
+  "license": "Apache-2.0",
+  "files": [
+    {
+      "path": "DifferentialGeometry/MathlibCompat/Algebra/Homology/HomologicalComplexKernels.lean",
+      "sha256": "6f8383128857325bc8c7df9d58ea3e377eab0e6930ccb910e94becff4b6e33f2",
+      "source_path": "Mathlib/Algebra/Homology/HomologicalComplexKernels.lean"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/AlgebraicTopology/SimplicialSet/Homology/Basic.lean",
+      "sha256": "3a22329e7a21c8a098b13da88f40095680c1940021c592bd9ea8a9b0c6817db1",
+      "source_path": "Mathlib/AlgebraicTopology/SimplicialSet/Homology/Basic.lean"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/AlgebraicTopology/SimplicialSet/Homology/Relative.lean",
+      "sha256": "545ea0309ada1a625471a74c9ed7d48aa028f6169b6d327e977c54eb38934974",
+      "source_path": "Mathlib/AlgebraicTopology/SimplicialSet/Homology/Relative.lean"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/AlgebraicTopology/SimplicialSet/SSetPair.lean",
+      "sha256": "ac9b05593ced20e9cbbad560d323cd3588be8c60419ed1a6db797ecdb5d9cf14",
+      "source_path": "Mathlib/AlgebraicTopology/SimplicialSet/SSetPair.lean"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/CategoryTheory/Limits/FunctorCategory/Shapes/Kernels.lean",
+      "sha256": "7ed39bd4bb3d5ddeb71ef4185ee3591fd1b933206218eefa136a9e5356ef8a99",
+      "source_path": "Mathlib/CategoryTheory/Limits/FunctorCategory/Shapes/Kernels.lean"
+    }
+  ],
+  "modifications": [
+    "Imports redirected to local compatibility modules.",
+    "Only missing declarations added when old Mathlib module already exists.",
+    "Parallel-pair identity compatibility goals use explicit Category.comp_id and Category.id_comp proofs.",
+    "Relative degreewise HasCokernel proof explicitly changes to sigmaConst map before instance synthesis."
+  ],
+  "additional_simplex_compatibility": {
+    "path": "DifferentialGeometry/MathlibCompat/StdSimplex.lean",
+    "implementation": "New finite-coordinate compatibility definitions over native Mathlib v4.33.1 stdSimplex; original native singular-set representation is preserved definitionally.",
+    "namespace": "DifferentialGeometry.MathlibCompat.StdSimplex",
+    "reason_for_namespace": "Avoids actual collision with the distinct Mathlib Convexity.StdSimplex API imported by Mathlib umbrella module.",
+    "native_api_source": "Mathlib/Analysis/Convex/StdSimplex.lean",
+    "native_api_commit": "0df444a360eaa60ab8c11dca51a86af692955474"
+  }
+}

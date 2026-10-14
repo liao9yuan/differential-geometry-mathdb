@@ -39,3 +39,11 @@ Selected Mathlib compatibility files derive from mathlib4 commit
 c55e6e786f49471c72fbddbec5415808896aec1e, under Apache-2.0. Original copyright
 headers and contributor attribution are retained in those files. They have been
 adapted to the pinned Lean/Mathlib v4.33.1 APIs. See MATHDB_SUBMISSION.md.
+
+MathDB source relocation
+------------------------
+In this submission, upstream paths beginning DifferentialGeometry/
+are relocated below Submission/DifferentialGeometry/. References in
+the preserved upstream notices and provenance use their original paths.
+Declaration namespaces and references are relocated for MathDB.
+The mathematical target is imported unchanged from the official problem.

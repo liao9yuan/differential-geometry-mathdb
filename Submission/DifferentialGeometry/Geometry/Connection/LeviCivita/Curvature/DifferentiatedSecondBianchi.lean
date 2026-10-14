@@ -1,0 +1,199 @@
+import Submission.DifferentialGeometry.Geometry.Connection.LeviCivita.Curvature.Sections
+import Submission.DifferentialGeometry.Geometry.Connection.TensorNabla.Naturality.SlotPermutation
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+set_option autoImplicit false
+
+noncomputable section
+
+namespace DifferentialGeometry.Geometry.Connection
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open scoped _root_.Topology _root_.Manifold _root_.ContDiff _root_.BigOperators
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E] [CompleteSpace E]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H}
+variable [I.Boundaryless]
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+variable [IsManifold I 1 M]
+variable [SigmaCompactSpace M] [T2Space M]
+
+private def rmBianchiCyc : Fin 5 ≃ Fin 5 :=
+  Equiv.ofBijective ![1, 2, 0, 3, 4] (by decide)
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Connection.rmBianchiCyc
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Connection.rmBianchiCyc target :: scope.openDecls } }
+
+private def rmBianchiCyc2 : Fin 5 ≃ Fin 5 :=
+  Equiv.ofBijective ![2, 0, 1, 3, 4] (by decide)
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Geometry.Connection.rmBianchiCyc2
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Geometry.Connection.rmBianchiCyc2 target :: scope.openDecls } }
+
+omit [I.Boundaryless]
+  [SigmaCompactSpace M] in
+theorem canRmSecond_nabla
+    (g : SmoothRiemannianMetric I M)
+    {x : M} (V A X Y Z W : TangentSpace I x) :
+    let cov :=
+      DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric
+        (I := I) g
+    let hcov :=
+      DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric_contMDiffCovariantDerivativeLocally
+        (I := I) (M := M) g
+    let Rm04 : Tensor04Section (I := I) (M := M) :=
+      DifferentialGeometry.Geometry.Curvature.CovariantDerivative.rm04Section
+        (I := I) g cov hcov
+    let nablaRm04 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+        (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5 :=
+      totalNabla0S (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        4 cov Rm04
+        (totalNabla0S_regularity (E := E) (H := H) (I := I) (M := M)
+          4 cov hcov Rm04)
+    let nabla2Rm04 :=
+      totalNabla0SFun (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        5 cov nablaRm04 x
+    nabla2Rm04 (Fin.cons V (vec5 (I := I) A X Y Z W)) +
+        nabla2Rm04 (Fin.cons V (vec5 (I := I) X Y A Z W)) +
+      nabla2Rm04 (Fin.cons V (vec5 (I := I) Y A X Z W)) = 0 := by
+  classical
+  let cov :=
+    DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric
+      (I := I) g
+  let hcov :=
+    DifferentialGeometry.Geometry.Connection.leviCivitaConnectionOfMetric_contMDiffCovariantDerivativeLocally
+      (I := I) (M := M) g
+  let Rm04 : Tensor04Section (I := I) (M := M) :=
+    DifferentialGeometry.Geometry.Curvature.CovariantDerivative.rm04Section
+      (I := I) g cov hcov
+  let nablaRm04 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+      (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5 :=
+    totalNabla0S (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+      4 cov Rm04
+      (totalNabla0S_regularity (E := E) (H := H) (I := I) (M := M)
+        4 cov hcov Rm04)
+  let nabla2Rm04 :=
+    totalNabla0SFun (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+      5 cov nablaRm04 x
+  let nablaRmCyc : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+      (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5 :=
+    Tensor0SField.domDomCongr (∞ : WithTop ℕ∞) rmBianchiCyc nablaRm04
+  let nablaRmCyc2 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+      (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5 :=
+    Tensor0SField.domDomCongr (∞ : WithTop ℕ∞) rmBianchiCyc2 nablaRm04
+  have hcyc : nablaRm04 + nablaRmCyc + nablaRmCyc2 = 0 := by
+    refine DFunLike.ext _ _ fun y => ?_
+    apply ContinuousMultilinearMap.ext
+    intro slots
+    change (nablaRm04 y + nablaRmCyc y + nablaRmCyc2 y) slots =
+      (0 : Tensor0SSpace 5 I y) slots
+    rw [Tensor0SSpace.add_apply, Tensor0SSpace.add_apply, Tensor0SSpace.zero_apply]
+    dsimp only [nablaRmCyc, nablaRmCyc2]
+    change nablaRm04 y slots + nablaRm04 y (slots ∘ rmBianchiCyc) +
+      nablaRm04 y (slots ∘ rmBianchiCyc2) = 0
+    have hB := levi_civita_second_bianchi (I := I) (M := M) g (x := y)
+    dsimp at hB
+    have hB' := hB (slots 0) (slots 1) (slots 2) (slots 3) (slots 4)
+    have h0 :
+        vec5 (I := I) (slots 0) (slots 1) (slots 2) (slots 3) (slots 4) = slots := by
+      funext q
+      fin_cases q <;> simp [vec5]
+    have h1 :
+        vec5 (I := I) (slots 1) (slots 2) (slots 0) (slots 3) (slots 4) =
+          slots ∘ rmBianchiCyc := by
+      funext q
+      fin_cases q <;> simp [vec5, rmBianchiCyc]
+    have h2 :
+        vec5 (I := I) (slots 2) (slots 0) (slots 1) (slots 3) (slots 4) =
+          slots ∘ rmBianchiCyc2 := by
+      funext q
+      fin_cases q <;> simp [vec5, rmBianchiCyc2]
+    rwa [h0, h1, h2] at hB'
+  have hzero :
+      totalNabla0SFun (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+          5 cov
+          (0 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+            (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5) x = 0 := by
+    let nablaZero :=
+      totalNabla0S (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+        5 cov
+        (0 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+          (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5)
+        (totalNabla0S_regularity (E := E) (H := H) (I := I) (M := M)
+          5 cov hcov 0)
+    have hcan : TotalNabla0SRealizes (𝕜 := Real) (E := E) (H := H)
+        (I := I) (M := M) 5 cov
+        (0 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+          (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 5)
+        nablaZero := by
+      exact totalNabla0S_realizes (𝕜 := Real) (E := E) (H := H)
+        (I := I) (M := M) 5 cov 0 _
+    have heq : nablaZero =
+        (0 : Tensor0SField (𝕜 := Real) (E := E) (H := H)
+          (I := I) (M := M) (n := (∞ : WithTop ℕ∞)) 6) :=
+      totalNabla0SRealizes_unique (I := I) hcan
+        (zero_realizes_nabla (I := I) 5 cov)
+    have hx := congrArg (fun T => T x) heq
+    simpa [nablaZero] using hx
+  have hderiv :
+      totalNabla0SFun (𝕜 := Real) (E := E) (H := H) (I := I) (M := M)
+          5 cov (nablaRm04 + nablaRmCyc + nablaRmCyc2) x = 0 := by
+    rw [hcyc]
+    exact hzero
+  dsimp only [nablaRmCyc, nablaRmCyc2] at hderiv
+  rw [totalNabla0SFun_add (I := I), totalNabla0SFun_add (I := I),
+    totalNabla0SFun_domDomCongr (I := I),
+    totalNabla0SFun_domDomCongr (I := I)] at hderiv
+  have heval := congrArg
+    (fun T => T (Fin.cons V (vec5 (I := I) A X Y Z W))) hderiv
+  change nabla2Rm04 (Fin.cons V (vec5 (I := I) A X Y Z W)) +
+      nabla2Rm04
+        ((Fin.cons V (vec5 (I := I) A X Y Z W)) ∘
+          frontExtendEquiv rmBianchiCyc) +
+    nabla2Rm04
+      ((Fin.cons V (vec5 (I := I) A X Y Z W)) ∘
+        frontExtendEquiv rmBianchiCyc2) = 0 at heval
+  have h1 :
+      (Fin.cons V (vec5 (I := I) A X Y Z W)) ∘ frontExtendEquiv rmBianchiCyc =
+        Fin.cons V (vec5 (I := I) X Y A Z W) := by
+    have htail :
+        vec5 (I := I) A X Y Z W ∘ rmBianchiCyc =
+          vec5 (I := I) X Y A Z W := by
+      funext q
+      fin_cases q <;> simp [vec5, rmBianchiCyc]
+    funext q
+    rw [Function.comp_apply, cons_apply_frontExtendEquiv, htail]
+  have h2 :
+      (Fin.cons V (vec5 (I := I) A X Y Z W)) ∘ frontExtendEquiv rmBianchiCyc2 =
+        Fin.cons V (vec5 (I := I) Y A X Z W) := by
+    have htail :
+        vec5 (I := I) A X Y Z W ∘ rmBianchiCyc2 =
+          vec5 (I := I) Y A X Z W := by
+      funext q
+      fin_cases q <;> simp [vec5, rmBianchiCyc2]
+    funext q
+    rw [Function.comp_apply, cons_apply_frontExtendEquiv, htail]
+  simpa [h1, h2] using heval
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Connection.canRmSecond_nabla then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Connection.canRmSecond_nabla"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Connection.canRmSecond_nabla ``Submission.DifferentialGeometry.Geometry.Connection.canRmSecond_nabla
+
+end DifferentialGeometry.Geometry.Connection

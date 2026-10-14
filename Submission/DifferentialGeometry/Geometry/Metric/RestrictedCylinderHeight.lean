@@ -1,0 +1,44 @@
+import Submission.DifferentialGeometry.Geometry.Metric.RestrictedCylinderAxis
+import Submission.DifferentialGeometry.Geometry.Metric.RoundCylinder
+import Submission.DifferentialGeometry.Geometry.Metric.LengthPerturbation
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+noncomputable section
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.ContDiff
+open _root_.Submission.DifferentialGeometry _root_.Submission.DifferentialGeometry.Geometry _root_.Submission.DifferentialGeometry.Geometry.Riemannian
+open _root_.Submission.DifferentialGeometry.Analysis.Laplacian
+
+namespace DifferentialGeometry.Geometry.Metric
+
+theorem restricted_roundCylinder_height_differential_bound
+    {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    [Fact (Module.finrank ℝ E = 2 + 1)]
+    (O : TopologicalSpace.Opens (Metric.sphere (0 : E) 1 × ℝ))
+    (x : O) (w : TangentSpace ((𝓡 2).prod 𝓘(ℝ)) x) :
+    |mvfderiv ((𝓡 2).prod 𝓘(ℝ)) (fun y : O ↦ (y : Metric.sphere (0 : E) 1 × ℝ).2) x w - 1| ≤
+      Real.sqrt (((roundCylinderMetric (E := E) (n := 2)).restrictOpen O).inner x
+        (w - restrictedCylinderAxis O x) (w - restrictedCylinderAxis O x)) := by
+  let gS := scaleMetric 2 (by norm_num) (roundMetric (E := E) (n := 2))
+  let gRef := (roundCylinderMetric (E := E) (n := 2)).restrictOpen O
+  let v : TangentSpace ((𝓡 2).prod 𝓘(ℝ)) x := restrictedCylinderAxis O x
+  have hv : gRef.inner x v v = 1 := restrictedCylinderAxis_unit gS O x
+  have h := abs_metric_inner_le_sqrt_metric_quadratic gRef x v (w - v)
+  rw [hv, Real.sqrt_one, one_mul, map_sub, hv] at h
+  have he : gRef.inner x v w =
+      mvfderiv ((𝓡 2).prod 𝓘(ℝ)) (fun y : O ↦ (y : Metric.sphere (0 : E) 1 × ℝ).2) x w :=
+    restrictedCylinderAxis_inner gS O x w
+  rwa [he] at h
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Metric.restricted_roundCylinder_height_differential_bound then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Metric.restricted_roundCylinder_height_differential_bound"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Metric.restricted_roundCylinder_height_differential_bound ``Submission.DifferentialGeometry.Geometry.Metric.restricted_roundCylinder_height_differential_bound
+
+end DifferentialGeometry.Geometry.Metric

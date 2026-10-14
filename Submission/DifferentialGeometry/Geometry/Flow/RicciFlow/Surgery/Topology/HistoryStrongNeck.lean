@@ -1,0 +1,255 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Surgery.Topology.CanonicalNeighborhoodInduction
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Surgery.Topology.HistorySurvivorFlow
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Perelman.CanonicalNeighborhood.SpatialCanonicalWitnessProjection
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Perelman.CanonicalNeighborhood.TruncatedNeck
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Perelman.CanonicalNeighborhood.NeckTransportDecoupled
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Solutions.OpenRestriction
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+set_option autoImplicit false
+
+noncomputable section
+
+open _root_.Set _root_.Submission.Set
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow.Perelman.CanonicalNeighborhood.FiniteHorn
+
+namespace DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
+
+universe u
+
+namespace ObservedHistory
+
+def HistoryStrongNeck (H : ObservedHistory.{u}) (k : Fin (H.eventCount + 1)) {s : ℝ}
+    (G : (H.stage k).IncomingSlab (H.time k) s) (eps : ℝ) (y : (H.stage k).Carrier) (t : ℝ) :
+    Prop :=
+  ∃ (first : Fin (H.eventCount + 1)) (hle : first ≤ k) (hts : H.time first < s)
+    (gflow : ℝ → SmoothRiemannianMetric ThreeModel (H.backwardSurvivorDomain first k hle)),
+    H.time first ≤ t - 1 / 5 * (G.flow.scalar t y)⁻¹ ∧
+    (∀ (j : Fin H.eventCount) (hf : first ≤ j.castSucc) (hl : j.succ ≤ k),
+      ∀ τ ∈ _root_.Set.Icc (H.time j.castSucc) (H.time j.succ),
+        gflow τ = H.backwardSurvivorSlabMetric first k hle j hf hl τ) ∧
+    (∀ τ ∈ _root_.Set.Ico (H.time k) s,
+      gflow τ = (G.flow.base.metric τ).restrictOpen (H.backwardSurvivorDomain first k hle)) ∧
+    IsSolutionOn ({ base := { metric := gflow } } :
+      SolutionOn (I := ThreeModel) (M := H.backwardSurvivorDomain first k hle)
+        (RealTimeInterval.closedOpen (H.time first) s hts)) ∧
+    ∃ z : H.backwardSurvivorDomain first k hle, z.val = y ∧
+      Nonempty (TruncatedNeck ({ base := { metric := gflow } } :
+        SolutionOn (I := ThreeModel) (M := H.backwardSurvivorDomain first k hle)
+          (RealTimeInterval.closedOpen (H.time first) s hts)) eps (1 / 5) z t)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.HistoryStrongNeck then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.HistoryStrongNeck"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.HistoryStrongNeck ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.HistoryStrongNeck
+
+theorem mem_backwardSurvivorDomain_self (H : ObservedHistory.{u}) (k : Fin (H.eventCount + 1))
+    (y : (H.stage k).Carrier) : y ∈ H.backwardSurvivorDomain k k le_rfl :=
+  ⟨BackwardPointTrace.singleton H k y⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.mem_backwardSurvivorDomain_self then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.mem_backwardSurvivorDomain_self"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.mem_backwardSurvivorDomain_self ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.mem_backwardSurvivorDomain_self
+
+theorem historyStrongNeck_of_strongNeck (H : ObservedHistory.{u}) (k : Fin (H.eventCount + 1))
+    {s : ℝ} (G : (H.stage k).IncomingSlab (H.time k) s) {eps : ℝ} {y : (H.stage k).Carrier}
+    {t : ℝ} (nk : StrongNeck G.flow eps y t) : H.HistoryStrongNeck k G eps y t := by
+  let U := H.backwardSurvivorDomain k k le_rfl
+  have : SigmaCompactSpace U := isSigmaCompact_iff_sigmaCompactSpace.mp
+    (DifferentialGeometry.Geometry.isSigmaCompact_of_isOpen ThreeModel U.isOpen)
+  have hR : 0 ≤ (G.flow.scalar t y)⁻¹ := inv_nonneg.mpr nk.Q_pos.le
+  have hstart := nk.time_domain ⟨le_rfl, sub_le_self _ hR⟩
+  have hend := nk.time_domain ⟨sub_le_self _ hR, le_rfl⟩
+  have hreg : _root_.Set.Ioo (t - (G.flow.scalar t y)⁻¹) t ⊆
+      (RealTimeInterval.closedOpen (H.time k) s G.lt).regular :=
+    fun r hr => ⟨hstart.1.trans_lt hr.1, hr.2.trans hend.2⟩
+  let tk : TruncatedNeck G.flow eps (1 / 5) y t := TruncatedNeck.ofStrongNeck nk (by norm_num)
+    (by norm_num) fun b r hr z hz v =>
+      nk.comparison_jet_differentiableWithinAt_of_lt_one G.equation (by norm_num) hreg b hr z hz v
+  refine ⟨k, le_rfl, G.lt, fun τ => (G.flow.base.metric τ).restrictOpen U,
+    (tk.time_domain ⟨le_rfl, sub_le_self _ (mul_nonneg (by norm_num) hR)⟩).1, ?_, fun _ _ => rfl,
+    DifferentialGeometry.CheegerGromovCompactness.isSolutionOn_restrictOpen G.flow G.equation U,
+    ⟨y, H.mem_backwardSurvivorDomain_self k y⟩, rfl,
+    ⟨tk.restrictOpen (x := ⟨y, H.mem_backwardSurvivorDomain_self k y⟩) (fun _ => rfl)
+      (fun p _ => H.mem_backwardSurvivorDomain_self k p)⟩⟩
+  intro j hf hl
+  exact absurd (hl.trans hf) (not_le.mpr j.castSucc_lt_succ)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.historyStrongNeck_of_strongNeck then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.historyStrongNeck_of_strongNeck"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.historyStrongNeck_of_strongNeck ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ObservedHistory.historyStrongNeck_of_strongNeck
+
+end ObservedHistory
+
+namespace RetainedCoreHistory
+
+variable {P₀ : OrientedThreeStage.{u}} (H : RetainedCoreHistory P₀)
+
+def StronglyCanonicalAt (k : Fin (H.eventCount + 1)) {s : ℝ}
+    (G : (H.stage k).IncomingSlab (H.time k) s) (ε ε₁ C1 C2 : ℝ) (y : (H.stage k).Carrier)
+    (t : ℝ) : Prop :=
+  ∃ W : SpatialCanonicalWitness (G.flow.base.metric t) ε C1 C2 y, W.capTubeHasNeckChart ε ∧
+    ((∃ n, W.alternative = .neck n) → H.toHistory.HistoryStrongNeck k G ε₁ y t)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalAt then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalAt"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalAt ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalAt
+
+def StronglyCanonicalBefore (k : Fin (H.eventCount + 1)) {s : ℝ}
+    (G : (H.stage k).IncomingSlab (H.time k) s) (ε ε₁ C1 C2 qcan t₀ : ℝ) : Prop :=
+  ∀ (y : (H.stage k).Carrier) (t : ℝ), t ∈ _root_.Set.Ioo (H.time k) t₀ → qcan < G.flow.scalar t y →
+    H.StronglyCanonicalAt k G ε ε₁ C1 C2 y t
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore
+
+def StronglyCanonicalOn (k : Fin (H.eventCount + 1)) {s : ℝ}
+    (G : (H.stage k).IncomingSlab (H.time k) s) (ε ε₁ C1 C2 qcan t₀ η : ℝ) : Prop :=
+  ∀ y t, H.time k < t → t₀ ≤ t → t < t₀ + η → t < s → qcan < G.flow.scalar t y →
+    H.StronglyCanonicalAt k G ε ε₁ C1 C2 y t
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalOn then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalOn"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalOn ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalOn
+
+def StronglyCanonicalWhere (k : Fin (H.eventCount + 1)) {s : ℝ}
+    (G : (H.stage k).IncomingSlab (H.time k) s) (ε ε₁ C1 C2 qcan : ℝ)
+    (S : (H.stage k).Carrier → ℝ → Prop) : Prop :=
+  ∀ y t, t ∈ _root_.Set.Ioo (H.time k) s → qcan < G.flow.scalar t y → S y t →
+    H.StronglyCanonicalAt k G ε ε₁ C1 C2 y t
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere
+
+def EventSlabsStronglyCanonical (ε ε₁ C1 C2 qcan : ℝ) (k : Fin (H.eventCount + 1)) : Prop :=
+  ∀ j : Fin H.eventCount, j.castSucc < k →
+    H.StronglyCanonicalBefore j.castSucc (H.toHistory.event j).incoming ε ε₁ C1 C2 qcan
+      (H.time j.succ)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.EventSlabsStronglyCanonical then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.EventSlabsStronglyCanonical"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.EventSlabsStronglyCanonical ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.EventSlabsStronglyCanonical
+
+variable {H} {k : Fin (H.eventCount + 1)} {s : ℝ} {G : (H.stage k).IncomingSlab (H.time k) s}
+  {ε ε₁ C1 C2 qcan t₀ : ℝ}
+
+theorem StronglyCanonicalBefore.spatiallyCanonicalBefore
+    (h : H.StronglyCanonicalBefore k G ε ε₁ C1 C2 qcan t₀) :
+    G.SpatiallyCanonicalBefore ε C1 C2 qcan t₀ :=
+  fun y t ht hR => (h y t ht hR).imp fun _ hW => hW.1
+
+run_cmd do
+  Lean.modifyEnv fun env => env.registerNamespace `Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.spatiallyCanonicalBefore then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.spatiallyCanonicalBefore"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.spatiallyCanonicalBefore ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.spatiallyCanonicalBefore
+
+theorem StronglyCanonicalBefore.of_threshold_le {q q' : ℝ} (hq : q ≤ q')
+    (h : H.StronglyCanonicalBefore k G ε ε₁ C1 C2 q t₀) :
+    H.StronglyCanonicalBefore k G ε ε₁ C1 C2 q' t₀ :=
+  fun y t ht hR => h y t ht (hq.trans_lt hR)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.of_threshold_le then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.of_threshold_le"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.of_threshold_le ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalBefore.of_threshold_le
+
+theorem stronglyCanonicalBefore_of_where_cover {S₁ S₂ S₃ : (H.stage k).Carrier → ℝ → Prop}
+    (h₁ : H.StronglyCanonicalWhere k G ε ε₁ C1 C2 qcan S₁)
+    (h₂ : H.StronglyCanonicalWhere k G ε ε₁ C1 C2 qcan S₂)
+    (h₃ : H.StronglyCanonicalWhere k G ε ε₁ C1 C2 qcan S₃)
+    (hcover : ∀ y t, S₁ y t ∨ S₂ y t ∨ S₃ y t) :
+    H.StronglyCanonicalBefore k G ε ε₁ C1 C2 qcan s :=
+  fun y t ht hR => (hcover y t).elim (h₁ y t ht hR) fun h => h.elim (h₂ y t ht hR) (h₃ y t ht hR)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalBefore_of_where_cover then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalBefore_of_where_cover"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalBefore_of_where_cover ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalBefore_of_where_cover
+
+theorem stronglyCanonicalWhere_of_canonicalBefore (k : Fin (H.eventCount + 1)) {s : ℝ}
+    (G : (H.stage k).IncomingSlab (H.time k) s) {τmin : ℝ} (hε : ε ≤ ε₁) (hε₁ : ε₁ < 1 / 11)
+    (hG : G.CanonicalBefore ε C1 C2 qcan τmin s) :
+    H.StronglyCanonicalWhere k G ε ε₁ C1 C2 qcan
+      fun y t => τmin ≤ G.flow.scalar t y * (t - H.time k) := by
+  intro y t ht hR hτ
+  obtain ⟨W, hW⟩ := hG y t ht hR hτ
+  refine ⟨W.toSpatial, W.capTubeHasNeckChart_toSpatial hW, fun ⟨n, hn⟩ => ?_⟩
+  change W.alternative.toSpatial = SpatialCanonicalAlternative.neck n at hn
+  cases halt : W.alternative with
+  | neck data =>
+    exact H.toHistory.historyStrongNeck_of_strongNeck k G (data.strong.mono hε hε₁)
+  | cap data deep =>
+    rw [halt] at hn
+    cases hn
+  | positive whole data sec =>
+    rw [halt] at hn
+    cases hn
+  | round whole data =>
+    rw [halt] at hn
+    cases hn
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalWhere_of_canonicalBefore then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalWhere_of_canonicalBefore"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalWhere_of_canonicalBefore ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.stronglyCanonicalWhere_of_canonicalBefore
+
+theorem StronglyCanonicalWhere.mono_constants {S : (H.stage k).Carrier → ℝ → Prop}
+    {C1' C2' : ℝ} (hC1 : C1 ≤ C1') (hC2 : C2 ≤ C2')
+    (h : H.StronglyCanonicalWhere k G ε ε₁ C1 C2 qcan S) :
+    H.StronglyCanonicalWhere k G ε ε₁ C1' C2' qcan S := by
+  intro y t ht hR hS
+  obtain ⟨W, hW, hn⟩ := h y t ht hR hS
+  refine ⟨W.enlargeConstants hC1 hC2, hW.enlarge_constants hC1 hC2, fun ⟨n, hn'⟩ => hn ?_⟩
+  change W.alternative.monoConstant (zero_lt_one.trans_le W.one_le_comparison_constant) hC2
+    W.Q_pos.le = SpatialCanonicalAlternative.neck n at hn'
+  cases halt : W.alternative with
+  | neck data => exact ⟨data, rfl⟩
+  | cap data deep =>
+    rw [halt] at hn'
+    cases hn'
+  | positive whole data sec =>
+    rw [halt] at hn'
+    cases hn'
+  | round whole data =>
+    rw [halt] at hn'
+    cases hn'
+
+run_cmd do
+  Lean.modifyEnv fun env => env.registerNamespace `Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere.mono_constants then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere.mono_constants"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere.mono_constants ``Submission.DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.RetainedCoreHistory.StronglyCanonicalWhere.mono_constants
+
+end RetainedCoreHistory
+
+end DifferentialGeometry.PDE.RicciFlow.Surgery.Topology

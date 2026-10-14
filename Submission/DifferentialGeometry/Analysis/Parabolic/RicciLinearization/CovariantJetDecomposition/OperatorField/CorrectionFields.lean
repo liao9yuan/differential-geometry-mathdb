@@ -1,0 +1,923 @@
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.MetricPerturbationPath.Basic
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.MetricPerturbationPath.ChartRicciDerivative
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.MetricPerturbationPath.LinearizedChristoffel
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.Symbol.SecondOrderPart
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.CovariantJetDecomposition.CoefficientFields
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.ConnectionDifference.Coefficients
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.ConnectionDifference.Bounds.Coefficients
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.CovariantJetDecomposition.CorrectionFields.TameEnvelope
+import Submission.DifferentialGeometry.Analysis.Spectral.Tensor.EllipticBridge.EigenvectorWeakSolution.CovariantDerivative.SecondDerivativeChartHessian
+import Submission.DifferentialGeometry.Analysis.Spectral.Tensor.CovGrad.Parametric.CoefficientIntegral
+import Submission.DifferentialGeometry.Analysis.Spectral.Tensor.CovGrad.ConnectionDifference.JetTower
+import Submission.DifferentialGeometry.Geometry.Metric.DeTurck.Coordinates.Formula
+import Submission.DifferentialGeometry.Geometry.Metric.TensorInner.FiberNorm.Algebra
+import Submission.DifferentialGeometry.Analysis.Sobolev.Embedding.CovariantDerivative.Cm
+import Submission.DifferentialGeometry.Analysis.Sobolev.Embedding.Tensor.ConvexPerturbationC2
+import Submission.DifferentialGeometry.Analysis.Sobolev.TensorHilbert.MetricPerturbation.InverseMetricFibreBound
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.MetricPerturbationPath.CurvatureJetBounds
+import Submission.DifferentialGeometry.Analysis.Spectral.Intrinsic.DeTurckCoefficients.Chart.MetricGramDifference
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.CovariantJetDecomposition.OperatorField.FibreNorm
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.CovariantJetDecomposition.OperatorField.CovariantDerivativeComponents
+import Submission.DifferentialGeometry.Analysis.Parabolic.RicciLinearization.CovariantJetDecomposition.OperatorField.CoefficientBounds
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.Analysis.Sobolev
+open _root_.Submission.DifferentialGeometry.Analysis.Spectral
+open _root_.Submission.DifferentialGeometry.Analysis.Elliptic
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+
+noncomputable section
+
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Set _root_.Filter _root_.Submission.DifferentialGeometry.Tensor0SBundle _root_.MeasureTheory _root_.Submission.MeasureTheory _root_.intervalIntegral
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.BigOperators _root_.Matrix _root_.Submission.Matrix _root_.Interval
+
+namespace DifferentialGeometry
+namespace Analysis
+namespace Parabolic
+namespace TensorSpectral
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.L2
+
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow _root_.Submission.DifferentialGeometry.Analysis.Sobolev
+    DifferentialGeometry.Analysis.Spectral
+open _root_.Submission.DifferentialGeometry.Analysis.Spectral.MetricRealization
+open _root_.Submission.DifferentialGeometry.Analysis.Spectral.DeTurck
+open _root_.Submission.DifferentialGeometry.PDE.DeTurck.RicciLinearization
+open _root_.Submission.DifferentialGeometry.Analysis.Sobolev.Chart
+open _root_.Submission.DifferentialGeometry.Analysis.Laplacian.TensorRegularity
+open _root_.Submission.DifferentialGeometry.Analysis.Sobolev.TensorHilbert
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [FiniteDimensional ℝ E] [NeZero (Module.finrank ℝ E)]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+  [CompactSpace M] [I.Boundaryless] [BoundarylessManifold I M]
+  [T2Space M] [SigmaCompactSpace M]
+
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instCompleteSpace_differentialGeometry : CompleteSpace E := FiniteDimensional.complete ℝ E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instCompleteSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.instCompleteSpace_differentialGeometry target :: scope.openDecls } }
+
+private local instance tensorRSRiemannianNormedAddCommGroup
+    (r s : ℕ)
+    [h : Bundle.RiemannianBundle (fun b : M => TensorRSSpace r s I b)] (b : M) :
+    NormedAddCommGroup (TensorRSSpace r s I b) :=
+  (h.g.toCore b).toNormedAddCommGroupOfTopology
+    (h.g.continuousAt b) (h.g.isVonNBounded b)
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorRSRiemannianNormedAddCommGroup
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.tensorRSRiemannianNormedAddCommGroup target :: scope.openDecls } }
+
+omit [NeZero (Module.finrank ℝ E)] [I.Boundaryless] [BoundarylessManifold I M]
+    [SigmaCompactSpace M] in
+lemma operatorFieldApplication_zero_left_local (g : SmoothRiemannianMetric I M) (r s : ℕ)
+    (W : SmoothCcTensor g 0 r) :
+    operatorFieldApply (I := I) (M := M) g r s (0 : SmoothCcTensor g r s) W =
+      (0 : SmoothCcTensor g 0 s) := by
+  apply SmoothCcTensor.ext
+  apply ContMDiffSection.ext
+  intro x
+  rw [operatorFieldApplication_toSection]
+  rw [show ((0 : SmoothCcTensor g r s).toSection x : Tensor0SSpace r I x →L[ℝ] Tensor0SSpace s I x)
+    =
+      (0 : Tensor0SSpace r I x →L[ℝ] Tensor0SSpace s I x) from rfl]
+  rw [ContinuousLinearMap.zero_comp]
+  rw [show ((0 : SmoothCcTensor g 0 s).toSection x : Tensor0SSpace 0 I x →L[ℝ] Tensor0SSpace s I x)
+    =
+      (0 : Tensor0SSpace 0 I x →L[ℝ] Tensor0SSpace s I x) from rfl]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.operatorFieldApplication_zero_left_local then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.operatorFieldApplication_zero_left_local"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.operatorFieldApplication_zero_left_local ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.operatorFieldApplication_zero_left_local
+
+attribute [-instance] Tensor0SBundle.tensorRSSpaceNormedAddCommGroup
+  Tensor0SBundle.tensorRSSpaceNormedSpace in
+omit [BoundarylessManifold I M] in
+theorem exists_Csob_sub_pointwise_jet3_le
+    (g₀ : SmoothRiemannianMetric I M) (a : ℕ)
+    (ha_super : 2 * Module.finrank ℝ E + 10 ≤ a) :
+    ∃ Csub : ℝ, 0 ≤ Csub ∧
+      ∀ (T T' : SmoothCcTensor g₀ 0 2) {R : ℝ} (_hR : 0 ≤ R),
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ≤ R) →
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ≤ R) →
+        ∀ x : M,
+          (∑ j ∈ Finset.range 3,
+              (letI : Bundle.RiemannianBundle (fun b : M => TensorRSSpace 0 (2 + j) I b) :=
+                Tensor0SBundle.tensorRSRiemannianBundle (I := I) (M := M) g₀ 0 (2 + j)
+              ‖(iteratedCovGrad (I := I) g₀ 0 2 j (T - T')).toSection x‖)) ≤ Csub * R := by
+  classical
+  set k : ℕ := Module.finrank ℝ E / 2 + 3 with hk_def
+  have hk_super : 2 * k > Module.finrank ℝ E + 4 := by rw [hk_def]; omega
+  have h4k_le : 4 * k ≤ a + 2 := by rw [hk_def]; omega
+  obtain ⟨Cc, hCc_pos, hCc⟩ :=
+    iteratedCovGrad_toSobolev_embedding_C2_singleNorm (I := I) (M := M) g₀ k hk_super
+  obtain ⟨Ch, hCh_nn, hCh⟩ :=
+    exists_toHs_norm_le_iteratedCovGrad_tensorL2Norm_sum (I := I) (M := M) g₀ 0 2 (2 * k)
+  refine ⟨Cc * Ch * ((4 * k + 1 : ℕ) : ℝ) * 2, by positivity, ?_⟩
+  intro T T' R _hR hbudgetT hbudgetT' x
+  set W : SmoothCcTensor g₀ 0 2 := T - T' with hW_def
+  have hWbudget : ∀ j : ℕ, j ≤ a + 2 →
+      ‖iteratedCovGrad (I := I) g₀ 0 2 j W‖ ≤ 2 * R := by
+    intro j hj
+    rw [hW_def, iteratedCovGrad_sub]
+    refine le_trans (norm_sub_le _ _) ?_
+    have := hbudgetT j hj
+    have := hbudgetT' j hj
+    linarith
+  have hCol := hCc W x
+  set Mn : ℝ := ‖DifferentialGeometry.Analysis.Sobolev.IntrinsicSobolev.SmoothCcTensor.toHs
+    (g := g₀) (r := 0) (s := 2) (2 * k) W‖
+    with hMn_def
+  have hMn_nn : 0 ≤ Mn := norm_nonneg _
+  have hHebey : Mn ≤ Ch * ∑ j ∈ Finset.range (2 * (2 * k) + 1),
+      ‖iteratedCovGrad (I := I) g₀ 0 2 j W‖ := by
+    refine le_trans (hCh W) ?_
+    refine mul_le_mul_of_nonneg_left ?_ hCh_nn
+    refine le_of_eq (Finset.sum_congr rfl (fun j _ => ?_))
+    exact (SmoothCcTensor.norm_def (iteratedCovGrad (I := I) g₀ 0 2 j W)).symm
+  have hSumBudget : ∑ j ∈ Finset.range (2 * (2 * k) + 1),
+      ‖iteratedCovGrad (I := I) g₀ 0 2 j W‖ ≤ ((4 * k + 1 : ℕ) : ℝ) * (2 * R) := by
+    have hterm : ∀ j ∈ Finset.range (2 * (2 * k) + 1),
+        ‖iteratedCovGrad (I := I) g₀ 0 2 j W‖ ≤ 2 * R := by
+      intro j hj
+      have hjle : j ≤ a + 2 := by
+        have := Finset.mem_range.mp hj; omega
+      exact hWbudget j hjle
+    calc ∑ j ∈ Finset.range (2 * (2 * k) + 1),
+            ‖iteratedCovGrad (I := I) g₀ 0 2 j W‖
+        ≤ ∑ _j ∈ Finset.range (2 * (2 * k) + 1), (2 * R) := Finset.sum_le_sum hterm
+      _ = ((2 * (2 * k) + 1 : ℕ) : ℝ) * (2 * R) := by
+          rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
+      _ = ((4 * k + 1 : ℕ) : ℝ) * (2 * R) := by
+          congr 2
+          omega
+  have hMn_le : Mn ≤ Ch * (((4 * k + 1 : ℕ) : ℝ) * (2 * R)) := by
+    refine le_trans hHebey ?_
+    exact mul_le_mul_of_nonneg_left hSumBudget hCh_nn
+  calc (∑ j ∈ Finset.range 3,
+          (letI : Bundle.RiemannianBundle (fun b : M => TensorRSSpace 0 (2 + j) I b) :=
+            Tensor0SBundle.tensorRSRiemannianBundle (I := I) (M := M) g₀ 0 (2 + j)
+          ‖(iteratedCovGrad (I := I) g₀ 0 2 j W).toSection x‖))
+      ≤ Cc * Mn := hCol
+    _ ≤ Cc * (Ch * (((4 * k + 1 : ℕ) : ℝ) * (2 * R))) :=
+        mul_le_mul_of_nonneg_left hMn_le hCc_pos.le
+    _ = (Cc * Ch * ((4 * k + 1 : ℕ) : ℝ) * 2) * R := by ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_Csob_sub_pointwise_jet3_le then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_Csob_sub_pointwise_jet3_le"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_Csob_sub_pointwise_jet3_le ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_Csob_sub_pointwise_jet3_le
+
+omit [NeZero (Module.finrank ℝ E)] in
+omit [SigmaCompactSpace M] in
+omit [I.Boundaryless] in
+theorem ricciFirstOrderKoszulCoeff_operatorFieldApplication_eq
+    (g₀ g₁ : SmoothRiemannianMetric I M) (W : SmoothCcTensor g₀ 0 3)
+    (x : M) (v : Fin 2 → TangentSpace I x) :
+    unitModel (I := I) (M := M) g₀ 2
+        (operatorFieldApply (I := I) (M := M) g₀ 3 2
+          (ricciFirstOrderKoszulCoeff (I := I) (M := M) g₀ g₁) W) x v =
+      ∑ k : Fin (Module.finrank ℝ E),
+        Tensor0SBundle.Tensor0SSpace.toModel
+            ((show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+              W.toSection x) (unitTensor (I := I) (M := M) x))
+            (Fin.cons (cometricLmodel (I := I) g₁ x
+                (Tensor0SBundle.modelCovectorOfCLM (𝕜 := ℝ) (E := E)
+                  ((Module.finBasis ℝ E).cDualBasis k)))
+              ![(Module.finBasis ℝ E) k,
+                tangentSpaceModelContinuousLinearEquiv (I := I) x
+                  (raisedKoszulVec (I := I) g₀ g₁ x (v 0) (v 1))]) := by
+  rw [unitModel, operatorFieldApplication_toSection]
+  rw [show ((show Tensor0SBundle.Tensor0SSpace 3 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 2 I x from
+        (ricciFirstOrderKoszulCoeff (I := I) (M := M) g₀ g₁).toSection x).comp
+        (show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+          W.toSection x)) (unitTensor (I := I) (M := M) x) =
+      (show Tensor0SBundle.Tensor0SSpace 3 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 2 I x from
+        (ricciFirstOrderKoszulCoeff (I := I) (M := M) g₀ g₁).toSection x)
+        ((show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+          W.toSection x) (unitTensor (I := I) (M := M) x)) from rfl]
+  rw [ricciFirstOrderKoszulCoeff_toSection]
+  change Tensor0SBundle.Tensor0SSpace.toModel
+      (linearizedRicciFirstOrderFib (I := I) g₀ g₁ x
+        ((show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+          W.toSection x) (unitTensor (I := I) (M := M) x))) v = _
+  rw [linearizedRicciFirstOrderFib_apply, raisedKoszulFib_apply]
+  rw [show Tensor0SBundle.Tensor0SSpace.toModel
+        (raisedKoszulPairing (I := I) g₀ g₁ x
+          (cometricDoubleTraceFib (I := I) g₁ 1 x
+            ((show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+              W.toSection x) (unitTensor (I := I) (M := M) x)))) v =
+      (raisedKoszulPairing (I := I) g₀ g₁ x
+          (cometricDoubleTraceFib (I := I) g₁ 1 x
+            ((show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+              W.toSection x) (unitTensor (I := I) (M := M) x)))) v from rfl]
+  rw [raisedKoszulPairing_apply]
+  change Tensor0SBundle.Tensor0SSpace.toModel
+      (cometricDoubleTraceFib (I := I) g₁ 1 x
+        ((show Tensor0SBundle.Tensor0SSpace 0 I x →L[ℝ] Tensor0SBundle.Tensor0SSpace 3 I x from
+          W.toSection x) (unitTensor (I := I) (M := M) x)))
+      (fun _ : Fin 1 => tangentSpaceModelContinuousLinearEquiv (I := I) x
+        (raisedKoszulVec (I := I) g₀ g₁ x (v 0) (v 1))) = _
+  rw [cometricDoubleTraceFib_toModel,
+    modelDoubleTrace_apply (E := E) 1 (cometricLmodel (I := I) g₁ x)]
+  refine Finset.sum_congr rfl (fun k _ => ?_)
+  congr 1
+  funext j
+  fin_cases j <;> rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciFirstOrderKoszulCoeff_operatorFieldApplication_eq then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciFirstOrderKoszulCoeff_operatorFieldApplication_eq"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciFirstOrderKoszulCoeff_operatorFieldApplication_eq ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciFirstOrderKoszulCoeff_operatorFieldApplication_eq
+
+attribute [-instance] Tensor0SBundle.tensorRSSpaceNormedAddCommGroup
+  Tensor0SBundle.tensorRSSpaceNormedSpace in
+def correctionFieldDataSpec (g₀ : SmoothRiemannianMetric I M)
+    (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ')
+    (C0 : ℝ → SmoothCcTensor g₀ 2 2) (C1 : ℝ → SmoothCcTensor g₀ 3 2) : Prop :=
+  linearizedRicciCovariantJetJointSmoothness (I := I) (M := M) g₀ 2
+      (fun s => linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s + C0 s)
+      (δ := δ) (δ' := δ') ∧
+  linearizedRicciCovariantJetJointSmoothness (I := I) (M := M) g₀ 3
+      (fun s => linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s + C1 s)
+      (δ := δ) (δ' := δ') ∧
+  (∀ {a : ℕ}, 2 * Module.finrank ℝ E + 10 ≤ a → ∀ {R : ℝ}, 0 ≤ R →
+      ∀ {δ₀ : ℝ}, δ₀ < 1 → δ ≤ δ₀ → δ' ≤ δ₀ →
+      (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ≤ R) →
+      (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ≤ R) →
+      (∀ (s : ℝ), s ∈ Set.Icc (0 : ℝ) 1 → ∀ x : M,
+        Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x ((C0 s).toSection x)) ≤
+          correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀ ∧
+        Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x ((C1 s).toSection x)) ≤
+          correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀) ∧
+      (∀ (i : ℕ), i ≤ a → ∀ (s : ℝ), s ∈ Set.Icc (0 : ℝ) 1 →
+        ‖iteratedCovGrad (I := I) g₀ 2 2 i
+            (C0 s
+              + (3 / 2 : ℝ) • ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+                (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)
+              - ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+                (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s))‖ ^ 2 ≤
+          correctionFieldTameJetBound (I := I) (M := M) g₀ a R δ₀ i *
+            (1 + ∑ j ∈ Finset.range (i + 2),
+              (‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ^ 2 +
+                ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ^ 2)) ∧
+        ‖iteratedCovGrad (I := I) g₀ 3 2 i (C1 s)‖ ^ 2 ≤
+          correctionFieldTameJetBound (I := I) (M := M) g₀ a R δ₀ i *
+            (1 + ∑ j ∈ Finset.range (i + 2),
+              (‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ^ 2 +
+                ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ^ 2)))) ∧
+  ((∀ (x : M) (v w : TangentSpace I x),
+      smoothCcTensorBilinForm (I := I) g₀ T x v w = smoothCcTensorBilinForm (I := I) g₀ T x w v) →
+    (∀ (x : M) (v w : TangentSpace I x),
+      smoothCcTensorBilinForm (I := I) g₀ T' x v w = smoothCcTensorBilinForm (I := I) g₀ T' x w v) →
+    ∀ (s : ℝ), s ∈ Set.Ioo (0 : ℝ) 1 →
+      ∀ (x : M) (v : Fin 2 → TangentSpace I x)
+        (hδ_lt : δ < 1) (hδ'_lt : δ' < 1),
+        linearizedRicciAt (I := I) g₀ T T' hδ_lt hδ hδ'_lt hδ' x (v 0) (v 1) s =
+          unitModel (I := I) (M := M) g₀ 2
+            (operatorFieldApply (I := I) (M := M) g₀ 2 2
+                (linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s + C0 s)
+                (iteratedCovGrad (I := I) g₀ 0 2 0 (T - T'))
+              + operatorFieldApply (I := I) (M := M) g₀ 3 2
+                (linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s + C1 s)
+                (iteratedCovGrad (I := I) g₀ 0 2 1 (T - T'))
+              + operatorFieldApply (I := I) (M := M) g₀ 4 2
+                (linearizedRicciSecondOrderFieldLichnerowicz (I := I) g₀ T T' hδ hδ' s)
+                (iteratedCovGrad (I := I) g₀ 0 2 2 (T - T'))) x v) ∧
+  (∀ s : ℝ, C0 s =
+    linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+      - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s) ∧
+  (∀ s : ℝ, C1 s =
+    linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+      - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.correctionFieldDataSpec then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.correctionFieldDataSpec"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.correctionFieldDataSpec ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.correctionFieldDataSpec
+
+attribute [-instance] Tensor0SBundle.tensorRSSpaceNormedAddCommGroup
+  Tensor0SBundle.tensorRSSpaceNormedSpace in
+theorem exists_correctionFieldChristoffelConst (g₀ : SmoothRiemannianMetric I M) :
+    ∀ (T T' : SmoothCcTensor g₀ 0 2)
+        {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀
+          (ccTensorBilinSymm (I := I) g₀ T) δ)
+        {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀
+          (ccTensorBilinSymm (I := I) g₀ T') δ'),
+        ∃ (C0 : ℝ → SmoothCcTensor g₀ 2 2) (C1 : ℝ → SmoothCcTensor g₀ 3 2),
+          correctionFieldDataSpec (I := I) (M := M) g₀ T T' hδ hδ' C0 C1 := by
+  classical
+  intro T T' δ hδ δ' hδ'
+  refine ⟨fun s => linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+      - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s,
+    fun s => linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+      - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · have hfun : (fun s => linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s +
+        (linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+          - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s)) =
+        fun s => linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s := by
+      funext s
+      exact (linearizedRicciConnectionDifferenceOrder0Coeff_eq_base_add_sub (I := I) g₀ T T' hδ hδ' s).symm
+    change linearizedRicciCovariantJetJointSmoothness (I := I) (M := M) g₀ 2
+      (fun s => linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s +
+        (linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+          - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s))
+      (δ := δ) (δ' := δ')
+    rw [hfun]
+    exact linearizedRicciConnectionDifferenceOrder0Coeff_jointContMDiffOn_smallPerturbationSet (I := I) g₀ T T'
+      hδ hδ'
+  · have hfun : (fun s => linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s +
+        (linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+          - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s)) =
+        fun s => linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s := by
+      funext s
+      exact (linearizedRicciConnectionDifferenceOrder1Coeff_eq_base_add_sub (I := I) g₀ T T' hδ hδ' s).symm
+    change linearizedRicciCovariantJetJointSmoothness (I := I) (M := M) g₀ 3
+      (fun s => linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s +
+        (linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+          - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s))
+      (δ := δ) (δ' := δ')
+    rw [hfun]
+    exact linearizedRicciConnectionDifferenceOrder1Coeff_jointContMDiffOn_smallPerturbationSet (I := I) g₀ T T'
+      hδ hδ'
+  · intro a ha_super R hR δ₀ hδ₀ hδ_le hδ'_le hTball hT'ball
+    constructor
+    · intro s hs x
+      have hcond : 2 * Module.finrank ℝ E + 10 ≤ a ∧ (0 : ℝ) ≤ R ∧ δ₀ < 1 := ⟨ha_super, hR, hδ₀⟩
+      have hbnd : correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀ =
+          Classical.choose
+            (exists_uniformBound_sqrt_riemannianFiberNormSq_linRicciConnectionDifferenceCoeff_of_jetEnvelope
+              (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)
+            + (Real.sqrt (Classical.choose
+                  (exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+                    (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2))
+                + Real.sqrt (Classical.choose
+                  (exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+                    (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)))
+            + Real.sqrt (Classical.choose (exists_firstOrderKoszul_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+              (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)) := by
+        unfold correctionFieldChristoffelBound
+        rw [dif_pos hcond]
+      have hconn := (Classical.choose_spec
+          (exists_uniformBound_sqrt_riemannianFiberNormSq_linRicciConnectionDifferenceCoeff_of_jetEnvelope
+            (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).2
+          T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+      have hcurv := (Classical.choose_spec
+          (exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+            (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).2
+          T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+      have harm1 := (Classical.choose_spec
+          (exists_firstOrderKoszul_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+            (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).2
+          T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+      constructor
+      · change Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+              - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+          correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀
+        have htri : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+              ((linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+                - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+            Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+                ((linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s).toSection x))
+              + (Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+                    ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+                      (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x))
+                  + Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+                    ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+                      (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x))) := by
+          let : Bundle.RiemannianBundle (fun b : M => TensorRSSpace 2 2 I b) :=
+            Tensor0SBundle.tensorRSRiemannianBundle (I := I) (M := M) g₀ 2 2
+          rw [← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _,
+            ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _,
+            ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _,
+            ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _]
+          have hsec : ((linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s
+                - linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x :
+                TensorRSSpace 2 2 I x) =
+              (linearizedRicciConnectionDifferenceOrder0Coeff (I := I) g₀ T T' hδ hδ' s).toSection x
+                - ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+                      (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x
+                    - (ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+                      (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) := by
+            rw [SmoothCcTensor.toSection_sub, ContMDiffSection.coe_sub, Pi.sub_apply,
+              linearizedRicciOrderZeroBaseCoeff, SmoothCcTensor.toSection_sub,
+              ContMDiffSection.coe_sub, Pi.sub_apply]
+          rw [hsec]
+          refine le_trans (norm_sub_le _ _) ?_
+          have h2 := norm_sub_le
+            ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+              (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+            ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+              (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+          linarith
+        rw [hbnd]
+        have hb1 := hconn.1
+        have hb2 : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+              (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) ≤
+            Real.sqrt (Classical.choose
+              (exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+                (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)) :=
+          Real.sqrt_le_sqrt hcurv.1
+        have hb3 : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+              (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) ≤
+            Real.sqrt (Classical.choose
+              (exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+                (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)) :=
+          Real.sqrt_le_sqrt hcurv.2
+        have hb4 : (0 : ℝ) ≤ Real.sqrt (Classical.choose
+            (exists_firstOrderKoszul_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+              (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)) := Real.sqrt_nonneg _
+        linarith
+      · change Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+            ((linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+              - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+          correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀
+        have htri : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+              ((linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+                - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+            Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+                ((linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s).toSection x))
+              + Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+                ((ricciFirstOrderKoszulCoeff (I := I) (M := M) g₀
+                  (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) := by
+          let : Bundle.RiemannianBundle (fun b : M => TensorRSSpace 3 2 I b) :=
+            Tensor0SBundle.tensorRSRiemannianBundle (I := I) (M := M) g₀ 3 2
+          rw [← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x _,
+            ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x _,
+            ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x _]
+          have hsec : ((linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s
+                - linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x :
+                TensorRSSpace 3 2 I x) =
+              (linearizedRicciConnectionDifferenceOrder1Coeff (I := I) g₀ T T' hδ hδ' s).toSection x
+                - (ricciFirstOrderKoszulCoeff (I := I) (M := M) g₀
+                    (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x := by
+            rw [SmoothCcTensor.toSection_sub, ContMDiffSection.coe_sub, Pi.sub_apply,
+              linearizedRicciFirstOrderBaseCoeff]
+          rw [hsec]
+          exact norm_sub_le _ _
+        rw [hbnd]
+        have hb1 := hconn.2
+        have hb2 : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+            ((ricciFirstOrderKoszulCoeff (I := I) (M := M) g₀
+              (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) ≤
+            Real.sqrt (Classical.choose
+              (exists_firstOrderKoszul_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+                (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)) :=
+          Real.sqrt_le_sqrt harm1
+        have hb3 : (0 : ℝ) ≤ Real.sqrt (Classical.choose
+            (exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+              (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)) := Real.sqrt_nonneg _
+        linarith
+    · intro i hi s hs
+      have hcond : 2 * Module.finrank ℝ E + 10 ≤ a ∧ (0 : ℝ) ≤ R ∧ δ₀ < 1 := ⟨ha_super, hR, hδ₀⟩
+      have hbnd : correctionFieldTameJetBound (I := I) (M := M) g₀ a R δ₀ i =
+          2 * Classical.choose (exists_correctionTerm0Field_metricPerturbationPath_jetL2_tameEnvelope
+              (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2) i
+            + 2 * Classical.choose (exists_correctionTerm1Field_metricPerturbationPath_jetL2_tameEnvelope
+              (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2) i := by
+        unfold correctionFieldTameJetBound
+        rw [dif_pos hcond]
+      have hK0_nn := (Classical.choose_spec (exists_correctionTerm0Field_metricPerturbationPath_jetL2_tameEnvelope
+          (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).1 i
+      have hK1_nn := (Classical.choose_spec (exists_correctionTerm1Field_metricPerturbationPath_jetL2_tameEnvelope
+          (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).1 i
+      have h0 := (Classical.choose_spec (exists_correctionTerm0Field_metricPerturbationPath_jetL2_tameEnvelope
+          (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).2
+        T T' hδ_le hδ hδ'_le hδ' hTball hT'ball i hi s hs
+      have h1 := (Classical.choose_spec (exists_correctionTerm1Field_metricPerturbationPath_jetL2_tameEnvelope
+          (I := I) (M := M) g₀ a hcond.1 hcond.2.1 hcond.2.2)).2
+        T T' hδ_le hδ hδ'_le hδ' hTball hT'ball i s hs
+      have hwin_nn : 0 ≤ ∑ j ∈ Finset.range (i + 2),
+          (‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ^ 2 +
+            ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ^ 2) :=
+        Finset.sum_nonneg (fun j _ => add_nonneg (sq_nonneg _) (sq_nonneg _))
+      have h1w : (0 : ℝ) ≤ 1 + ∑ j ∈ Finset.range (i + 2),
+          (‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ^ 2 +
+            ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ^ 2) := by linarith
+      rw [hbnd]
+      constructor
+      · exact le_trans h0 (mul_le_mul_of_nonneg_right (by linarith) h1w)
+      · exact le_trans h1 (mul_le_mul_of_nonneg_right (by linarith) h1w)
+  · intro hTsymm hT'symm s hs x v hδ_lt hδ'_lt
+    exact linearizedRicciAt_eq_covariantJet_connectionDifferenceCoeff (I := I) g₀ T T'
+      hTsymm hT'symm hδ_lt hδ hδ'_lt hδ' s hs x v
+  · exact fun s => rfl
+  · exact fun s => rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_correctionFieldChristoffelConst then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_correctionFieldChristoffelConst"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_correctionFieldChristoffelConst ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_correctionFieldChristoffelConst
+
+theorem exists_orderZero_firstOrder_correctionFields (g₀ : SmoothRiemannianMetric I M)
+    (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ') :
+    ∃ (C0 : ℝ → SmoothCcTensor g₀ 2 2) (C1 : ℝ → SmoothCcTensor g₀ 3 2),
+      correctionFieldDataSpec (I := I) (M := M) g₀ T T' hδ hδ' C0 C1 :=
+  exists_correctionFieldChristoffelConst (I := I) (M := M) g₀ T T' hδ hδ'
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionFields then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionFields"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionFields ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionFields
+
+noncomputable def linearizedRicciOrderZeroCorrectionField (g₀ : SmoothRiemannianMetric I M)
+    (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ') :
+    ℝ → SmoothCcTensor g₀ 2 2 :=
+  (exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroCorrectionField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroCorrectionField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroCorrectionField ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroCorrectionField
+
+noncomputable def linearizedRicciFirstOrderCorrectionField (g₀ : SmoothRiemannianMetric I M)
+    (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ') :
+    ℝ → SmoothCcTensor g₀ 3 2 :=
+  (exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderCorrectionField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderCorrectionField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderCorrectionField ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderCorrectionField
+
+def linearizedRicciOrderZeroField (g₀ : SmoothRiemannianMetric I M) (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ')
+    (s : ℝ) : SmoothCcTensor g₀ 2 2 :=
+  linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s
+    + linearizedRicciOrderZeroCorrectionField (I := I) g₀ T T' hδ hδ' s
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroField ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciOrderZeroField
+
+def linearizedRicciFirstOrderField (g₀ : SmoothRiemannianMetric I M) (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ')
+    (s : ℝ) : SmoothCcTensor g₀ 3 2 :=
+  linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s
+    + linearizedRicciFirstOrderCorrectionField (I := I) g₀ T T' hδ hδ' s
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderField then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderField"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderField ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicciFirstOrderField
+
+theorem linearizedRicci_orderZeroField_jointSmooth (g₀ : SmoothRiemannianMetric I M)
+    (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ') :
+    linearizedRicciCovariantJetJointSmoothness (I := I) (M := M) g₀ 2
+      (linearizedRicciOrderZeroField (I := I) g₀ T T' hδ hδ') (δ := δ) (δ' := δ') :=
+  (exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose_spec.1
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_orderZeroField_jointSmooth then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_orderZeroField_jointSmooth"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_orderZeroField_jointSmooth ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_orderZeroField_jointSmooth
+
+theorem linearizedRicci_firstOrderField_jointSmooth (g₀ : SmoothRiemannianMetric I M)
+    (T T' : SmoothCcTensor g₀ 0 2)
+    {δ : ℝ} (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+    {δ' : ℝ} (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T')
+      δ') :
+    linearizedRicciCovariantJetJointSmoothness (I := I) (M := M) g₀ 3
+      (linearizedRicciFirstOrderField (I := I) g₀ T T' hδ hδ') (δ := δ) (δ' := δ') :=
+  (exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose_spec.2.1
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_firstOrderField_jointSmooth then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_firstOrderField_jointSmooth"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_firstOrderField_jointSmooth ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.linearizedRicci_firstOrderField_jointSmooth
+
+theorem ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform
+    (g₀ : SmoothRiemannianMetric I M) (a : ℕ)
+    (ha_super : 2 * Module.finrank ℝ E + 10 ≤ a) {R : ℝ} (hR : 0 ≤ R)
+    {δ₀ : ℝ} (hδ₀ : δ₀ < 1) :
+    ∃ ΛC : ℝ, 0 ≤ ΛC ∧
+      ∀ (T T' : SmoothCcTensor g₀ 0 2)
+        {δ : ℝ} (_hδ_le : δ ≤ δ₀)
+        (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+        {δ' : ℝ} (_hδ'_le : δ' ≤ δ₀)
+        (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T') δ'),
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ≤ R) →
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ≤ R) →
+        ∀ (s : ℝ), s ∈ Set.Icc (0 : ℝ) 1 → ∀ x : M,
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤ ΛC ∧
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+            ((linearizedRicciSecondOrderFieldLichnerowicz (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+              ΛC := by
+  classical
+  obtain ⟨Λcurv, hΛcurv_nn, hcurv⟩ :=
+    exists_riemannTerm0_curvCoeff_metricPerturbationPath_riemannianFiberNormSq_ballUniform (I := I) (M := M) (E := E) g₀ a ha_super hR hδ₀
+  obtain ⟨Λcom, hΛcom_nn, hcom⟩ :=
+    exists_lichnerowicz_cometric_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+      (I := I) (M := M) (E := E) g₀ a (R := R) hδ₀
+  set K : ℝ := _root_.Max.max Λcurv Λcom with hK_def
+  have hK_nn : 0 ≤ K := le_trans hΛcurv_nn (le_max_left _ _)
+  refine ⟨Real.sqrt (4 * K), Real.sqrt_nonneg _, ?_⟩
+  intro T T' δ hδ_le hδ δ' hδ'_le hδ' hTball hT'ball s hs x
+  obtain ⟨hRm, hCurvFib⟩ := hcurv T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+  obtain ⟨hPrincipal, hTH⟩ := hcom T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+  have hRm' : riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+      ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) ≤ K :=
+    le_trans hRm (le_max_left _ _)
+  have hCurvFib' : riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+      ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) ≤ K :=
+    le_trans hCurvFib (le_max_left _ _)
+  have hPrincipal' : riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+      ((ricciDeTurckPrincipalCoefficient (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) ≤ K :=
+    le_trans hPrincipal (le_max_right _ _)
+  have hTH' : riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+      ((traceHessianCoeff (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) ≤ K :=
+    le_trans hTH (le_max_right _ _)
+  constructor
+  · have hsec : (linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x =
+        ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+          - ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) := by
+      rw [linearizedRicciOrderZeroBaseCoeff, SmoothCcTensor.toSection_sub, ContMDiffSection.coe_sub,
+        Pi.sub_apply]
+    rw [hsec]
+    have hsub := riemannianFiberNormSq_sub_le (I := I) (M := M) g₀ 2 2 x
+      ((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+      ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+    have hbound : riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+        (((ricciOrderZeroRiemannCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+          - ((ricciOrderZeroCurvCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) ≤ 4 * K := by
+      nlinarith [hsub, hRm', hCurvFib', hK_nn]
+    refine Real.sqrt_le_sqrt hbound
+  · have hsec : (linearizedRicciSecondOrderFieldLichnerowicz (I := I) g₀ T T' hδ hδ' s).toSection x =
+        ((ricciDeTurckPrincipalCoefficient (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+          - (1 / 2 : ℝ) • ((traceHessianCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) := by
+      rw [linearizedRicciSecondOrderFieldLichnerowicz, SmoothCcTensor.toSection_sub,
+        ContMDiffSection.coe_sub, Pi.sub_apply, SmoothCcTensor.toSection_smul,
+        ContMDiffSection.coe_smul, Pi.smul_apply]
+    rw [hsec]
+    have hsub := riemannianFiberNormSq_sub_le (I := I) (M := M) g₀ 4 2 x
+      ((ricciDeTurckPrincipalCoefficient (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+      ((1 / 2 : ℝ) • ((traceHessianCoeff (I := I) (M := M) g₀
+        (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x))
+    have hsmul : riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+        ((1 / 2 : ℝ) • ((traceHessianCoeff (I := I) (M := M) g₀
+          (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) =
+        (1 / 2 : ℝ) ^ 2 * riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+          ((traceHessianCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x) :=
+      riemannianFiberNormSq_smul_value_operatorFieldApply (I := I) (M := M) g₀ 4 2 x (1 / 2 : ℝ) _
+    have hbound : riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+        (((ricciDeTurckPrincipalCoefficient (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)
+          - (1 / 2 : ℝ) • ((traceHessianCoeff (I := I) (M := M) g₀
+            (metricPerturbationPath (I := I) g₀ T T' hδ hδ' s)).toSection x)) ≤ 4 * K := by
+      rw [hsmul] at hsub
+      nlinarith [hsub, hPrincipal', hTH', hK_nn]
+    refine Real.sqrt_le_sqrt hbound
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform
+
+theorem exists_firstOrderBase_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+    (g₀ : SmoothRiemannianMetric I M) (a : ℕ)
+    (ha_super : 2 * Module.finrank ℝ E + 10 ≤ a) {R : ℝ} (hR : 0 ≤ R)
+    {δ₀ : ℝ} (hδ₀ : δ₀ < 1) :
+    ∃ Λarm1 : ℝ, 0 ≤ Λarm1 ∧
+      ∀ (T T' : SmoothCcTensor g₀ 0 2)
+        {δ : ℝ} (_hδ_le : δ ≤ δ₀)
+        (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+        {δ' : ℝ} (_hδ'_le : δ' ≤ δ₀)
+        (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T') δ'),
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ≤ R) →
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ≤ R) →
+        ∀ (s : ℝ), s ∈ Set.Icc (0 : ℝ) 1 → ∀ x : M,
+          riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+              ((linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x) ≤ Λarm1 := by
+  classical
+  obtain ⟨Csob, _, hCsob⟩ :=
+    DifferentialGeometry.Analysis.Parabolic.exists_Csob_convexPerturbation_pointwise_C2_le
+      (I := I) (M := M) g₀ a ha_super
+  obtain ⟨Λarm1, hΛarm1_nn, hΛarm1⟩ :=
+    exists_firstOrderKoszul_metricPerturbationPath_pointwise_le_of_jetEnvelope (I := I) (M := M) g₀ hδ₀
+      (Csob * R)
+  refine ⟨Λarm1, hΛarm1_nn, ?_⟩
+  intro T T' δ hδ_le hδ δ' hδ'_le hδ' hTball hT'ball s hs x
+  rw [linearizedRicciFirstOrderBaseCoeff]
+  refine hΛarm1 T T' hδ_le hδ hδ'_le hδ' s hs x ?_
+  exact hCsob T T' hR hTball hT'ball s hs x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_firstOrderBase_metricPerturbationPath_riemannianFiberNormSq_ballUniform then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_firstOrderBase_metricPerturbationPath_riemannianFiberNormSq_ballUniform"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_firstOrderBase_metricPerturbationPath_riemannianFiberNormSq_ballUniform ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_firstOrderBase_metricPerturbationPath_riemannianFiberNormSq_ballUniform
+
+attribute [-instance] Tensor0SBundle.tensorRSSpaceNormedAddCommGroup
+  Tensor0SBundle.tensorRSSpaceNormedSpace in
+theorem exists_orderZero_firstOrder_correctionField_riemannianFiberNormSq_ballUniform
+    (g₀ : SmoothRiemannianMetric I M) (a : ℕ)
+    (ha_super : 2 * Module.finrank ℝ E + 10 ≤ a) {R : ℝ} (hR : 0 ≤ R)
+    {δ₀ : ℝ} (hδ₀ : δ₀ < 1) :
+    ∃ Λcorrection : ℝ, 0 ≤ Λcorrection ∧
+      ∀ (T T' : SmoothCcTensor g₀ 0 2)
+        {δ : ℝ} (_hδ_le : δ ≤ δ₀)
+        (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+        {δ' : ℝ} (_hδ'_le : δ' ≤ δ₀)
+        (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T') δ'),
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ≤ R) →
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ≤ R) →
+        ∀ (s : ℝ), s ∈ Set.Icc (0 : ℝ) 1 → ∀ x : M,
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((linearizedRicciOrderZeroField (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤ Λcorrection ∧
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+            ((linearizedRicciFirstOrderField (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤ Λcorrection := by
+  classical
+  obtain ⟨ΛCbase, hΛCbase_nn, hbase⟩ :=
+    ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform
+      (I := I) (M := M) g₀ a ha_super hR hδ₀
+  obtain ⟨Λarm1, hΛarm1_nn, harm1⟩ :=
+    exists_firstOrderBase_metricPerturbationPath_riemannianFiberNormSq_ballUniform (I := I) (M := M) (E := E) g₀ a ha_super hR hδ₀
+  have hCΓ_nn : 0 ≤ correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀ :=
+    correctionFieldChristoffelBound_nonneg (I := I) (M := M) g₀ a R δ₀
+  refine ⟨(ΛCbase + Real.sqrt Λarm1) +
+    correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀, ?_, ?_⟩
+  · have h2 : 0 ≤ Real.sqrt Λarm1 := Real.sqrt_nonneg _
+    linarith
+  intro T T' δ hδ_le hδ δ' hδ'_le hδ' hTball hT'ball s hs x
+  obtain ⟨hbase0, _hbase2⟩ := hbase T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+  have harm1' := harm1 T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+  obtain ⟨_hj0, _hj1, hbound, _hident⟩ :=
+    (exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose_spec
+  obtain ⟨hb0, hb1⟩ := (hbound ha_super hR hδ₀ hδ_le hδ'_le hTball hT'ball).1 s hs x
+  have harm1sqrt_nn : 0 ≤ Real.sqrt Λarm1 := Real.sqrt_nonneg _
+  constructor
+  · have htri : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+          ((linearizedRicciOrderZeroField (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+        Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) +
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            (((exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose s).toSection
+              x)) := by
+      let : Bundle.RiemannianBundle (fun b : M => TensorRSSpace 2 2 I b) :=
+        Tensor0SBundle.tensorRSRiemannianBundle (I := I) (M := M) g₀ 2 2
+      rw [← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _,
+        ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _,
+        ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x _]
+      have hfield_eq : (linearizedRicciOrderZeroField (I := I) g₀ T T' hδ hδ' s).toSection x =
+          (linearizedRicciOrderZeroBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x +
+            ((exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose s).toSection x := by
+        rw [linearizedRicciOrderZeroField, linearizedRicciOrderZeroCorrectionField,
+          SmoothCcTensor.toSection_add, ContMDiffSection.coe_add, Pi.add_apply]
+      rw [hfield_eq]
+      exact norm_add_le _ _
+    refine le_trans htri ?_
+    have hcorr0 : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+        (((exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose s).toSection x)) ≤
+        correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀ := hb0
+    linarith [hbase0, hcorr0, harm1sqrt_nn]
+  · have htri : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+          ((linearizedRicciFirstOrderField (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+        Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+            ((linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) +
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+            (((exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose
+              s).toSection
+              x)) := by
+      let : Bundle.RiemannianBundle (fun b : M => TensorRSSpace 3 2 I b) :=
+        Tensor0SBundle.tensorRSRiemannianBundle (I := I) (M := M) g₀ 3 2
+      rw [← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x _,
+        ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x _,
+        ← norm_toSection_eq_sqrt_riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x _]
+      have hfield_eq : (linearizedRicciFirstOrderField (I := I) g₀ T T' hδ hδ' s).toSection x =
+          (linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x +
+            ((exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose
+              s).toSection x := by
+        rw [linearizedRicciFirstOrderField, linearizedRicciFirstOrderCorrectionField,
+          SmoothCcTensor.toSection_add, ContMDiffSection.coe_add, Pi.add_apply]
+      rw [hfield_eq]
+      exact norm_add_le _ _
+    refine le_trans htri ?_
+    have hbase1' : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+        ((linearizedRicciFirstOrderBaseCoeff (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+        Real.sqrt Λarm1 := Real.sqrt_le_sqrt harm1'
+    have hcorr1 : Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+        (((exists_orderZero_firstOrder_correctionFields (I := I) g₀ T T' hδ hδ').choose_spec.choose s).toSection
+          x)) ≤
+        correctionFieldChristoffelBound (I := I) (M := M) g₀ a R δ₀ := hb1
+    linarith [hbase1', hcorr1, hΛCbase_nn]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionField_riemannianFiberNormSq_ballUniform then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionField_riemannianFiberNormSq_ballUniform"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionField_riemannianFiberNormSq_ballUniform ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.exists_orderZero_firstOrder_correctionField_riemannianFiberNormSq_ballUniform
+
+theorem ricciCovariantTermFields_concrete_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform
+    (g₀ : SmoothRiemannianMetric I M) (a : ℕ)
+    (ha_super : 2 * Module.finrank ℝ E + 10 ≤ a) {R : ℝ} (hR : 0 ≤ R)
+    {δ₀ : ℝ} (hδ₀ : δ₀ < 1) :
+    ∃ ΛC : ℝ, 0 ≤ ΛC ∧
+      ∀ (T T' : SmoothCcTensor g₀ 0 2)
+        {δ : ℝ} (_hδ_le : δ ≤ δ₀)
+        (hδ : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T) δ)
+        {δ' : ℝ} (_hδ'_le : δ' ≤ δ₀)
+        (hδ' : metricCauchySchwarzBound (I := I) (M := M) g₀ (ccTensorBilinSymm (I := I) g₀ T') δ'),
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T‖ ≤ R) →
+        (∀ j : ℕ, j ≤ a + 2 → ‖iteratedCovGrad (I := I) g₀ 0 2 j T'‖ ≤ R) →
+        ∀ (s : ℝ), s ∈ Set.Icc (0 : ℝ) 1 → ∀ x : M,
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 2 2 x
+            ((linearizedRicciOrderZeroField (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤ ΛC ∧
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 3 2 x
+            ((linearizedRicciFirstOrderField (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤ ΛC ∧
+          Real.sqrt (riemannianFiberNormSq (I := I) (M := M) g₀ 4 2 x
+            ((linearizedRicciSecondOrderFieldLichnerowicz (I := I) g₀ T T' hδ hδ' s).toSection x)) ≤
+              ΛC := by
+  classical
+  obtain ⟨ΛCbase, hΛCbase_nn, hbase⟩ :=
+    ricciCovariantTermBaseFields_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform
+      (I := I) (M := M) g₀ a ha_super hR
+      hδ₀
+  obtain ⟨Λcorrection, hΛcorrection_nn, hcorr⟩ :=
+    exists_orderZero_firstOrder_correctionField_riemannianFiberNormSq_ballUniform (I := I) (M := M) (E := E) g₀ a ha_super hR hδ₀
+  refine ⟨max ΛCbase Λcorrection, le_trans hΛCbase_nn (le_max_left _ _), ?_⟩
+  intro T T' δ hδ_le hδ δ' hδ'_le hδ' hTball hT'ball s hs x
+  obtain ⟨_hbase0, hbase2⟩ := hbase T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+  obtain ⟨hcorr0, hcorr1⟩ := hcorr T T' hδ_le hδ hδ'_le hδ' hTball hT'ball s hs x
+  exact ⟨le_trans hcorr0 (le_max_right _ _), le_trans hcorr1 (le_max_right _ _),
+    le_trans hbase2 (le_max_left _ _)⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermFields_concrete_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermFields_concrete_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermFields_concrete_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform ``Submission.DifferentialGeometry.Analysis.Parabolic.TensorSpectral.ricciCovariantTermFields_concrete_lichnerowicz_uniform_riemannianFiberNormSq_ballUniform
+
+end TensorSpectral
+end Parabolic
+end Analysis
+end DifferentialGeometry
+
+end

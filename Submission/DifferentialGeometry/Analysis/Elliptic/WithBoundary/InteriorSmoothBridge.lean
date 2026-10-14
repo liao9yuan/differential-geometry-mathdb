@@ -1,0 +1,414 @@
+import Submission.DifferentialGeometry.Analysis.Elliptic.WithBoundary.InteriorVariational
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+open _root_.Submission.DifferentialGeometry.Geometry.Operator
+
+
+noncomputable section
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.MeasureTheory _root_.Set _root_.Filter
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.ENNReal _root_.BigOperators
+  RealInnerProductSpace InnerProductSpace
+
+namespace DifferentialGeometry
+namespace Analysis
+namespace Laplacian
+namespace WithBoundary
+
+variable {n : ℕ} [NeZero n]
+variable {M : Type*} [TopologicalSpace M]
+  [ChartedSpace (EuclideanHalfSpace n) M]
+  [IsManifold (modelWithCornersEuclideanHalfSpace n) ∞ M]
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem
+open _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary
+open _root_.Submission.DifferentialGeometry.Geometry.Operator.WithBoundary
+
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instMeasurableSpaceEuclideanSpaceRealFin_differentialGeometry : MeasurableSpace (EuclideanSpace ℝ (Fin n)) :=
+  borel _
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instMeasurableSpaceEuclideanSpaceRealFin_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Laplacian.WithBoundary.instMeasurableSpaceEuclideanSpaceRealFin_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instBorelSpaceEuclideanSpaceRealFin_differentialGeometry : BorelSpace (EuclideanSpace ℝ (Fin n)) := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instBorelSpaceEuclideanSpaceRealFin_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Laplacian.WithBoundary.instBorelSpaceEuclideanSpaceRealFin_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instMeasurableSpace_differentialGeometry : MeasurableSpace M := borel M
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instMeasurableSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Laplacian.WithBoundary.instMeasurableSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instBorelSpace_differentialGeometry : BorelSpace M := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.instBorelSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Laplacian.WithBoundary.instBorelSpace_differentialGeometry target :: scope.openDecls } }
+
+private abbrev I_half (n : ℕ) [NeZero n] :
+    ModelWithCorners ℝ (EuclideanSpace ℝ (Fin n)) (EuclideanHalfSpace n) :=
+  modelWithCornersEuclideanHalfSpace n
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.I_half
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Analysis.Laplacian.WithBoundary.I_half target :: scope.openDecls } }
+
+variable [T2Space M] [CompactSpace M]
+
+omit [CompactSpace M] in
+def InteriorSmoothScalar.oneSubLaplacian
+    {g : SmoothRiemannianMetric (I_half n) M}
+    (u : InteriorSmoothScalar g) : InteriorSmoothScalar g where
+  toFun := fun x => u.toFun x -
+    ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x
+  smooth := by
+    refine contMDiff_of_tsupport fun x hx => ?_
+    have hx' : x ∈ tsupport u.toFun := by
+      rcases (tsupport_sub (f := u.toFun)
+        (g := ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support)) hx with
+        hx | hx
+      · exact hx
+      · exact tsupport_Δ_g_with_boundary_subset
+          (I := I_half n) g u.smooth u.interior_support hx
+    have hΔ : ContMDiffAt (I_half n) 𝓘(ℝ, ℝ) ∞
+        (ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support) x :=
+      ((Δ_g_with_boundary_contMDiffOn_interior
+          (I := I_half n) g u.smooth u.interior_support)
+        x (u.interior_support hx')).contMDiffAt
+          ((I_half n).isOpen_interior (n := ∞) (by simp) |>.mem_nhds
+            (u.interior_support hx'))
+    exact u.smooth.contMDiffAt.sub hΔ
+  interior_support := by
+    refine (tsupport_sub (f := u.toFun)
+      (g := ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support)).trans ?_
+    exact _root_.Set.union_subset u.interior_support
+      ((tsupport_Δ_g_with_boundary_subset
+        (I := I_half n) g u.smooth u.interior_support).trans u.interior_support)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian
+
+omit [CompactSpace M] in
+@[simp] theorem InteriorSmoothScalar.oneSubLaplacian_toFun
+    {g : SmoothRiemannianMetric (I_half n) M}
+    (u : InteriorSmoothScalar g) (x : M) :
+    u.oneSubLaplacian.toFun x = u.toFun x -
+      ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x := rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian_toFun then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian_toFun"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian_toFun ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLaplacian_toFun
+
+omit [CompactSpace M] in
+lemma InteriorSmoothScalar.oneSubLap_continuous
+    {g : SmoothRiemannianMetric (I_half n) M} (u : InteriorSmoothScalar g) :
+    Continuous (fun x : M =>
+      u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x) :=
+  u.smooth.continuous.sub
+    (Δ_g_with_boundary_continuous (I := I_half n) g u.smooth u.interior_support)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_continuous then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_continuous"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_continuous ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_continuous
+
+lemma InteriorSmoothScalar.oneSubLap_memLp
+    {g : SmoothRiemannianMetric (I_half n) M} (u : InteriorSmoothScalar g) :
+    _root_.MeasureTheory.MemLp (fun x : M =>
+        u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+      2 (riemannianVolumeMeasure (I := I_half n) (M := M) g) := by
+  have : _root_.MeasureTheory.IsFiniteMeasureOnCompacts
+      (riemannianVolumeMeasure (I := I_half n) (M := M) g) :=
+    riemannianVolumeMeasure_isFiniteMeasureOnCompacts (I := I_half n) (M := M) g
+  exact u.oneSubLap_continuous.memLp_of_hasCompactSupport
+    (HasCompactSupport.of_compactSpace _)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_memLp then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_memLp"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_memLp ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLap_memLp
+
+noncomputable def InteriorSmoothScalar.oneSubLapClassicalLp
+    {g : SmoothRiemannianMetric (I_half n) M} (u : InteriorSmoothScalar g) :
+    Lp ℝ 2 (riemannianVolumeMeasure (I := I_half n) (M := M) g) :=
+  u.oneSubLap_memLp.toLp _
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLapClassicalLp then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLapClassicalLp"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLapClassicalLp ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.oneSubLapClassicalLp
+
+theorem InteriorSmoothScalar.smoothToLpInterior_oneSubLaplacian
+    {g : SmoothRiemannianMetric (I_half n) M} (u : InteriorSmoothScalar g) :
+    smoothToLpInterior g u.oneSubLaplacian = u.oneSubLapClassicalLp := by
+  apply Lp.ext
+  exact (MemLp.coeFn_toLp u.oneSubLaplacian.memLp_two).trans
+    (MemLp.coeFn_toLp u.oneSubLap_memLp).symm
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.smoothToLpInterior_oneSubLaplacian then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.smoothToLpInterior_oneSubLaplacian"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.smoothToLpInterior_oneSubLaplacian ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.InteriorSmoothScalar.smoothToLpInterior_oneSubLaplacian
+
+theorem interiorSmoothScalarH1Inner_eq_integral_oneSubLap_mul
+    {g : SmoothRiemannianMetric (I_half n) M}
+    (u v : InteriorSmoothScalar g) :
+    interiorSmoothScalarH1Inner u v =
+      ∫ x, (u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+        * v.toFun x
+        ∂(riemannianVolumeMeasure (I := I_half n) (M := M) g) := by
+  unfold interiorSmoothScalarH1Inner
+  have : _root_.MeasureTheory.IsFiniteMeasure (riemannianVolumeMeasure (I := I_half n) (M := M) g) :=
+    riemannianVolumeMeasure_isFiniteMeasure_of_compactSpace (I := I_half n) (M := M) g
+  have hu_support : HasCompactSupport u.toFun := HasCompactSupport.of_compactSpace _
+  have hv_support : HasCompactSupport v.toFun := HasCompactSupport.of_compactSpace _
+  have hgreen :
+      ∫ x, g.inner x (gradFun (I := I_half n) g v.toFun x)
+            (gradFun (I := I_half n) g u.toFun x)
+          ∂(riemannianVolumeMeasure (I := I_half n) (M := M) g) =
+        -∫ x, v.toFun x * ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x
+          ∂(riemannianVolumeMeasure (I := I_half n) (M := M) g) :=
+    integral_inner_grad_eq_neg_integral_smul_laplacian_with_boundary
+      (I := I_half n) g v.smooth u.smooth v.interior_support u.interior_support hu_support
+  have hsymm :
+      (∫ x, g.inner x (gradFun (I := I_half n) g u.toFun x)
+            (gradFun (I := I_half n) g v.toFun x)
+          ∂(riemannianVolumeMeasure (I := I_half n) (M := M) g)) =
+      ∫ x, g.inner x (gradFun (I := I_half n) g v.toFun x)
+            (gradFun (I := I_half n) g u.toFun x)
+          ∂(riemannianVolumeMeasure (I := I_half n) (M := M) g) := by
+    refine _root_.MeasureTheory.integral_congr_ae (Filter.Eventually.of_forall ?_)
+    intro x
+    exact g.symm x _ _
+  have hsec_eq : (fun x : M => g.inner x
+        ((gradGWithBoundarySection
+            (I := I_half n) g u.smooth u.interior_support :
+          Cₛ^∞⟮I_half n; EuclideanSpace ℝ (Fin n),
+            (TangentSpace (I_half n) : M → Type _)⟯) x)
+        ((gradGWithBoundarySection
+            (I := I_half n) g v.smooth v.interior_support :
+          Cₛ^∞⟮I_half n; EuclideanSpace ℝ (Fin n),
+            (TangentSpace (I_half n) : M → Type _)⟯) x)) =
+      (fun x : M => g.inner x
+        (gradFun (I := I_half n) g u.toFun x)
+        (gradFun (I := I_half n) g v.toFun x)) := by
+    funext x
+    rfl
+  rw [hsec_eq]
+  rw [hsymm, hgreen]
+  have hΔu_cont : Continuous
+      (ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support) :=
+    Δ_g_with_boundary_continuous (I := I_half n) g u.smooth u.interior_support
+  have hu_cont : Continuous u.toFun := u.smooth.continuous
+  have hv_cont : Continuous v.toFun := v.smooth.continuous
+  have h_uv : _root_.MeasureTheory.Integrable (fun x : M => u.toFun x * v.toFun x)
+      (riemannianVolumeMeasure (I := I_half n) (M := M) g) :=
+    (hu_cont.mul hv_cont).integrable_of_hasCompactSupport
+      (HasCompactSupport.of_compactSpace _)
+  have h_vΔu : _root_.MeasureTheory.Integrable
+      (fun x : M => v.toFun x *
+        ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+      (riemannianVolumeMeasure (I := I_half n) (M := M) g) :=
+    (hv_cont.mul hΔu_cont).integrable_of_hasCompactSupport
+      (HasCompactSupport.of_compactSpace _)
+  have hpt : ∀ x : M,
+      (u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+        * v.toFun x =
+        u.toFun x * v.toFun x -
+          v.toFun x * ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x := by
+    intro x; ring
+  rw [show (fun x : M =>
+      (u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+        * v.toFun x) =
+      (fun x : M =>
+        u.toFun x * v.toFun x -
+          v.toFun x * ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+      from funext hpt]
+  rw [_root_.MeasureTheory.integral_sub h_uv h_vΔu]
+  ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_integral_oneSubLap_mul then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_integral_oneSubLap_mul"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_integral_oneSubLap_mul ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_integral_oneSubLap_mul
+
+theorem interiorSmoothScalarH1Inner_eq_lpInner_oneSubLap
+    {g : SmoothRiemannianMetric (I_half n) M} (u v : InteriorSmoothScalar g) :
+    interiorSmoothScalarH1Inner u v =
+      ⟪u.oneSubLapClassicalLp, smoothToLpInterior g v⟫_ℝ := by
+  rw [interiorSmoothScalarH1Inner_eq_integral_oneSubLap_mul]
+  rw [MeasureTheory.L2.inner_def
+    (𝕜 := ℝ)]
+  have hae_lhs : (u.oneSubLapClassicalLp :
+      Lp ℝ 2 (riemannianVolumeMeasure (I := I_half n) (M := M) g)) =ᵐ[
+      riemannianVolumeMeasure (I := I_half n) (M := M) g]
+      (fun x : M =>
+        u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x) := by
+    exact MemLp.coeFn_toLp u.oneSubLap_memLp
+  have hae_rhs : (smoothToLpInterior g v :
+      Lp ℝ 2 (riemannianVolumeMeasure (I := I_half n) (M := M) g)) =ᵐ[
+      riemannianVolumeMeasure (I := I_half n) (M := M) g]
+      v.toFun :=
+    MemLp.coeFn_toLp v.memLp_two
+  refine _root_.MeasureTheory.integral_congr_ae ?_
+  filter_upwards [hae_lhs, hae_rhs] with x hl hr
+  rw [hl, hr]
+  show (u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x) *
+      v.toFun x = _
+  rw [show @_root_.Inner.inner ℝ _ _
+        (u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+        (v.toFun x) =
+      v.toFun x *
+        (u.toFun x - ΔGWithBoundary (I := I_half n) g u.smooth u.interior_support x)
+      from RCLike.inner_apply _ _]
+  ring
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_lpInner_oneSubLap then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_lpInner_oneSubLap"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_lpInner_oneSubLap ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalarH1Inner_eq_lpInner_oneSubLap
+
+lemma inner_smoothToH1ComplInterior_smoothToH1ComplInterior
+    {g : SmoothRiemannianMetric (I_half n) M} (u v : InteriorSmoothScalar g) :
+    ⟪smoothToH1ComplInterior g u, smoothToH1ComplInterior g v⟫_ℝ =
+      interiorSmoothScalarH1Inner u v := by
+  unfold smoothToH1ComplInterior
+  change ⟪((u : H1ComplInterior g) : H1ComplInterior g),
+        ((v : H1ComplInterior g) : H1ComplInterior g)⟫_ℝ =
+      interiorSmoothScalarH1Inner u v
+  rw [UniformSpace.Completion.inner_coe (𝕜 := ℝ) u v]
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.inner_smoothToH1ComplInterior_smoothToH1ComplInterior then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.inner_smoothToH1ComplInterior_smoothToH1ComplInterior"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.inner_smoothToH1ComplInterior_smoothToH1ComplInterior ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.inner_smoothToH1ComplInterior_smoothToH1ComplInterior
+
+lemma H1ComplInteriorBilin_smoothToH1ComplInterior_smoothToH1ComplInterior
+    {g : SmoothRiemannianMetric (I_half n) M} (u v : InteriorSmoothScalar g) :
+    H1ComplInteriorBilin g (smoothToH1ComplInterior g u) (smoothToH1ComplInterior g v) =
+      interiorSmoothScalarH1Inner u v := by
+  rw [H1ComplInteriorBilin_apply]
+  exact inner_smoothToH1ComplInterior_smoothToH1ComplInterior u v
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.H1ComplInteriorBilin_smoothToH1ComplInterior_smoothToH1ComplInterior then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.H1ComplInteriorBilin_smoothToH1ComplInterior_smoothToH1ComplInterior"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.H1ComplInteriorBilin_smoothToH1ComplInterior_smoothToH1ComplInterior ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.H1ComplInteriorBilin_smoothToH1ComplInterior_smoothToH1ComplInterior
+
+theorem interiorSmoothScalar_bilin_eq_lpFunctional_smooth
+    {g : SmoothRiemannianMetric (I_half n) M}
+    (u v : InteriorSmoothScalar g) :
+    H1ComplInteriorBilin g (smoothToH1ComplInterior g u) (smoothToH1ComplInterior g v) =
+      lpFunctionalCLMInterior g u.oneSubLapClassicalLp (smoothToH1ComplInterior g v) := by
+  rw [H1ComplInteriorBilin_smoothToH1ComplInterior_smoothToH1ComplInterior,
+    interiorSmoothScalarH1Inner_eq_lpInner_oneSubLap]
+  rw [lpFunctionalCLMInterior_apply, H1ComplInteriorToLp_smoothToH1ComplInterior]
+  exact real_inner_comm _ _
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalar_bilin_eq_lpFunctional_smooth then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalar_bilin_eq_lpFunctional_smooth"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalar_bilin_eq_lpFunctional_smooth ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.interiorSmoothScalar_bilin_eq_lpFunctional_smooth
+
+theorem denseRange_smoothToH1ComplInterior
+    (g : SmoothRiemannianMetric (I_half n) M) :
+    DenseRange (smoothToH1ComplInterior g) := by
+  unfold smoothToH1ComplInterior
+  rw [show (UniformSpace.Completion.toComplL :
+      InteriorSmoothScalar g → H1ComplInterior g) =
+      ((↑) : InteriorSmoothScalar g →
+        UniformSpace.Completion (InteriorSmoothScalar g)) from
+      UniformSpace.Completion.coe_toComplL]
+  exact UniformSpace.Completion.denseRange_coe
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.denseRange_smoothToH1ComplInterior then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.denseRange_smoothToH1ComplInterior"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.denseRange_smoothToH1ComplInterior ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.denseRange_smoothToH1ComplInterior
+
+theorem smoothToH1ComplInterior_bilin_eq_lpFunctional
+    {g : SmoothRiemannianMetric (I_half n) M}
+    (u : InteriorSmoothScalar g) (w : H1ComplInterior g) :
+    H1ComplInteriorBilin g (smoothToH1ComplInterior g u) w =
+      lpFunctionalCLMInterior g u.oneSubLapClassicalLp w := by
+  let L : H1ComplInterior g → ℝ := fun w =>
+    H1ComplInteriorBilin g (smoothToH1ComplInterior g u) w
+  let R : H1ComplInterior g → ℝ := fun w =>
+    lpFunctionalCLMInterior g u.oneSubLapClassicalLp w
+  change L w = R w
+  have hL_cont : Continuous L :=
+    (H1ComplInteriorBilin g (smoothToH1ComplInterior g u)).continuous
+  have hR_cont : Continuous R :=
+    (lpFunctionalCLMInterior g u.oneSubLapClassicalLp).continuous
+  have hLR_smooth :
+      L ∘ (smoothToH1ComplInterior g) = R ∘ (smoothToH1ComplInterior g) := by
+    funext v
+    exact interiorSmoothScalar_bilin_eq_lpFunctional_smooth u v
+  exact congrFun
+    ((denseRange_smoothToH1ComplInterior g).equalizer hL_cont hR_cont hLR_smooth) w
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_bilin_eq_lpFunctional then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_bilin_eq_lpFunctional"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_bilin_eq_lpFunctional ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_bilin_eq_lpFunctional
+
+theorem smoothToH1ComplInterior_eq_resolventInterior_oneSubLap
+    {g : SmoothRiemannianMetric (I_half n) M}
+    (u : InteriorSmoothScalar g) :
+    smoothToH1ComplInterior g u =
+      resolventInterior g u.oneSubLapClassicalLp := by
+  apply ext_inner_right ℝ
+  intro w
+  rw [show ⟪smoothToH1ComplInterior g u, w⟫_ℝ =
+        H1ComplInteriorBilin g (smoothToH1ComplInterior g u) w from rfl]
+  rw [smoothToH1ComplInterior_bilin_eq_lpFunctional u w]
+  rw [resolventInterior_inner_eq_lpFunctional]
+  rw [lpFunctionalCLMInterior_apply]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_eq_resolventInterior_oneSubLap then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_eq_resolventInterior_oneSubLap"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_eq_resolventInterior_oneSubLap ``Submission.DifferentialGeometry.Analysis.Laplacian.WithBoundary.smoothToH1ComplInterior_eq_resolventInterior_oneSubLap
+
+end WithBoundary
+end Laplacian
+end Analysis
+end DifferentialGeometry
+
+end

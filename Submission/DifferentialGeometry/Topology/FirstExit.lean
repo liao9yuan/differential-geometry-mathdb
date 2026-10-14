@@ -1,0 +1,346 @@
+import Mathlib.Topology.Instances.Real.Lemmas
+import Mathlib.Topology.Order.Compact
+import Mathlib.Topology.Order.DenselyOrdered
+import Mathlib.Tactic.Linarith
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+set_option autoImplicit false
+
+namespace DifferentialGeometry
+
+theorem exists_first_exit_frontier_of_not_mem_interior
+    {X : Type*} [TopologicalSpace X] {K : Set X}
+    {γ : Real → X} {b : Real} (hb : 0 < b)
+    (hγ : ContinuousOn γ (Set.Icc 0 b))
+    (hzero : γ 0 ∈ interior K) (hbK : γ b ∉ interior K) :
+    ∃ t : Real, t ∈ Set.Ioc 0 b ∧
+      (∀ s ∈ Set.Ico 0 t, γ s ∈ interior K) ∧ γ t ∈ frontier K := by
+  let T := Set.Icc (0 : Real) b
+  let : CompactSpace T := isCompact_iff_compactSpace.mp _root_.CompactIccSpace.isCompact_Icc
+  let γT : T → X := fun t => γ t
+  let B : Set T := γT ⁻¹' (interior K)ᶜ
+  have hγT : Continuous γT := hγ.domRestrict
+  have hBclosed : IsClosed B :=
+    isOpen_interior.isClosed_compl.preimage hγT
+  have hbB : (⟨b, by simp [T, hb.le]⟩ : T) ∈ B := by
+    change γ b ∉ interior K
+    exact hbK
+  have hBne : B.Nonempty := ⟨⟨b, by simp [T, hb.le]⟩, hbB⟩
+  obtain ⟨t, htB, htmin⟩ :=
+    hBclosed.isCompact.exists_isMinOn hBne continuous_subtype_val.continuousOn
+  have htNot : γ (t : Real) ∉ interior K := by
+    simpa only [B, γT, Set.mem_preimage, Set.mem_compl_iff] using htB
+  have htne : (t : Real) ≠ 0 := by
+    intro ht
+    apply htNot
+    simpa only [ht] using hzero
+  have htpos : (0 : Real) < t := lt_of_le_of_ne t.property.1 (Ne.symm htne)
+  have hbefore : ∀ s ∈ Set.Ico (0 : Real) t, γ s ∈ interior K := by
+    intro s hs
+    by_contra hsNot
+    let sT : T := ⟨s, hs.1, (le_of_lt hs.2).trans t.property.2⟩
+    have hsB : sT ∈ B := by
+      change γ s ∉ interior K
+      exact hsNot
+    exact (not_le_of_gt hs.2) (htmin hsB)
+  have htClosure : (t : Real) ∈ closure (Set.Ico (0 : Real) t) := by
+    rw [closure_Ico (Ne.symm htne)]
+    exact ⟨htpos.le, le_rfl⟩
+  have hcont : ContinuousWithinAt γ (Set.Ico (0 : Real) t) t :=
+    (hγ t t.property).mono fun s hs =>
+      ⟨hs.1, (le_of_lt hs.2).trans t.property.2⟩
+  have htKclosure : γ t ∈ closure K :=
+    hcont.mem_closure htClosure fun s hs => interior_subset (hbefore s hs)
+  refine ⟨t, ⟨htpos, t.property.2⟩, hbefore, ?_⟩
+  exact ⟨htKclosure, htNot⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_first_exit_frontier_of_not_mem_interior then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_first_exit_frontier_of_not_mem_interior"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_first_exit_frontier_of_not_mem_interior ``Submission.DifferentialGeometry.exists_first_exit_frontier_of_not_mem_interior
+
+theorem exists_first_exit_frontier
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : Real → X} {b : Real} (hb : 0 < b)
+    (hγ : ContinuousOn γ (Set.Icc 0 b))
+    (hzero : γ 0 ∈ interior K) (hbK : γ b ∉ K) :
+    ∃ t : Real, t ∈ Set.Ioc 0 b ∧
+      (∀ s ∈ Set.Icc 0 t, γ s ∈ K) ∧ γ t ∈ frontier K := by
+  obtain ⟨t, ht, hbefore, hfront⟩ :=
+    exists_first_exit_frontier_of_not_mem_interior hb hγ hzero
+      (fun h ↦ hbK (interior_subset h))
+  refine ⟨t, ht, ?_, hfront⟩
+  intro s hs
+  by_cases hst : s = t
+  · subst s
+    exact hK.closure_eq ▸ frontier_subset_closure hfront
+  · exact interior_subset (hbefore s ⟨hs.1, lt_of_le_of_ne hs.2 hst⟩)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_first_exit_frontier then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_first_exit_frontier"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_first_exit_frontier ``Submission.DifferentialGeometry.exists_first_exit_frontier
+
+open _root_.Set
+
+theorem exists_first_exit_frontier_of_mem
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {b : ℝ} (hb : 0 < b)
+    (hγ : ContinuousOn γ (_root_.Set.Icc 0 b)) (hzero : γ 0 ∈ K) (hbK : γ b ∉ K) :
+    ∃ t : ℝ, t ∈ _root_.Set.Ico 0 b ∧ (∀ s ∈ _root_.Set.Icc 0 t, γ s ∈ K) ∧ γ t ∈ frontier K := by
+  by_cases hzeroInt : γ 0 ∈ interior K
+  · obtain ⟨t, ht, hbefore, hfront⟩ := exists_first_exit_frontier hK hb hγ hzeroInt hbK
+    have htb : t < b := lt_of_le_of_ne ht.2 (by
+      intro h
+      subst t
+      exact hbK (hbefore b ⟨hb.le, le_rfl⟩))
+    exact ⟨t, ⟨ht.1.le, htb⟩, hbefore, hfront⟩
+  · refine ⟨0, ⟨le_rfl, hb⟩, ?_, ⟨subset_closure hzero, hzeroInt⟩⟩
+    intro s hs
+    have hs0 : s = 0 := le_antisymm hs.2 hs.1
+    simpa only [hs0] using hzero
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_first_exit_frontier_of_mem then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_first_exit_frontier_of_mem"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_first_exit_frontier_of_mem ``Submission.DifferentialGeometry.exists_first_exit_frontier_of_mem
+
+theorem exists_frontier_pair_of_not_mem
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {a b c : ℝ} (hγ : ContinuousOn γ (_root_.Set.Icc a b))
+    (haK : γ a ∈ K) (hbK : γ b ∈ K) (hc : c ∈ _root_.Set.Icc a b) (hcK : γ c ∉ K) :
+    ∃ s t : ℝ, s ∈ _root_.Set.Ico a c ∧ t ∈ _root_.Set.Ioc c b ∧ γ s ∈ frontier K ∧
+      γ t ∈ frontier K ∧ (∀ u ∈ _root_.Set.Icc a s, γ u ∈ K) ∧
+        ∀ u ∈ _root_.Set.Icc t b, γ u ∈ K := by
+  have hac : a < c := lt_of_le_of_ne hc.1 (by
+    intro h
+    exact hcK (h ▸ haK))
+  have hcb : c < b := lt_of_le_of_ne hc.2 (by
+    intro h
+    exact hcK (h.symm ▸ hbK))
+  have hleft : ContinuousOn (fun u : ℝ => γ (a + u)) (_root_.Set.Icc 0 (c - a)) :=
+    hγ.comp (continuous_const.add continuous_id).continuousOn (by
+      intro u hu
+      constructor <;> linarith [hu.1, hu.2, hc.2])
+  have hright : ContinuousOn (fun u : ℝ => γ (b - u)) (_root_.Set.Icc 0 (b - c)) :=
+    hγ.comp (continuous_const.sub continuous_id).continuousOn (by
+      intro u hu
+      constructor <;> linarith [hu.1, hu.2, hc.1])
+  obtain ⟨s, hs, hbefore, hsfront⟩ := exists_first_exit_frontier_of_mem hK
+    (sub_pos.mpr hac) hleft (by simpa using haK) (by simpa using hcK)
+  obtain ⟨t, ht, hafter, htfront⟩ := exists_first_exit_frontier_of_mem hK
+    (sub_pos.mpr hcb) hright (by simpa using hbK) (by simpa using hcK)
+  refine ⟨a + s, b - t, ⟨by linarith [hs.1], by linarith [hs.2]⟩,
+    ⟨by linarith [ht.2], by linarith [ht.1]⟩, hsfront, htfront, ?_, ?_⟩
+  · intro u hu
+    have hu' : u - a ∈ _root_.Set.Icc 0 s := ⟨by linarith [hu.1], by linarith [hu.2]⟩
+    simpa using hbefore (u - a) hu'
+  · intro u hu
+    have hu' : b - u ∈ _root_.Set.Icc 0 t := ⟨by linarith [hu.2], by linarith [hu.1]⟩
+    simpa using hafter (b - u) hu'
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_frontier_pair_of_not_mem then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_frontier_pair_of_not_mem"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_frontier_pair_of_not_mem ``Submission.DifferentialGeometry.exists_frontier_pair_of_not_mem
+
+theorem mapsTo_or_exists_frontier_pair
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {a b : ℝ} (hγ : ContinuousOn γ (_root_.Set.Icc a b))
+    (haK : γ a ∈ K) (hbK : γ b ∈ K) :
+    _root_.Set.MapsTo γ (_root_.Set.Icc a b) K ∨
+      ∃ s t : ℝ, s ∈ _root_.Set.Icc a b ∧ t ∈ _root_.Set.Icc a b ∧ s < t ∧
+        γ s ∈ frontier K ∧ γ t ∈ frontier K ∧
+          MapsTo γ (_root_.Set.Icc a s) K ∧ _root_.Set.MapsTo γ (_root_.Set.Icc t b) K := by
+  classical
+  by_cases hmaps : _root_.Set.MapsTo γ (_root_.Set.Icc a b) K
+  · exact Or.inl hmaps
+  · right
+    obtain ⟨c, hc, hcK⟩ : ∃ c ∈ _root_.Set.Icc a b, γ c ∉ K := by
+      simpa only [_root_.Set.MapsTo, _root_.Classical.not_forall, exists_prop] using hmaps
+    obtain ⟨s, t, hs, ht, hsfront, htfront, hbefore, hafter⟩ :=
+      exists_frontier_pair_of_not_mem hK hγ haK hbK hc hcK
+    exact ⟨s, t, ⟨hs.1, hs.2.le.trans hc.2⟩,
+      ⟨hc.1.trans ht.1.le, ht.2⟩, hs.2.trans ht.1, hsfront, htfront, hbefore, hafter⟩
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.mapsTo_or_exists_frontier_pair then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.mapsTo_or_exists_frontier_pair"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.mapsTo_or_exists_frontier_pair ``Submission.DifferentialGeometry.mapsTo_or_exists_frontier_pair
+
+end DifferentialGeometry
+
+set_option autoImplicit false
+open _root_.Set
+
+namespace DifferentialGeometry
+
+theorem exists_first_exit_frontier_Icc_of_not_mapsTo
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {a b : ℝ} (hγ : ContinuousOn γ (_root_.Set.Icc a b))
+    (haK : γ a ∈ interior K) (hexit : ¬ _root_.Set.MapsTo γ (_root_.Set.Icc a b) K) :
+    ∃ t ∈ _root_.Set.Ioo a b, _root_.Set.MapsTo γ (_root_.Set.Icc a t) K ∧ γ t ∈ frontier K := by
+  obtain ⟨c, hc, hcK⟩ : ∃ c ∈ _root_.Set.Icc a b, γ c ∉ K := by
+    simpa only [_root_.Set.MapsTo, _root_.Classical.not_forall, exists_prop] using hexit
+  have hac : a < c := lt_of_le_of_ne hc.1 (by
+    intro heq
+    exact hcK (heq ▸ interior_subset haK))
+  have hleft : ContinuousOn (fun u : ℝ => γ (a + u)) (_root_.Set.Icc 0 (c - a)) :=
+    hγ.comp (continuous_const.add continuous_id).continuousOn (by
+      intro u hu
+      constructor <;> linarith [hu.1, hu.2, hc.2])
+  obtain ⟨t, ht, hstay, hfront⟩ := exists_first_exit_frontier hK (sub_pos.mpr hac) hleft
+    (by simpa using haK) (by simpa using hcK)
+  have htc : t < c - a := lt_of_le_of_ne ht.2 (by
+    intro heq
+    have hh := hstay t ⟨ht.1.le, le_rfl⟩
+    rw [heq, add_sub_cancel] at hh
+    exact hcK hh)
+  refine ⟨a + t, ⟨by linarith [ht.1], by linarith [htc, hc.2]⟩, ?_, hfront⟩
+  intro u hu
+  have hu' : u - a ∈ _root_.Set.Icc 0 t := ⟨by linarith [hu.1], by linarith [hu.2]⟩
+  simpa using hstay (u - a) hu'
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_first_exit_frontier_Icc_of_not_mapsTo then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_first_exit_frontier_Icc_of_not_mapsTo"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_first_exit_frontier_Icc_of_not_mapsTo ``Submission.DifferentialGeometry.exists_first_exit_frontier_Icc_of_not_mapsTo
+
+theorem exists_last_entry_frontier_Icc_of_not_mapsTo
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {a b : ℝ} (hγ : ContinuousOn γ (_root_.Set.Icc a b))
+    (hbK : γ b ∈ interior K) (hexit : ¬ _root_.Set.MapsTo γ (_root_.Set.Icc a b) K) :
+    ∃ t ∈ _root_.Set.Ioo a b, _root_.Set.MapsTo γ (_root_.Set.Icc t b) K ∧ γ t ∈ frontier K := by
+  obtain ⟨c, hc, hcK⟩ : ∃ c ∈ _root_.Set.Icc a b, γ c ∉ K := by
+    simpa only [_root_.Set.MapsTo, _root_.Classical.not_forall, exists_prop] using hexit
+  have hcb : c < b := lt_of_le_of_ne hc.2 (by
+    intro heq
+    exact hcK (heq.symm ▸ interior_subset hbK))
+  have hright : ContinuousOn (fun u : ℝ => γ (b - u)) (_root_.Set.Icc 0 (b - c)) :=
+    hγ.comp (continuous_const.sub continuous_id).continuousOn (by
+      intro u hu
+      constructor <;> linarith [hu.1, hu.2, hc.1])
+  obtain ⟨t, ht, hstay, hfront⟩ := exists_first_exit_frontier hK (sub_pos.mpr hcb) hright
+    (by simpa using hbK) (by simpa using hcK)
+  have htc : t < b - c := lt_of_le_of_ne ht.2 (by
+    intro heq
+    have hh := hstay t ⟨ht.1.le, le_rfl⟩
+    rw [heq, sub_sub_cancel] at hh
+    exact hcK hh)
+  refine ⟨b - t, ⟨by linarith [htc, hc.1], by linarith [ht.1]⟩, ?_, hfront⟩
+  intro u hu
+  have hu' : b - u ∈ _root_.Set.Icc 0 t := ⟨by linarith [hu.2], by linarith [hu.1]⟩
+  simpa using hstay (b - u) hu'
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_last_entry_frontier_Icc_of_not_mapsTo then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_last_entry_frontier_Icc_of_not_mapsTo"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_last_entry_frontier_Icc_of_not_mapsTo ``Submission.DifferentialGeometry.exists_last_entry_frontier_Icc_of_not_mapsTo
+
+end DifferentialGeometry
+
+section
+
+namespace DifferentialGeometry
+
+theorem exists_first_exit_frontier_Icc_of_mem_of_not_mapsTo
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {a b : ℝ} (hγ : ContinuousOn γ (_root_.Set.Icc a b))
+    (haK : γ a ∈ K) (hexit : ¬ _root_.Set.MapsTo γ (_root_.Set.Icc a b) K) :
+    ∃ t ∈ _root_.Set.Ico a b, _root_.Set.MapsTo γ (_root_.Set.Icc a t) K ∧ _root_.Set.MapsTo γ (_root_.Set.Ico a t) (interior K) ∧
+      γ t ∈ frontier K ∧ (γ a ∈ interior K → a < t) := by
+  obtain ⟨c, hc, hcK⟩ : ∃ c ∈ _root_.Set.Icc a b, γ c ∉ K := by
+    simpa only [_root_.Set.MapsTo, _root_.Classical.not_forall, exists_prop] using hexit
+  have hac : a < c := lt_of_le_of_ne hc.1 (by
+    intro h
+    exact hcK (h ▸ haK))
+  by_cases haInt : γ a ∈ interior K
+  · have hleft : ContinuousOn (fun u : ℝ => γ (a + u)) (_root_.Set.Icc 0 (c - a)) :=
+      hγ.comp (continuous_const.add continuous_id).continuousOn (by
+        intro u hu
+        constructor <;> linarith [hu.1, hu.2, hc.2])
+    obtain ⟨t, ht, hbefore, hfront⟩ := exists_first_exit_frontier_of_not_mem_interior
+      (sub_pos.mpr hac) hleft (by simpa using haInt)
+      (by simpa using fun h => hcK (interior_subset h))
+    have htK : γ (a + t) ∈ K := hK.closure_eq ▸ frontier_subset_closure hfront
+    have htc : t < c - a := lt_of_le_of_ne ht.2 (by
+      intro heq
+      apply hcK
+      simpa only [heq, add_sub_cancel] using htK)
+    have hbefore' : _root_.Set.MapsTo γ (_root_.Set.Ico a (a + t)) (interior K) := by
+      intro u hu
+      have hu' : u - a ∈ _root_.Set.Ico 0 t := ⟨by linarith [hu.1], by linarith [hu.2]⟩
+      simpa using hbefore (u - a) hu'
+    refine ⟨a + t, ⟨by linarith [ht.1], by linarith [htc, hc.2]⟩, ?_,
+      hbefore', hfront, fun _ => by linarith [ht.1]⟩
+    intro u hu
+    rcases hu.2.lt_or_eq with hlt | heq
+    · exact interior_subset (hbefore' ⟨hu.1, hlt⟩)
+    · exact heq ▸ htK
+  · refine ⟨a, ⟨le_rfl, hac.trans_le hc.2⟩, ?_, ?_,
+      ⟨subset_closure haK, haInt⟩, fun h => False.elim (haInt h)⟩
+    · intro u hu
+      have hu' : u = a := le_antisymm hu.2 hu.1
+      exact hu'.symm ▸ haK
+    · intro u hu
+      exact False.elim ((not_lt_of_ge hu.1) hu.2)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_first_exit_frontier_Icc_of_mem_of_not_mapsTo then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_first_exit_frontier_Icc_of_mem_of_not_mapsTo"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_first_exit_frontier_Icc_of_mem_of_not_mapsTo ``Submission.DifferentialGeometry.exists_first_exit_frontier_Icc_of_mem_of_not_mapsTo
+
+end DifferentialGeometry
+
+end
+
+section
+
+open _root_.Set
+
+namespace DifferentialGeometry
+
+theorem exists_last_entry_frontier_Icc_of_mem_of_not_mapsTo
+    {X : Type*} [TopologicalSpace X] {K : Set X} (hK : IsClosed K)
+    {γ : ℝ → X} {a b : ℝ} (hγ : ContinuousOn γ (_root_.Set.Icc a b))
+    (hbK : γ b ∈ K) (hexit : ¬ _root_.Set.MapsTo γ (_root_.Set.Icc a b) K) :
+    ∃ t ∈ _root_.Set.Ioc a b, _root_.Set.MapsTo γ (_root_.Set.Icc t b) K ∧ γ t ∈ frontier K := by
+  obtain ⟨c, hc, hcK⟩ : ∃ c ∈ _root_.Set.Icc a b, γ c ∉ K := by
+    simpa only [_root_.Set.MapsTo, _root_.Classical.not_forall, exists_prop] using hexit
+  have hcb : c < b := lt_of_le_of_ne hc.2 (by
+    intro heq
+    exact hcK (heq.symm ▸ hbK))
+  have hright : ContinuousOn (fun u : ℝ => γ (b - u)) (_root_.Set.Icc 0 (b - c)) :=
+    hγ.comp (continuous_const.sub continuous_id).continuousOn (by
+      intro u hu
+      constructor <;> linarith [hu.1, hu.2, hc.1])
+  obtain ⟨t, ht, hstay, hfront⟩ := exists_first_exit_frontier_of_mem hK
+    (sub_pos.mpr hcb) hright (by simpa using hbK) (by simpa using hcK)
+  refine ⟨b - t, ⟨by linarith [ht.2, hc.1], by linarith [ht.1]⟩, ?_, hfront⟩
+  intro u hu
+  have hu' : b - u ∈ _root_.Set.Icc 0 t := ⟨by linarith [hu.2], by linarith [hu.1]⟩
+  simpa using hstay (b - u) hu'
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.exists_last_entry_frontier_Icc_of_mem_of_not_mapsTo then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.exists_last_entry_frontier_Icc_of_mem_of_not_mapsTo"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.exists_last_entry_frontier_Icc_of_mem_of_not_mapsTo ``Submission.DifferentialGeometry.exists_last_entry_frontier_Icc_of_mem_of_not_mapsTo
+
+end DifferentialGeometry
+
+end

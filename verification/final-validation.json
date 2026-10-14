@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "target_sha256": "9609b79bd21353e74225bf0e87777ec0a5da6ba3448846fd0ee07b531a596d91",
+  "solution_axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "target_integrity_passed": true,
+  "namespace_audit_passed": true,
+  "import_policy_passed": true,
+  "kernel_replay_passed": true,
+  "transformer_sha256": "1cfa9032c205dc5558bf2ebf6cf8b2bf2b40dcc3a45215a2d6414ff3782e146a",
+  "helper_modules": 14234,
+  "submission_sha256": "5470449cda2053ff52bf4ed76312ddd3906a01aa41e6f56e68e6e17a72e49220",
+  "source_manifest_sha256": "d7edd3aed24184f7c35e4bec89c1964c00eef4eb4b607e18de0257d8cc99cec4",
+  "binary_manifest_sha256": "65e35b0af7255d6e4c93cfdda643a061e289020f993a77899f93313e04380f89",
+  "kernel_checker_sha256": "335ed2d764a93ce69d205ca3b9c86b02ecd0ab5fea206f03861bc9d2bfc502b2",
+  "evidence_sha256": {
+    "solution-check.log": "90acc31786856790922b79b9b9dfabf58675a5f8945e8afb2f6f47d674a14013",
+    "solution-axioms.json": "b5f02061835a25d0315f543fe5589744b9c4af1ce414526a31496a0e8861fca5",
+    "import-policy.json": "cb99c131f5836d8899bf13e4074d50247bdb64a09029aec9c2ebc5d51eaf8493",
+    "namespace-audit.json": "37e47d0bcb18497a5fd7a0d6a6a78365b899d9f7df342742aca863c3d905a592",
+    "kernel-replay.json": "b933cfd447a7176687108220ac5cabd1e05891e2eb13c5b26fc8dc5454c6200d",
+    "modules.txt": "cc19b008e3d85865d8ea754cd2722a7ced1b8517d60bf234ce8d917e45ee6702"
+  },
+  "trusted_declarations_compared": 798651,
+  "new_declarations_replayed": 237010,
+  "local_validation_only": true,
+  "mathdb_acceptance": "not yet verified",
+  "wall_seconds": 2694.55
+}

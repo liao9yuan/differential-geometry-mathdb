@@ -1,0 +1,73 @@
+import Submission.DifferentialGeometry.External.CanonicalTopology.Topology.Homology.ContractiblePair
+import Submission.DifferentialGeometry.External.CanonicalTopology.Topology.Homology.ConnectedZeroHomology
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+/-! # The degree-one part of the same contractible-pair computation -/
+
+noncomputable section
+
+open _root_.CategoryTheory _root_.CategoryTheory.Limits _root_.AlgebraicTopology _root_.ContinuousMap _root_.Set _root_.Module
+
+universe u
+
+namespace DifferentialGeometry.Topology
+
+variable {X : Type u} [TopologicalSpace X]
+
+/-- In a path-connected original ambient space, a contractible subspace
+also makes the SAME absolute-to-relative map invertible in degree one. -/
+theorem integralAbsoluteToRelative_one_isIso_of_contractible [PathConnectedSpace X]
+    (A : Set X) [ContractibleSpace A] :
+    IsIso (HomologicalComplex.homologyMap (integralRelativeChainSequence A).g 1) := by
+  let := integralSingularHomology_subsingleton_of_contractible 1 (by omega) A
+  have hz := ModuleCat.isZero_of_subsingleton (integralSingularHomology 1 A)
+  have hm := ((integralRelativeChainSequence_shortExact A).homology_exact₂ 1).mono_g (hz.eq_of_src _ _)
+  have hi := integralSingularHomologyZeroMap_isIso (singularSubspaceInclusion A)
+  have hs := (integralRelativeChainSequence_shortExact A).homology_exact₁ 1 0 (by simp)
+  have hδ := hs.mono_g_iff.mp (IsIso.mono_of_iso
+    (HomologicalComplex.homologyMap (integralSingularChainMap (singularSubspaceInclusion A)) 0))
+  have he := ((integralRelativeChainSequence_shortExact A).homology_exact₃ 1 0 (by simp)).epi_f hδ
+  exact _root_.CategoryTheory.isIso_of_mono_of_epi _
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Topology.integralAbsoluteToRelative_one_isIso_of_contractible then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Topology.integralAbsoluteToRelative_one_isIso_of_contractible"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Topology.integralAbsoluteToRelative_one_isIso_of_contractible ``Submission.DifferentialGeometry.Topology.integralAbsoluteToRelative_one_isIso_of_contractible
+
+/-- The isomorphism is the actual degree-one quotient-projection map. -/
+def integralAbsoluteToRelativeOneIsoOfContractible [PathConnectedSpace X]
+    (A : Set X) [ContractibleSpace A] :
+    integralSingularHomology 1 X ≅ integralRelativeHomology 1 A :=
+  @_root_.CategoryTheory.asIso _ _ _ _ (HomologicalComplex.homologyMap (integralRelativeChainSequence A).g 1)
+    (integralAbsoluteToRelative_one_isIso_of_contractible A)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Topology.integralAbsoluteToRelativeOneIsoOfContractible then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Topology.integralAbsoluteToRelativeOneIsoOfContractible"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Topology.integralAbsoluteToRelativeOneIsoOfContractible ``Submission.DifferentialGeometry.Topology.integralAbsoluteToRelativeOneIsoOfContractible
+
+/-- The original connecting map is injective when its ambient space is
+contractible, including the low degree needed for circle homology. -/
+theorem integralRelativeConnecting_zero_injective [ContractibleSpace X] (A : Set X) :
+    Function.Injective (integralRelativeConnecting 0 A) := by
+  let := integralSingularHomology_subsingleton_of_contractible 1 (by omega) X
+  have hz := ModuleCat.isZero_of_subsingleton (integralSingularHomology 1 X)
+  have hm := ((integralRelativeChainSequence_shortExact A).homology_exact₃ 1 0 (by simp)).mono_g
+    (hz.eq_of_src _ _)
+  exact (ModuleCat.mono_iff_injective _).mp hm
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Topology.integralRelativeConnecting_zero_injective then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Topology.integralRelativeConnecting_zero_injective"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Topology.integralRelativeConnecting_zero_injective ``Submission.DifferentialGeometry.Topology.integralRelativeConnecting_zero_injective
+
+end DifferentialGeometry.Topology

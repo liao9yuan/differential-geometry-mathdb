@@ -1,0 +1,197 @@
+import Submission.DifferentialGeometry.Tensor.RSTensor.Coordinates.CoordinateBasis
+import Submission.DifferentialGeometry.Tensor.Multilinear.Bundle.TensorProduct
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+
+noncomputable section
+
+namespace DifferentialGeometry
+namespace Tensor0SBundle
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Module
+open scoped _root_.Manifold _root_.BigOperators
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E] [FiniteDimensional Real E]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I 1 M]
+variable {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
+variable {x : M}
+
+section Covariant
+
+variable {s q : Nat}
+variable (basis : Module.Basis Idx Real (TangentSpace I x))
+
+omit [FiniteDimensional ℝ E] [Fintype Idx] [DecidableEq Idx] in
+theorem component0S_add
+    (A B : Tensor0SSpace s I x) (slots : Fin s -> Idx) :
+    component0S (I := I) basis (A + B) slots =
+      component0S (I := I) basis A slots + component0S (I := I) basis B slots := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.component0S_add then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.component0S_add"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.component0S_add ``Submission.DifferentialGeometry.Tensor0SBundle.component0S_add
+
+omit [FiniteDimensional ℝ E] [Fintype Idx] [DecidableEq Idx] in
+theorem component0S_smul
+    (c : Real) (A : Tensor0SSpace s I x) (slots : Fin s -> Idx) :
+    component0S (I := I) basis (c • A) slots =
+      c * component0S (I := I) basis A slots := by
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.component0S_smul then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.component0S_smul"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.component0S_smul ``Submission.DifferentialGeometry.Tensor0SBundle.component0S_smul
+
+omit [FiniteDimensional ℝ E] [Fintype Idx] [DecidableEq Idx] in
+theorem component0S_product
+    (A : Tensor0SSpace s I x) (B : Tensor0SSpace q I x)
+    (slots : Fin (s + q) -> Idx) :
+    component0S (I := I) basis
+        (Bundle.continuousMultilinearMap.productFun
+          (𝕜 := Real) (F := E) (E := TangentSpace I) A B) slots =
+      component0S (I := I) basis A (slots ∘ Fin.castAdd q) *
+        component0S (I := I) basis B (slots ∘ Fin.natAdd s) := by
+  have hP := Bundle.continuousMultilinearMap.product_fun_apply
+    (𝕜 := Real) (F := E) (E := TangentSpace I) A B
+    (fun a => basis (slots a))
+  simp only [component0S_apply]
+  exact hP
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.component0S_product then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.component0S_product"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.component0S_product ``Submission.DifferentialGeometry.Tensor0SBundle.component0S_product
+
+end Covariant
+
+section Mixed
+
+variable {r s : Nat}
+variable (basis : Module.Basis Idx Real (TangentSpace I x))
+
+def componentRS
+    (T : TensorRSSpace r s I x)
+    (upper : Fin r -> Idx) (lower : Fin s -> Idx) : Real :=
+  component0S (I := I) basis (T (basisTensor0S (I := I) basis upper)) lower
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.componentRS then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.componentRS"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.componentRS ``Submission.DifferentialGeometry.Tensor0SBundle.componentRS
+
+omit [DecidableEq Idx] in
+@[simp]
+theorem componentRS_apply
+    (T : TensorRSSpace r s I x)
+    (upper : Fin r -> Idx) (lower : Fin s -> Idx) :
+    componentRS (I := I) basis T upper lower =
+      (T (basisTensor0S (I := I) basis upper))
+        (fun a => basis (lower a)) :=
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.componentRS_apply then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.componentRS_apply"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.componentRS_apply ``Submission.DifferentialGeometry.Tensor0SBundle.componentRS_apply
+
+omit [DecidableEq Idx] in
+theorem componentRS_congr_slots
+    (T : TensorRSSpace r s I x)
+    {upper upper' : Fin r -> Idx} {lower lower' : Fin s -> Idx}
+    (hu : upper = upper') (hl : lower = lower') :
+    componentRS (I := I) basis T upper lower =
+      componentRS (I := I) basis T upper' lower' := by
+  rw [hu, hl]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.componentRS_congr_slots then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.componentRS_congr_slots"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.componentRS_congr_slots ``Submission.DifferentialGeometry.Tensor0SBundle.componentRS_congr_slots
+
+omit [DecidableEq Idx] in
+private theorem componentRS_expand_input
+    (T : TensorRSSpace r s I x) (input : Tensor0SSpace r I x)
+    (lower : Fin s -> Idx) :
+    component0S (I := I) basis (T input) lower =
+      ∑ upper : Fin r -> Idx,
+        component0S (I := I) basis input upper *
+          componentRS (I := I) basis T upper lower := by
+  have hinput :
+      (∑ upper : Fin r -> Idx,
+        component0S (I := I) basis input upper • basisTensor0S (I := I) basis upper) =
+        input := by
+    simpa [basisTensor0S] using (tensor0SBasis (I := I) basis r).sum_repr input
+  calc
+    component0S (I := I) basis (T input) lower =
+        component0S (I := I) basis
+          (T (∑ upper : Fin r -> Idx,
+            component0S (I := I) basis input upper •
+              basisTensor0S (I := I) basis upper)) lower := by
+          rw [hinput]
+    _ = ∑ upper : Fin r -> Idx,
+        component0S (I := I) basis input upper *
+          componentRS (I := I) basis T upper lower := by
+          let inputSum : Tensor0SSpace r I x :=
+            ∑ upper : Fin r -> Idx,
+              component0S (I := I) basis input upper •
+                basisTensor0S (I := I) basis upper
+          change component0S (I := I) basis (T inputSum) lower =
+            ∑ upper : Fin r -> Idx,
+              component0S (I := I) basis input upper *
+                componentRS (I := I) basis T upper lower
+          rw [← congrFun (coordMap0S_apply (I := I) basis (T inputSum)) lower]
+          dsimp [inputSum]
+          rw [map_sum]
+          simp [map_smul]
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Tensor0SBundle.componentRS_expand_input
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Tensor0SBundle.componentRS_expand_input target :: scope.openDecls } }
+
+omit [DecidableEq Idx] in
+theorem extRS_basis
+    {A B : TensorRSSpace r s I x}
+    (h : ∀ upper : Fin r -> Idx, ∀ lower : Fin s -> Idx,
+      componentRS (I := I) basis A upper lower =
+        componentRS (I := I) basis B upper lower) :
+    A = B := by
+  classical
+  have key : ∀ input : Tensor0SSpace r I x, A input = B input := by
+    intro input
+    apply ext0S_basis (I := I) basis
+    intro lower
+    rw [componentRS_expand_input (I := I) basis A input lower,
+      componentRS_expand_input (I := I) basis B input lower]
+    refine Finset.sum_congr rfl fun upper _ => ?_
+    rw [h upper lower]
+  exact ContinuousLinearMap.ext (f := A) (g := B) key
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Tensor0SBundle.extRS_basis then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Tensor0SBundle.extRS_basis"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Tensor0SBundle.extRS_basis ``Submission.DifferentialGeometry.Tensor0SBundle.extRS_basis
+
+end Mixed
+
+end Tensor0SBundle
+end DifferentialGeometry

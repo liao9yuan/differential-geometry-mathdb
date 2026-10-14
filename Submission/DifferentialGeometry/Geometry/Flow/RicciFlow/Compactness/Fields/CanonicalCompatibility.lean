@@ -1,0 +1,417 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Metric.Canonical.Compatibility
+
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Foundations.WindowEquivalence
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Shi.Local
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Bounds.Source.CovariantLipschitz
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Fields.Open.Existence
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+set_option autoImplicit false
+
+noncomputable section
+set_option backward.isDefEq.respectTransparency false
+
+universe u uE uH
+
+namespace DifferentialGeometry
+namespace CheegerGromovCompactness
+
+open _root_.Set
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.ContDiff _root_.Topology
+
+variable {E : Type uE} [NormedAddCommGroup E] [NormedSpace Real E]
+  [FiniteDimensional Real E]
+  [NeZero (Module.finrank Real E)]
+variable {H : Type uH} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+variable {X : PointedFlowSeq.{u, uE, uH} (I := I)}
+
+theorem exists_smooth_flow_limit_subsequence_of_canonical_metric_compactness
+    (canon : CanonicalMetricCompactness (I := I) (X.atZero (I := I)))
+    {a b : Real} (hzero : (0 : Real) ∈ Set.Ioo a b)
+    (hD : X.D = RealTimeInterval.openInterval a b 0 hzero)
+    (hcomplete : FlowMetricComplete (I := I) X)
+    (hcurv : FlowCurvatureBoundedOnCompactWindows (I := I) X) :
+    ∃ d : SmoothFlowLimitSubsequence (I := I) X canon.compactness,
+      ∀ t : Real, t ∈ X.D.carrier →
+        MetricComplete (I := I) (d.limit.L.atTime (I := I) t) := by
+  classical
+  let mc := canon.compactness
+  let Phi := pointedCGHMapsOfManifold (I := I) X
+    mc.limit mc.subseq mc.maps
+  let : TopologicalSpace mc.limit.M := mc.limit.topology
+  let : ChartedSpace H mc.limit.M := mc.limit.charted
+  let : T2Space mc.limit.M := mc.limit.t2
+  let : IsManifold I ∞ mc.limit.M := mc.limit.smooth
+  let : SigmaCompactSpace mc.limit.M := mc.limit.sigmaCompact
+  have hsrc : SourceIsSigmaCompact (I := I) Phi := by
+    intro k
+    exact Geometry.isSigmaCompact_of_isOpen I
+      (PointedCGHMaps.source_open (I := I) Phi k)
+  have htgt : TargetIsSigmaCompact (I := I) Phi := by
+    intro k
+    let : TopologicalSpace (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).topology
+    let : ChartedSpace H (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).charted
+    let : SigmaCompactSpace (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).sigmaCompact
+    exact Geometry.isSigmaCompact_of_isOpen I
+      (PointedCGHMaps.target_open (I := I) Phi k)
+  let bf := Classical.choice (nonempty_bumpFamily (I := I) Phi)
+  let gRefT : ∀ k : Nat,
+      letI : TopologicalSpace (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).topology
+      letI : ChartedSpace H (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).charted
+      letI : IsManifold I ∞ (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).smooth
+      SmoothRiemannianMetric I (X.term (mc.subseq k)).M :=
+    fun k =>
+      letI : TopologicalSpace (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).topology
+      letI : ChartedSpace H (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).charted
+      letI : T2Space (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).t2
+      letI : IsManifold I ∞ (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).smooth
+      letI : SigmaCompactSpace (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).sigmaCompact
+      (X.term (mc.subseq k)).S.family.metric 0
+  have hcanonRel := CanonicalMetricCompactness.metric_uniformly_equivalent (I := I) canon hsrc htgt
+  dsimp only at hcanonRel
+  obtain ⟨Crel, hCrel, hrelZero⟩ := hcanonRel
+  have hsrcZero (k : Nat) :
+      targetReferenceMetricPullback (I := I) Phi gRefT k =
+        sourceMetric (I := I) Phi hsrc htgt k 0 := by
+    let : TopologicalSpace (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).topology
+    let : ChartedSpace H (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).charted
+    let : T2Space (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).t2
+    let : IsManifold I ∞ (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).smooth
+    let : SigmaCompactSpace (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).sigmaCompact
+    rfl
+  have hrel : ∀ k : Nat,
+      letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+        sourceDomTop (I := I) Phi k
+      letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+        sourceDomCharted (I := I) Phi k
+      letI : T2Space (SourceDomain (I := I) Phi k) :=
+        sourceDomT2 (I := I) Phi k
+      letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+        sourceDomSmooth (I := I) Phi k
+      MetricUniformEquivalentOn (I := I)
+        (Set.univ : Set (SourceDomain (I := I) Phi k))
+        (sourceMetricRestriction (I := I) Phi mc.limit.metric k)
+        (targetReferenceMetricPullback (I := I) Phi gRefT k) Crel := by
+    intro k
+    rw [hsrcZero k]
+    exact hrelZero k
+  have hinit := CanonicalMetricCompactness.metric_covariant_derivatives_bounded (I := I) canon hsrc htgt
+  dsimp only at hinit
+  have hcp := CanonicalMetricCompactness.metric_converges_on_compact_sets (I := I) canon hsrc htgt
+  dsimp only at hcp
+  let beta : Nat → Real := fun n => RealTimeInterval.openWindowLeft a 0 n
+  let psi : Nat → Real := fun n => RealTimeInterval.openWindowRight b 0 n
+  have hwindow : ∀ n : Nat, ∃ A Bmax : Real,
+      0 ≤ A ∧ 1 ≤ Bmax ∧
+        (∀ t : Real, t ∈ Set.Icc (beta n) (psi n) →
+          metricEquivalenceFactor 1 A t 0 ≤ Bmax) ∧
+        ∀ k : Nat,
+          letI : TopologicalSpace (X.term k).M := (X.term k).topology
+          letI : ChartedSpace H (X.term k).M := (X.term k).charted
+          letI : T2Space (X.term k).M := (X.term k).t2
+          letI : IsManifold I ∞ (X.term k).M := (X.term k).smooth
+          letI : SigmaCompactSpace (X.term k).M := (X.term k).sigmaCompact
+          MetricUniformEquivalentOnWindow (I := I) Set.univ
+            (beta n) (psi n) ((X.term k).S.family.metric 0)
+            (fun _ t => (X.term k).S.family.metric t)
+            (fun t => metricEquivalenceFactor 1 A t 0) := by
+    intro n
+    simpa only [beta, psi] using
+      FlowCurvatureBoundedOnCompactWindows.metricEquiv_open (I := I) hzero X hD hcurv n
+  choose A Bmax hwindowData using hwindow
+  let B : Nat → Real → Real := fun n t =>
+    metricEquivalenceFactor 1 (A n) t 0
+  have hA (n : Nat) : 0 ≤ A n := (hwindowData n).1
+  have hBmax (n : Nat) : 1 ≤ Bmax n := (hwindowData n).2.1
+  have hBmajor (n : Nat) : ∀ t : Real, t ∈ Set.Icc (beta n) (psi n) →
+      B n t ≤ Bmax n := by
+    simpa only [B] using (hwindowData n).2.2.1
+  have hequivT (n : Nat) : ∀ k : Nat,
+      letI : TopologicalSpace (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).topology
+      letI : ChartedSpace H (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).charted
+      letI : T2Space (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).t2
+      letI : IsManifold I ∞ (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).smooth
+      letI : SigmaCompactSpace (X.term (mc.subseq k)).M :=
+        (X.term (mc.subseq k)).sigmaCompact
+      MetricUniformEquivalentOnWindow (I := I) (Phi.target k)
+        (beta n) (psi n) (gRefT k)
+        (fun _ t => (X.term (mc.subseq k)).S.family.metric t) (B n) := by
+    intro k
+    let : TopologicalSpace (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).topology
+    let : ChartedSpace H (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).charted
+    let : T2Space (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).t2
+    let : IsManifold I ∞ (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).smooth
+    let : SigmaCompactSpace (X.term (mc.subseq k)).M :=
+      (X.term (mc.subseq k)).sigmaCompact
+    have hall := (hwindowData n).2.2.2 (mc.subseq k)
+    have hrestricted := metricUniformEquivalentOnWindow_mono (I := I)
+      (Set.subset_univ (Phi.target k)) hall
+    simpa only [gRefT, B] using hrestricted
+  have hzeroWindow (n : Nat) : (0 : Real) ∈ Set.Icc (beta n) (psi n) := by
+    simpa only [beta, psi, RealTimeInterval.openWindow] using
+      RealTimeInterval.initial_mem_window hzero n
+  have hbetaPsi (n : Nat) : beta n ≤ psi n :=
+    (hzeroWindow n).1.trans (hzeroWindow n).2
+  have hregular (n : Nat) : Set.Icc (beta n) (psi n) ⊆ X.D.regular := by
+    intro t ht
+    rw [hD]
+    exact RealTimeInterval.openWindow_subset hzero n ht
+  have hShiT (n N : Nat) : ∃ KShi : Real, 0 ≤ KShi ∧
+      ∀ k : Nat,
+        letI : TopologicalSpace (X.term (mc.subseq k)).M :=
+          (X.term (mc.subseq k)).topology
+        letI : ChartedSpace H (X.term (mc.subseq k)).M :=
+          (X.term (mc.subseq k)).charted
+        letI : T2Space (X.term (mc.subseq k)).M :=
+          (X.term (mc.subseq k)).t2
+        letI : IsManifold I ∞ (X.term (mc.subseq k)).M :=
+          (X.term (mc.subseq k)).smooth
+        letI : SigmaCompactSpace (X.term (mc.subseq k)).M :=
+          (X.term (mc.subseq k)).sigmaCompact
+        MovingShiBoundOn (I := I) (Phi.target k) (beta n) (psi n)
+          (fun _ t => (X.term (mc.subseq k)).S.family.metric t) N KShi := by
+    obtain ⟨KShi, hKShi, hShiAll⟩ :=
+      FlowCurvatureBoundedOnCompactWindows.movingShi_open (I := I) hzero X hD hcomplete hcurv n N
+    refine ⟨KShi, hKShi, ?_⟩
+    intro k
+    have hk := hShiAll (mc.subseq k)
+    intro s hs i t ht x _hx
+    exact hk s hs i t ht x (Set.mem_univ x)
+  have hShiSource (n : Nat) : ∀ N : Nat, ∃ KShi : Real, 0 ≤ KShi ∧
+      ∀ k : Nat,
+        letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+          sourceDomTop (I := I) Phi k
+        letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+          sourceDomCharted (I := I) Phi k
+        letI : T2Space (SourceDomain (I := I) Phi k) :=
+          sourceDomT2 (I := I) Phi k
+        letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+          sourceDomSmooth (I := I) Phi k
+        letI : SigmaCompactSpace (SourceDomain (I := I) Phi k) :=
+          sourceDomSigmaOf (I := I) Phi k (hsrc k)
+        MovingShiBoundOn (I := I)
+          (Set.univ : Set (SourceDomain (I := I) Phi k))
+          (beta n) (psi n)
+          (fun _ t => sourceMetric (I := I) Phi hsrc htgt k t) N KShi := by
+    intro N
+    obtain ⟨KShi, hKShi, hShi⟩ := hShiT n N
+    exact ⟨KShi, hKShi, fun k =>
+      sourceShi (I := I) Phi hsrc htgt (beta n) (psi n) N KShi hShi k⟩
+  have hBsrc (n : Nat) : 1 ≤ Crel * Bmax n := by
+    exact one_le_mul_of_one_le_of_one_le hCrel (hBmax n)
+  have hequivSource (n : Nat) : ∀ k : Nat,
+      letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+        sourceDomTop (I := I) Phi k
+      letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+        sourceDomCharted (I := I) Phi k
+      letI : T2Space (SourceDomain (I := I) Phi k) :=
+        sourceDomT2 (I := I) Phi k
+      letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+        sourceDomSmooth (I := I) Phi k
+      letI : SigmaCompactSpace (SourceDomain (I := I) Phi k) :=
+        sourceDomSigmaOf (I := I) Phi k (hsrc k)
+      ∀ t : Real, t ∈ Set.Icc (beta n) (psi n) →
+        MetricUniformEquivalentOn (I := I)
+          (Set.univ : Set (SourceDomain (I := I) Phi k))
+          (sourceMetricRestriction (I := I) Phi mc.limit.metric k)
+          (sourceMetric (I := I) Phi hsrc htgt k t) (Crel * Bmax n) := by
+    intro k t ht
+    let : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+      sourceDomTop (I := I) Phi k
+    let : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+      sourceDomCharted (I := I) Phi k
+    let : T2Space (SourceDomain (I := I) Phi k) :=
+      sourceDomT2 (I := I) Phi k
+    let : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+      sourceDomSmooth (I := I) Phi k
+    let : SigmaCompactSpace (SourceDomain (I := I) Phi k) :=
+      sourceDomSigmaOf (I := I) Phi k (hsrc k)
+    have hEq := sourceEquivOn (I := I) Phi mc.limit.metric hsrc htgt
+      (beta n) (psi n) gRefT (B n) Crel (hequivT n) hrel k t ht
+    exact metricUniformEquivalentOn_of_le (I := I) hEq
+      (mul_le_mul_of_nonneg_left (hBmajor n t ht) (zero_le_one.trans hCrel))
+  have sourceData (n : Nat) : SourceMetricCovariantLipschitzBounds (I := I) Phi mc.limit.metric
+      hsrc htgt (beta n) (psi n) :=
+    source_metric_covariant_lipschitz_bounds_of_solution (I := I) Phi mc.limit.metric hsrc htgt
+      (hzeroWindow n) (hregular n)
+      (Crel * Bmax n) (hBsrc n) (hequivSource n) (hShiSource n) hinit
+  let cLow : Nat → Real := fun n => (Crel * Bmax n)⁻¹
+  have hcLow (n : Nat) : 0 < cLow n := by
+    exact inv_pos.mpr (zero_lt_one.trans_le (hBsrc n))
+  have hbound : ∀ n k : Nat, ∀ t : Real,
+      t ∈ RealTimeInterval.openWindow a b 0 n →
+      ∀ (y : SourceDomain (I := I) Phi k)
+        (v : letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+              sourceDomTop (I := I) Phi k
+          letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+              sourceDomCharted (I := I) Phi k
+          TangentSpace I y),
+        cLow n * mc.limit.metric.inner (y : mc.limit.M) v v ≤
+          letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+            sourceDomTop (I := I) Phi k
+          letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+            sourceDomCharted (I := I) Phi k
+          letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+            sourceDomSmooth (I := I) Phi k
+          (sourceMetric (I := I) Phi hsrc htgt k t).inner y v v := by
+    intro n k t ht y v
+    have ht' : t ∈ Set.Icc (beta n) (psi n) := by
+      simpa only [beta, psi, RealTimeInterval.openWindow] using ht
+    with_unfolding_all
+      exact hbound_of_equiv (I := I) Phi mc.limit.metric hsrc htgt
+        (beta n) (psi n) gRefT (B n) Crel (Bmax n)
+        (hBmajor n) hCrel (hequivT n) hrel k t ht' y v
+  have hcovTail : ∀ n q : Nat, ∃ C : Real, ∀ (k : Nat) (t : Real),
+      t ∈ RealTimeInterval.openWindow a b 0 n →
+      ∀ z : mc.limit.M, z ∈ bf.grow k →
+        metricCovDerivNorm (I := I) q
+          (gSeqExt (I := I) Phi mc.limit.metric bf hsrc htgt k t)
+          mc.limit.metric z ≤ C := by
+    intro n
+    have hcovSource : ∀ q : Nat, ∃ C : Real, 0 ≤ C ∧
+        ∀ (k : Nat) (t : Real), t ∈ Set.Icc (beta n) (psi n) →
+          ∀ y : SourceDomain (I := I) Phi k, (y : mc.limit.M) ∈ bf.grow k →
+            letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+              sourceDomTop (I := I) Phi k
+            letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+              sourceDomCharted (I := I) Phi k
+            letI : T2Space (SourceDomain (I := I) Phi k) :=
+              sourceDomT2 (I := I) Phi k
+            letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+              sourceDomSmooth (I := I) Phi k
+            letI : SigmaCompactSpace (SourceDomain (I := I) Phi k) :=
+              sourceDomSigmaOf (I := I) Phi k (hsrc k)
+            metricCovDerivNorm (I := I) q
+              (sourceMetric (I := I) Phi hsrc htgt k t)
+              (sourceMetricRestriction (I := I) Phi mc.limit.metric k) y ≤ C := by
+      intro q
+      obtain ⟨C, hC, hboundC⟩ := (sourceData n).cov q
+      exact ⟨C, hC, fun k t ht y _ => hboundC k t ht y⟩
+    have hcov := covTail_of_bounds (I := I) Phi mc.limit.metric bf hsrc htgt
+      (beta n) (psi n) hcovSource
+    intro q
+    obtain ⟨C, hC⟩ := hcov q
+    exact ⟨C, fun k t ht z hz => hC k t (by
+      simpa only [beta, psi, RealTimeInterval.openWindow] using ht) z hz⟩
+  have hlipTail : ∀ n p : Nat, ∃ Lt : Real, 0 ≤ Lt ∧
+      ∀ (k : Nat) (s t : Real),
+        s ∈ RealTimeInterval.openWindow a b 0 n →
+        t ∈ RealTimeInterval.openWindow a b 0 n →
+        ∀ q : Nat, q ≤ p → ∀ z : mc.limit.M, z ∈ bf.grow k →
+          metricDerivNorm (I := I) q
+            (gSeqExt (I := I) Phi mc.limit.metric bf hsrc htgt k s)
+            (gSeqExt (I := I) Phi mc.limit.metric bf hsrc htgt k t)
+            mc.limit.metric z ≤ Lt * |s - t| := by
+    intro n
+    have hlipG : ∀ p : Nat, ∃ Lt : Real, 0 ≤ Lt ∧
+        ∀ (k : Nat) (s t : Real),
+          s ∈ Set.Icc (beta n) (psi n) → t ∈ Set.Icc (beta n) (psi n) →
+          ∀ q : Nat, q ≤ p →
+            ∀ y : SourceDomain (I := I) Phi k, (y : mc.limit.M) ∈ bf.grow k →
+              letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+                sourceDomTop (I := I) Phi k
+              letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+                sourceDomCharted (I := I) Phi k
+              letI : T2Space (SourceDomain (I := I) Phi k) :=
+                sourceDomT2 (I := I) Phi k
+              letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+                sourceDomSmooth (I := I) Phi k
+              letI : SigmaCompactSpace (SourceDomain (I := I) Phi k) :=
+                sourceDomSigmaOf (I := I) Phi k (hsrc k)
+              metricDerivNorm (I := I) q
+                (sourceMetric (I := I) Phi hsrc htgt k s)
+                (sourceMetric (I := I) Phi hsrc htgt k t)
+                (sourceMetricRestriction (I := I) Phi mc.limit.metric k) y ≤ Lt * |s - t| := by
+      intro p
+      obtain ⟨Lt, hLt, hlip⟩ := (sourceData n).lip p
+      exact ⟨Lt, hLt, fun k s t hs ht q hq y _ =>
+        hlip k s t hs ht q hq y⟩
+    have hlip := lipTail_of_source (I := I) Phi mc.limit.metric bf hsrc htgt
+      (beta n) (psi n) hlipG
+    intro p
+    obtain ⟨Lt, hLt, hlipLt⟩ := hlip p
+    refine ⟨Lt, hLt, ?_⟩
+    intro k s t hs ht q hq z hz
+    exact hlipLt k s t
+      (by simpa only [beta, psi, RealTimeInterval.openWindow] using hs)
+      (by simpa only [beta, psi, RealTimeInterval.openWindow] using ht)
+      q hq z hz
+  have hlipSource : ∀ n k : Nat,
+      letI : TopologicalSpace (SourceDomain (I := I) Phi k) :=
+        sourceDomTop (I := I) Phi k
+      letI : ChartedSpace H (SourceDomain (I := I) Phi k) :=
+        sourceDomCharted (I := I) Phi k
+      letI : T2Space (SourceDomain (I := I) Phi k) :=
+        sourceDomT2 (I := I) Phi k
+      letI : IsManifold I ∞ (SourceDomain (I := I) Phi k) :=
+        sourceDomSmooth (I := I) Phi k
+      letI : SigmaCompactSpace (SourceDomain (I := I) Phi k) :=
+        sourceDomSigmaOf (I := I) Phi k (hsrc k)
+      letI : SigmaCompactSpace ↥(sourceOpen (I := I) Phi k) :=
+        sourceDomSigmaOf (I := I) Phi k (hsrc k)
+      letI : T2Space ↥(sourceOpen (I := I) Phi k) :=
+        sourceDomT2 (I := I) Phi k
+      ∀ C : Set (SourceDomain (I := I) Phi k), IsCompact C → ∀ p : Nat,
+        ∃ Ls : Real, 0 ≤ Ls ∧
+          ∀ (s t : Real), s ∈ RealTimeInterval.openWindow a b 0 n →
+            t ∈ RealTimeInterval.openWindow a b 0 n →
+            ∀ q : Nat, q ≤ p →
+              ∀ y : SourceDomain (I := I) Phi k, y ∈ C →
+                metricDerivNorm (I := I) q
+                  (sourceMetric (I := I) Phi hsrc htgt k s)
+                  (sourceMetric (I := I) Phi hsrc htgt k t)
+                  (sourceMetricRestriction (I := I) Phi mc.limit.metric k) y ≤
+                    Ls * |s - t| := by
+    intro n k C _hC p
+    obtain ⟨Ls, hLs, hlip⟩ := (sourceData n).lip p
+    refine ⟨Ls, hLs, ?_⟩
+    intro s t hs ht q hq y _hy
+    exact hlip k s t
+      (by simpa only [beta, psi, RealTimeInterval.openWindow] using hs)
+      (by simpa only [beta, psi, RealTimeInterval.openWindow] using ht)
+      q hq y
+  simpa only [mc] using
+    (exists_complete_smooth_flow_limit_subsequence_of_open_metric_bounds (I := I) (X := X) mc Phi bf hsrc htgt
+      hzero hD cLow hcLow hbound hcovTail hlipTail hlipSource hcp)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.exists_smooth_flow_limit_subsequence_of_canonical_metric_compactness then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.exists_smooth_flow_limit_subsequence_of_canonical_metric_compactness"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.exists_smooth_flow_limit_subsequence_of_canonical_metric_compactness ``Submission.DifferentialGeometry.CheegerGromovCompactness.exists_smooth_flow_limit_subsequence_of_canonical_metric_compactness
+
+end CheegerGromovCompactness
+end DifferentialGeometry

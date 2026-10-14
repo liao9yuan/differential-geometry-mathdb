@@ -1,0 +1,527 @@
+import Submission.DifferentialGeometry.Analysis.Integration.DivergenceTheorem.WithBoundary.Divergence.InteriorCompactSupport
+import Submission.DifferentialGeometry.Analysis.Integration.DivergenceTheorem.WithBoundary.Divergence.POUReduction
+import Submission.DifferentialGeometry.Analysis.Integration.DivergenceTheorem.WithBoundary.Divergence.Global
+import Submission.DifferentialGeometry.Analysis.Integration.DivergenceTheorem.Global.IntegrationByParts
+import Submission.DifferentialGeometry.Geometry.Operator.DirectionalDerivative
+import Submission.DifferentialGeometry.Analysis.Integration.DivergenceTheorem.Global.PartitionOfUnity
+import Submission.DifferentialGeometry.Analysis.Integration.DivergenceTheorem.Global.Support
+import Submission.DifferentialGeometry.Analysis.Integration.Measure.Riemannian.Properties
+import Mathlib.Geometry.Manifold.IsManifold.InteriorBoundary
+import Mathlib.Geometry.Manifold.MFDeriv.SpecificFunctions
+import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.MeasureTheory.Integral.Bochner.Set
+import Mathlib.MeasureTheory.Function.LocallyIntegrable
+import Mathlib.Topology.Algebra.Support
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+
+
+noncomputable section
+
+open _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Set _root_.MeasureTheory
+open scoped _root_.Manifold _root_.Topology _root_.ContDiff _root_.Matrix
+
+namespace DifferentialGeometry
+namespace Integral
+namespace DivergenceTheorem
+namespace WithBoundary
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+  [Module.Finite ℝ E]
+variable {H : Type*} [TopologicalSpace H] {I : ModelWithCorners ℝ E H}
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [IsManifold I ∞ M]
+
+open _root_.Submission.DifferentialGeometry.Integral.Measure
+
+private local instance _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instMeasurableSpace_differentialGeometry : MeasurableSpace E := borel E
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instMeasurableSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instMeasurableSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instBorelSpace_differentialGeometry : BorelSpace E := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instBorelSpace_differentialGeometry
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instBorelSpace_differentialGeometry target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instMeasurableSpace_differentialGeometry_1 : MeasurableSpace M := borel M
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instMeasurableSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instMeasurableSpace_differentialGeometry_1 target :: scope.openDecls } }
+private local instance _root_.Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instBorelSpace_differentialGeometry_1 : BorelSpace M := ⟨rfl⟩
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instBorelSpace_differentialGeometry_1
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.instBorelSpace_differentialGeometry_1 target :: scope.openDecls } }
+
+omit [Module.Finite ℝ E] in
+private lemma isOpen_interior_M : IsOpen (I.interior M) :=
+  I.isOpen_interior (M := M) (n := ∞)
+    (by exact (by decide : (∞ : WithTop ℕ∞) ≠ 0))
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.isOpen_interior_M
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.isOpen_interior_M target :: scope.openDecls } }
+
+lemma Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure
+    [T2Space M] [SigmaCompactSpace M]
+    (g : SmoothRiemannianMetric I M)
+    {f : M → ℝ} (hf : Continuous f) (hcs : HasCompactSupport f) :
+    Integrable f (riemannianVolumeMeasure (I := I) (M := M) g) := by
+  have : _root_.MeasureTheory.IsFiniteMeasureOnCompacts (riemannianVolumeMeasure (I := I) (M := M) g) :=
+    riemannianVolumeMeasure_isFiniteMeasureOnCompacts (I := I) (M := M) g
+  exact hf.integrable_of_hasCompactSupport hcs
+
+run_cmd do
+  Lean.modifyEnv fun env => env.registerNamespace `Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.Continuous
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure
+
+lemma tangentSectionAction_continuous_of_interior_support
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯)
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (hf_int : tsupport f ⊆ I.interior M) :
+    Continuous (tangentSectionAction (I := I) X f) := by
+  classical
+  rw [continuous_iff_continuousAt]
+  intro x
+  by_cases hx_support : x ∈ tsupport f
+  · have hx_int : x ∈ I.interior M := hf_int hx_support
+    have hx_chart : x ∈ (chartAt H x).source := mem_chart_source H x
+    have hx_target_int : extChartAt I x x ∈ interior (extChartAt I x).target :=
+      extChartAt_mem_interior_target_of_isInteriorPoint
+        (I := I) (M := M) x hx_chart hx_int
+    have hsmooth : ContMDiffOn I 𝓘(ℝ) ∞ (tangentSectionAction (I := I) X f)
+        ((extChartAt I x).source ∩
+          (extChartAt I x : M → E) ⁻¹' interior (extChartAt I x).target) :=
+      tangentSectionAction_contMDiffOn (I := I) x X hf
+    have hxsrc : x ∈ (extChartAt I x).source := by
+      rw [extChartAt_source_eq_chartAt_source (I := I)]; exact hx_chart
+    have hxU : x ∈ (extChartAt I x).source ∩
+        (extChartAt I x : M → E) ⁻¹' interior (extChartAt I x).target :=
+      ⟨hxsrc, hx_target_int⟩
+    have hUopen : IsOpen ((extChartAt I x).source ∩
+        (extChartAt I x : M → E) ⁻¹' interior (extChartAt I x).target) := by
+      have hcontOn := continuousOn_extChartAt (I := I) x
+      exact hcontOn.isOpen_inter_preimage (isOpen_extChartAt_source (I := I) x)
+        isOpen_interior
+    exact ((hsmooth x hxU).continuousWithinAt.continuousAt) (hUopen.mem_nhds hxU)
+  · have h_open : IsOpen (tsupport f)ᶜ := (isClosed_tsupport _).isOpen_compl
+    have hev : f =ᶠ[𝓝 x] (fun _ => (0 : ℝ)) := by
+      filter_upwards [h_open.mem_nhds hx_support] with y hy
+      by_contra hne
+      exact hy (subset_tsupport _ hne)
+    have hev_action : tangentSectionAction (I := I) X f =ᶠ[𝓝 x] (fun _ => (0 : ℝ)) := by
+      filter_upwards [hev.eventually_nhds] with y hy
+      have hmfderiv_zero : mfderiv I 𝓘(ℝ) f y = 0 := by
+        rw [Filter.EventuallyEq.mfderiv_eq hy, mfderiv_const]
+        rfl
+      change mfderiv I 𝓘(ℝ) f y (X y) = 0
+      rw [hmfderiv_zero]; rfl
+    exact (continuous_const.continuousAt.congr hev_action.symm)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tangentSectionAction_continuous_of_interior_support then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tangentSectionAction_continuous_of_interior_support"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tangentSectionAction_continuous_of_interior_support ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tangentSectionAction_continuous_of_interior_support
+
+omit [Module.Finite ℝ E] in
+lemma support_smoothSmul_subset
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) :
+    Function.support ((smoothSmul (I := I) f hf X) : ∀ x, TangentSpace I x) ⊆
+      Function.support (X : ∀ x, TangentSpace I x) := by
+  intro x hx
+  by_contra hneX
+  have hXzero : X x = 0 := by
+    change ¬X x ≠ 0 at hneX
+    exact not_ne_iff.mp hneX
+  have hYx : (smoothSmul (I := I) f hf X : ∀ x, TangentSpace I x) x =
+      (0 : TangentSpace I x) := by
+    change f x • X x = (0 : TangentSpace I x)
+    rw [hXzero]; exact smul_zero _
+  exact hx hYx
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset
+
+omit [Module.Finite ℝ E] in
+lemma support_smoothSmul_subset_left
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) :
+    Function.support ((smoothSmul (I := I) f hf X) : ∀ x, TangentSpace I x) ⊆
+      Function.support f := by
+  intro x hx
+  by_contra hne
+  have hzero : f x = 0 := Function.notMem_support.mp hne
+  apply hx
+  change f x • X x = 0
+  rw [hzero]
+  exact zero_smul ℝ (X x)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset_left then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset_left"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset_left ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.support_smoothSmul_subset_left
+
+omit [Module.Finite ℝ E] in
+lemma tsupport_smoothSmul_subset
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) :
+    tsupport ((smoothSmul (I := I) f hf X) : ∀ x, TangentSpace I x) ⊆ tsupport X :=
+  closure_minimal
+    ((support_smoothSmul_subset (I := I) hf X).trans (subset_tsupport _))
+    (isClosed_tsupport _)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset
+
+omit [Module.Finite ℝ E] in
+lemma tsupport_smoothSmul_subset_left
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) :
+    tsupport ((smoothSmul (I := I) f hf X) : ∀ x, TangentSpace I x) ⊆ tsupport f :=
+  closure_minimal
+    ((support_smoothSmul_subset_left (I := I) hf X).trans (subset_tsupport f))
+    (isClosed_tsupport _)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_left then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_left"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_left ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_left
+
+omit [Module.Finite ℝ E] in
+lemma hasCompactSupport_smoothSmul
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯)
+    (hX : HasCompactSupport X) :
+    HasCompactSupport (smoothSmul (I := I) f hf X) :=
+  hX.mono' ((support_smoothSmul_subset (I := I) hf X).trans (subset_tsupport _))
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.hasCompactSupport_smoothSmul then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.hasCompactSupport_smoothSmul"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.hasCompactSupport_smoothSmul ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.hasCompactSupport_smoothSmul
+
+omit [Module.Finite ℝ E] in
+lemma tsupport_smoothSmul_subset_interior
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯)
+    (hX_int : tsupport X ⊆ I.interior M) :
+    tsupport ((smoothSmul (I := I) f hf X) : ∀ x, TangentSpace I x) ⊆ I.interior M :=
+  (tsupport_smoothSmul_subset (I := I) hf X).trans hX_int
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_interior then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_interior"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_interior ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_smoothSmul_subset_interior
+
+theorem integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_integrable
+    [T2Space M] [SigmaCompactSpace M]
+    (g : SmoothRiemannianMetric I M)
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯)
+    (hprod : HasCompactSupport (smoothSmul (I := I) f hf X))
+    (hprod_int : tsupport (smoothSmul (I := I) f hf X) ⊆ I.interior M)
+    (hact_int : _root_.MeasureTheory.Integrable (tangentSectionAction (I := I) X f)
+      (riemannianVolumeMeasure (I := I) (M := M) g)) :
+    ∫ x, tangentSectionAction (I := I) X f x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+      -∫ x, f x * divergenceGWithBoundary (I := I) g X x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+  let Y := smoothSmul (I := I) f hf X
+  have hdiv_zero :
+      ∫ x, divergenceGWithBoundary (I := I) g Y x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) = 0 :=
+    integral_divergence_with_boundary_eq_zero_of_hasCompactSupport_of_interior_support
+      (I := I) g Y hprod hprod_int
+  have hdiv_supp : tsupport (divergenceGWithBoundary (I := I) g Y) ⊆
+      I.interior M :=
+    (tsupport_divergence_g_with_boundary_subset (I := I) g Y).trans hprod_int
+  have hdiv_cont : Continuous (divergenceGWithBoundary (I := I) g Y) := by
+    rw [continuous_iff_continuousAt]
+    intro x
+    by_cases hx : x ∈ tsupport (divergenceGWithBoundary (I := I) g Y)
+    · exact ((divergence_g_with_boundary_continuousOn_interior
+        (I := I) g Y) x (hdiv_supp hx)).continuousAt
+          (isOpen_interior_M.mem_nhds (hdiv_supp hx))
+    · have hopen : IsOpen (tsupport (divergenceGWithBoundary (I := I) g Y))ᶜ :=
+        (isClosed_tsupport _).isOpen_compl
+      have heq : divergenceGWithBoundary (I := I) g Y =ᶠ[𝓝 x]
+          (fun _ => (0 : ℝ)) := by
+        filter_upwards [hopen.mem_nhds hx] with y hy
+        exact Function.notMem_support.mp (fun h => hy (subset_tsupport _ h))
+      exact continuousAt_const.congr heq.symm
+  have hdiv_int : _root_.MeasureTheory.Integrable (divergenceGWithBoundary (I := I) g Y)
+      (riemannianVolumeMeasure (I := I) (M := M) g) :=
+    Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure
+      (I := I) g hdiv_cont (hasCompactSupport_divergence_g_with_boundary
+        (I := I) g hprod)
+  have hmul_int : _root_.MeasureTheory.Integrable
+      (fun x : M => f x * divergenceGWithBoundary (I := I) g X x)
+      (riemannianVolumeMeasure (I := I) (M := M) g) := by
+    refine (hdiv_int.sub hact_int).congr (Filter.Eventually.of_forall fun x => ?_)
+    change divergenceGWithBoundary (I := I) g Y x -
+        tangentSectionAction (I := I) X f x = _
+    rw [show Y = smoothSmul (I := I) f hf X from rfl,
+      divergence_g_with_boundary_smoothSmul (I := I) g f hf X x]
+    ring
+  have hsplit :
+      ∫ x, divergenceGWithBoundary (I := I) g Y x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+        (∫ x, f x * divergenceGWithBoundary (I := I) g X x
+            ∂(riemannianVolumeMeasure (I := I) (M := M) g)) +
+          ∫ x, tangentSectionAction (I := I) X f x
+            ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+    rw [show (fun x : M => divergenceGWithBoundary (I := I) g Y x) =
+        fun x => f x * divergenceGWithBoundary (I := I) g X x +
+          tangentSectionAction (I := I) X f x by
+      funext x
+      exact divergence_g_with_boundary_smoothSmul (I := I) g f hf X x]
+    exact _root_.MeasureTheory.integral_add hmul_int hact_int
+  rw [hdiv_zero] at hsplit
+  linarith
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_integrable then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_integrable"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_integrable ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_integrable
+
+theorem integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_hasCompactSupport
+    [T2Space M] [SigmaCompactSpace M]
+    (g : SmoothRiemannianMetric I M)
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (hfc : HasCompactSupport f) (hf_int : tsupport f ⊆ I.interior M)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯) :
+    ∫ x, tangentSectionAction (I := I) X f x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+      -∫ x, f x * divergenceGWithBoundary (I := I) g X x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+  have haction_support : Function.support (tangentSectionAction (I := I) X f) ⊆
+      tsupport f := by
+    intro x hx
+    by_contra hne
+    have hopen : IsOpen (tsupport f)ᶜ := (isClosed_tsupport _).isOpen_compl
+    have heq : f =ᶠ[𝓝 x] (fun _ => (0 : ℝ)) := by
+      filter_upwards [hopen.mem_nhds hne] with y hy
+      exact Function.notMem_support.mp (fun h => hy (subset_tsupport _ h))
+    apply hx
+    change mfderiv I 𝓘(ℝ) f x (X x) = 0
+    rw [heq.mfderiv_eq, mfderiv_const]
+    rfl
+  apply integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_integrable
+    (I := I) g hf X
+  · exact hfc.mono' ((support_smoothSmul_subset_left (I := I) hf X).trans
+      (subset_tsupport f))
+  · exact (tsupport_smoothSmul_subset_left (I := I) hf X).trans hf_int
+  · exact Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure
+      (I := I) g (tangentSectionAction_continuous_of_interior_support
+        (I := I) X hf hf_int) (hfc.mono' haction_support)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_hasCompactSupport then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_hasCompactSupport"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_hasCompactSupport ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary_of_hasCompactSupport
+
+theorem integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary
+    [T2Space M] [SigmaCompactSpace M]
+    (g : SmoothRiemannianMetric I M)
+    {f : M → ℝ} (hf : ContMDiff I 𝓘(ℝ) ∞ f)
+    (hf_int : tsupport f ⊆ I.interior M)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯)
+    (hX : HasCompactSupport X)
+    (hX_int : tsupport X ⊆ I.interior M) :
+    ∫ x, tangentSectionAction (I := I) X f x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+      -∫ x, f x * divergenceGWithBoundary (I := I) g X x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+  classical
+  set Y : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯ :=
+    smoothSmul (I := I) f hf X with hY_def
+  have hY_cs : HasCompactSupport Y :=
+    hasCompactSupport_smoothSmul (I := I) hf X hX
+  have hY_int : tsupport (Y : ∀ x, TangentSpace I x) ⊆ I.interior M :=
+    tsupport_smoothSmul_subset_interior (I := I) hf X hX_int
+  have hY_div : ∀ x : M,
+      divergenceGWithBoundary (I := I) g Y x =
+        f x * divergenceGWithBoundary (I := I) g X x +
+          tangentSectionAction (I := I) X f x :=
+    divergence_g_with_boundary_smoothSmul (I := I) g f hf X
+  have hf_cont : Continuous f := hf.continuous
+  have hX_div_cont : Continuous (divergenceGWithBoundary (I := I) g X) := by
+    have hdiv_support : tsupport (divergenceGWithBoundary (I := I) g X) ⊆ tsupport X :=
+      tsupport_divergence_g_with_boundary_subset
+        (I := I) g X
+    have hdiv_support_int :
+        tsupport (divergenceGWithBoundary (I := I) g X) ⊆ I.interior M :=
+      hdiv_support.trans hX_int
+    rw [continuous_iff_continuousAt]
+    intro x
+    by_cases hx_support : x ∈ tsupport (divergenceGWithBoundary (I := I) g X)
+    · have hx_int : x ∈ I.interior M := hdiv_support_int hx_support
+      have hcont_int :
+          ContinuousOn (divergenceGWithBoundary (I := I) g X) (I.interior M) :=
+        divergence_g_with_boundary_continuousOn_interior (I := I) g X
+      exact (hcont_int x hx_int).continuousAt (isOpen_interior_M.mem_nhds hx_int)
+    · have h_open : IsOpen (tsupport (divergenceGWithBoundary (I := I) g X))ᶜ :=
+        (isClosed_tsupport _).isOpen_compl
+      have hev_zero : (divergenceGWithBoundary (I := I) g X) =ᶠ[𝓝 x]
+          (fun _ => (0 : ℝ)) := by
+        filter_upwards [h_open.mem_nhds hx_support] with y hy
+        by_contra hne
+        exact hy (subset_tsupport _ hne)
+      exact (continuous_const.continuousAt.congr hev_zero.symm)
+  have hAct_cont : Continuous (tangentSectionAction (I := I) X f) :=
+    tangentSectionAction_continuous_of_interior_support (I := I) X hf hf_int
+  have hX_div_cs : HasCompactSupport (divergenceGWithBoundary (I := I) g X) :=
+    hasCompactSupport_divergence_g_with_boundary (I := I) g hX
+  have hAct_cs : HasCompactSupport (tangentSectionAction (I := I) X f) :=
+    hasCompactSupport_tangentSectionAction (I := I) hX f
+  have hMul_cont : Continuous (fun x : M => f x * divergenceGWithBoundary (I := I) g X x) :=
+    hf_cont.mul hX_div_cont
+  have hMul_cs : HasCompactSupport (fun x : M => f x * divergenceGWithBoundary (I := I) g X x) :=
+    hX_div_cs.mul_left
+  have h_div_Y_zero :
+      ∫ x, divergenceGWithBoundary (I := I) g Y x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) = 0 :=
+    integral_divergence_with_boundary_eq_zero_of_hasCompactSupport_of_interior_support
+      (I := I) g Y hY_cs hY_int
+  have h_eq_pointwise : ∀ x : M, divergenceGWithBoundary (I := I) g Y x =
+      f x * divergenceGWithBoundary (I := I) g X x +
+        tangentSectionAction (I := I) X f x := hY_div
+  have h_div_Y_split :
+      ∫ x, divergenceGWithBoundary (I := I) g Y x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+        ∫ x, (f x * divergenceGWithBoundary (I := I) g X x +
+                tangentSectionAction (I := I) X f x)
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+    refine _root_.MeasureTheory.integral_congr_ae (Filter.Eventually.of_forall (fun x => ?_))
+    exact h_eq_pointwise x
+  have h_int_mul : _root_.MeasureTheory.Integrable (fun x : M => f x * divergenceGWithBoundary (I := I) g X x)
+      (riemannianVolumeMeasure (I := I) (M := M) g) :=
+    Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure
+      (I := I) g hMul_cont hMul_cs
+  have h_int_act : _root_.MeasureTheory.Integrable (tangentSectionAction (I := I) X f)
+      (riemannianVolumeMeasure (I := I) (M := M) g) :=
+    Continuous.integrable_of_hasCompactSupport_riemannianVolumeMeasure
+      (I := I) g hAct_cont hAct_cs
+  have h_int_split :
+      ∫ x, (f x * divergenceGWithBoundary (I := I) g X x +
+              tangentSectionAction (I := I) X f x)
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+        ∫ x, f x * divergenceGWithBoundary (I := I) g X x
+            ∂(riemannianVolumeMeasure (I := I) (M := M) g) +
+          ∫ x, tangentSectionAction (I := I) X f x
+            ∂(riemannianVolumeMeasure (I := I) (M := M) g) :=
+    _root_.MeasureTheory.integral_add h_int_mul h_int_act
+  have h_sum_zero :
+      ∫ x, f x * divergenceGWithBoundary (I := I) g X x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) +
+        ∫ x, tangentSectionAction (I := I) X f x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) = 0 := by
+    rw [← h_int_split, ← h_div_Y_split]; exact h_div_Y_zero
+  linarith [h_sum_zero]
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary
+
+private lemma tsupport_mul_subset_left (f h : M → ℝ) :
+    tsupport (fun x : M => f x * h x) ⊆ tsupport f := by
+  refine closure_minimal ?_ (isClosed_tsupport _)
+  intro x hx
+  rw [Function.mem_support] at hx
+  by_contra hne
+  have hf_zero : f x = 0 := by
+    by_contra hne'
+    exact hne (subset_tsupport _ hne')
+  exact hx (by rw [hf_zero, _root_.MulZeroClass.zero_mul])
+
+run_cmd do
+  let target := ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_mul_subset_left
+  modify fun (state : Lean.Elab.Command.State) =>
+    { state with scopes := state.scopes.map fun scope =>
+      { scope with openDecls := .explicit `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.tsupport_mul_subset_left target :: scope.openDecls } }
+
+
+theorem integral_tangentSectionAction_mul_add_eq_neg_with_boundary
+    [T2Space M] [SigmaCompactSpace M]
+    (g : SmoothRiemannianMetric I M)
+    {f h : M → ℝ}
+    (hf : ContMDiff I 𝓘(ℝ) ∞ f) (hh : ContMDiff I 𝓘(ℝ) ∞ h)
+    (hf_int : tsupport f ⊆ I.interior M)
+    (X : Cₛ^∞⟮I; E, (TangentSpace I : M → Type _)⟯)
+    (hX : HasCompactSupport X)
+    (hX_int : tsupport X ⊆ I.interior M) :
+    ∫ x, (tangentSectionAction (I := I) X f x * h x +
+            f x * tangentSectionAction (I := I) X h x)
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+      -∫ x, f x * h x * divergenceGWithBoundary (I := I) g X x
+        ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+  classical
+  have hfh : ContMDiff I 𝓘(ℝ) ∞ (f * h) := hf.mul hh
+  have hfh_int : tsupport (f * h) ⊆ I.interior M := by
+    have : tsupport (fun x : M => (f * h) x) ⊆ tsupport f := by
+      change tsupport (fun x : M => f x * h x) ⊆ tsupport f
+      exact tsupport_mul_subset_left (M := M) f h
+    exact this.trans hf_int
+  have h_a := integral_tangentSectionAction_eq_neg_integral_smul_divergence_with_boundary
+    (I := I) g hfh hfh_int X hX hX_int
+  have h_leibniz : ∀ x : M,
+      tangentSectionAction (I := I) X (f * h) x =
+        tangentSectionAction (I := I) X f x * h x +
+          f x * tangentSectionAction (I := I) X h x := fun x =>
+    tangentSectionAction_mul (I := I) X hf hh x
+  have h_lhs_eq :
+      ∫ x, tangentSectionAction (I := I) X (f * h) x
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) =
+        ∫ x, (tangentSectionAction (I := I) X f x * h x +
+                f x * tangentSectionAction (I := I) X h x)
+          ∂(riemannianVolumeMeasure (I := I) (M := M) g) := by
+    refine _root_.MeasureTheory.integral_congr_ae (Filter.Eventually.of_forall (fun x => ?_))
+    exact h_leibniz x
+  rw [← h_lhs_eq, h_a]
+  rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_mul_add_eq_neg_with_boundary then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_mul_add_eq_neg_with_boundary"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_mul_add_eq_neg_with_boundary ``Submission.DifferentialGeometry.Integral.DivergenceTheorem.WithBoundary.integral_tangentSectionAction_mul_add_eq_neg_with_boundary
+
+end WithBoundary
+end DivergenceTheorem
+end Integral
+end DifferentialGeometry

@@ -1,0 +1,105 @@
+import Submission.DifferentialGeometry.Geometry.Curvature.Bounds.RicciOperatorNorm
+
+import Submission.DifferentialGeometry.Geometry.Curvature.Components.RicciTrace
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Evolution.Ricci.Derivation.Trace
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Evolution.Curvature.Raising
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Metric.Bounds.UniformEquivalence
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+open _root_.Submission.DifferentialGeometry.Geometry.Connection
+
+set_option autoImplicit false
+
+noncomputable section
+
+namespace DifferentialGeometry.Geometry.Curvature
+
+open _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open scoped _root_.Manifold _root_.ContDiff _root_.BigOperators
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+variable [FiniteDimensional Real E]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace H M] [T2Space M]
+variable [IsManifold I ∞ M] [SigmaCompactSpace M]
+
+omit [I.Boundaryless] [SigmaCompactSpace M] in
+theorem ricci_quadratic_form_on_unit_vector_le_of_solution
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : DifferentialGeometry.PDE.RicciFlow.SolutionOn (I := I) (M := M) D)
+    {t : Real} (x : M) (u : TangentSpace I x)
+    (hu : (S.base.metric t).inner x u u = 1) :
+    |S.ricciAt t x (vec2 (I := I) u u)|
+      ≤ (Module.finrank Real (TangentSpace I x) : Real) ^ 2
+          * Real.sqrt (normSq0S (I := I) (S.base.metric t) x 4 (S.base.rm04 t x)) := by
+  obtain ⟨basis, hON⟩ := DifferentialGeometry.Tensor0SBundle.exists_orthonormal_basis (I := I) (S.base.metric t) x
+  have hinv : MetricInverseInBasis (I := I) (S.base.metric t) x basis
+      (identityInvMetric (Idx := Fin (Module.finrank Real (TangentSpace I x)))) := by
+    have h := DifferentialGeometry.Tensor0SBundle.metricInverseInBasis_of_orthonormal (I := I) (S.base.metric t) basis hON
+    intro i j
+    simpa [identityInvMetric, diagonalInvMetric] using h i j
+  have hbridge : ∀ i j : Fin (Module.finrank Real (TangentSpace I x)),
+      (S.ricci t) x (vec2 (I := I) (basis i) (basis j))
+        = S.ricciAt t x (vec2 (I := I) (basis i) (basis j)) := by
+    intro i j; simp
+  have htrace : ∀ i j : Fin (Module.finrank Real (TangentSpace I x)),
+      S.ricciAt t x (vec2 (I := I) (basis i) (basis j))
+        = ∑ a, S.base.rm04 t x
+            (vec4 (I := I) (basis a) (basis i) (basis j) (basis a)) := by
+    intro i j
+    have h :=
+      ricci_diag_eq_sum_rm04_diag_of_orthonormal (I := I) (S.base.metric t) basis
+        (S.ricci t) (S.base.rm13 t) (S.base.rm04 t)
+        (DifferentialGeometry.PDE.RicciFlow.ricciTraceOfSolution (I := I) S t)
+        (DifferentialGeometry.PDE.RicciFlow.solution_rm04LowersRm13At (I := I) S t x) hON i j
+    rw [hbridge i j] at h
+    exact h
+  exact ricci_unitQuad_le_of_trace (I := I) (S.base.metric t) basis hON hinv
+    (S.ricciAt t x) (S.base.rm04 t x) htrace u hu
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Curvature.ricci_quadratic_form_on_unit_vector_le_of_solution then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Curvature.ricci_quadratic_form_on_unit_vector_le_of_solution"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Curvature.ricci_quadratic_form_on_unit_vector_le_of_solution ``Submission.DifferentialGeometry.Geometry.Curvature.ricci_quadratic_form_on_unit_vector_le_of_solution
+
+omit [I.Boundaryless] [SigmaCompactSpace M] in
+theorem twoTensorQuadBound_of_solutions
+    {D : DifferentialGeometry.Geometry.Curvature.RealTimeInterval}
+    (S : Nat -> DifferentialGeometry.PDE.RicciFlow.SolutionOn (I := I) (M := M) D)
+    (K : Set M) (β ψ C : Real)
+    (hcurv : forall i : Nat, forall t : Real, t ∈ Set.Icc β ψ -> forall x : M, x ∈ K ->
+      normSq0S (I := I) ((S i).base.metric t) x 4 ((S i).base.rm04 t x) <= C) :
+    DifferentialGeometry.CheegerGromovCompactness.TwoTensorQuadBoundOnWindow (I := I) K β ψ
+      (fun i s => (S i).base.metric s) (fun i t x => (S i).ricciAt t x)
+      ((Module.finrank Real E : Real) ^ 2 * Real.sqrt C) := by
+  refine DifferentialGeometry.CheegerGromovCompactness.twoTensorQuadBound_of_unit_bound K β ψ
+    ((Module.finrank Real E : Real) ^ 2 * Real.sqrt C)
+    (fun i s => (S i).base.metric s) (fun i t x => (S i).ricciAt t x)
+    (by positivity) ?_
+  intro i t ht x hx u hu
+  calc |(S i).ricciAt t x (vec2 (I := I) u u)|
+      ≤ (Module.finrank Real (TangentSpace I x) : Real) ^ 2
+          * Real.sqrt (normSq0S (I := I) ((S i).base.metric t) x 4 ((S i).base.rm04 t x)) :=
+        ricci_quadratic_form_on_unit_vector_le_of_solution (S i) x u hu
+    _ ≤ (Module.finrank Real E : Real) ^ 2 * Real.sqrt C := by
+        have hfr : Module.finrank Real (TangentSpace I x) = Module.finrank Real E := rfl
+        rw [hfr]
+        exact mul_le_mul_of_nonneg_left
+          (Real.sqrt_le_sqrt (hcurv i t ht x hx)) (by positivity)
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.Geometry.Curvature.twoTensorQuadBound_of_solutions then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.Geometry.Curvature.twoTensorQuadBound_of_solutions"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.Geometry.Curvature.twoTensorQuadBound_of_solutions ``Submission.DifferentialGeometry.Geometry.Curvature.twoTensorQuadBound_of_solutions
+
+end DifferentialGeometry.Geometry.Curvature

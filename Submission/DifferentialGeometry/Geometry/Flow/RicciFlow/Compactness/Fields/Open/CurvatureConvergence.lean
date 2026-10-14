@@ -1,0 +1,307 @@
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Fields.Open.Convergence
+
+import Submission.DifferentialGeometry.Geometry.Flow.RicciFlow.Compactness.Fields.Equation
+
+-- MathDB adaptation: helper modules, namespaces, and references relocated into Submission.
+-- Preserve the upstream library elaboration options in a source-only submission.
+set_option autoImplicit false
+set_option maxSynthPendingDepth 3
+
+namespace Submission
+open _root_.Submission.DifferentialGeometry.PDE.RicciFlow
+open _root_.Submission.DifferentialGeometry.Geometry.Curvature
+
+set_option autoImplicit false
+
+noncomputable section
+
+open _root_.Set _root_.Function _root_.Filter _root_.Bundle _root_.Submission.Bundle _root_.Manifold _root_.Submission.Manifold _root_.TopologicalSpace _root_.Submission.DifferentialGeometry.Tensor0SBundle
+open scoped _root_.Manifold _root_.Submission.Manifold _root_.Topology _root_.ContDiff _root_.BigOperators
+
+namespace DifferentialGeometry
+namespace CheegerGromovCompactness
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace Real E]
+  [FiniteDimensional Real E]
+  [NeZero (Module.finrank Real E)]
+variable {H : Type*} [TopologicalSpace H]
+variable {I : ModelWithCorners Real E H} [I.Boundaryless]
+variable {X : PointedFlowSeq (I := I)}
+variable {P : PointedRiemannianManifold (I := I)}
+variable {subseq : Nat → Nat}
+variable (Φ : PointedCGHMaps (I := I) X P subseq)
+
+namespace OpenMetricConvergenceData
+
+omit [NeZero (Module.finrank ℝ E)] [I.Boundaryless] in
+theorem metric_convergence
+    {R : letI : TopologicalSpace P.M := P.topology
+      letI : ChartedSpace H P.M := P.charted
+      letI : IsManifold I ∞ P.M := P.smooth
+      SmoothRiemannianMetric I P.M}
+    {bf : BumpFamily (I := I) Φ} {hsrc : SourceIsSigmaCompact Φ} {htgt : TargetIsSigmaCompact Φ}
+    {a b t₀ : Real} (ht₀ : t₀ ∈ Set.Ioo a b)
+    (hD : X.D = RealTimeInterval.openInterval a b t₀ ht₀)
+    (co : OpenMetricConvergenceData (I := I) Φ R bf hsrc htgt a b t₀) :
+    MetricInnerPullbackTendsto (I := I) (Φ.compSubseq co.φ co.strictMono) co.gInf := by
+  intro t ht x v w
+  have htOpen : t ∈ Set.Ioo a b := by
+    simpa only [hD, RealTimeInterval.openInterval] using ht
+  obtain ⟨n, hn⟩ := RealTimeInterval.exists_window_nhds ht₀ htOpen
+  have htWin : t ∈ RealTimeInterval.openWindow a b t₀ n :=
+    mem_of_mem_nhds hn
+  simp only [Function.comp_apply, PointedCGHMaps.compSubseq_map]
+  convert FlowMetricConvergenceData.metric_convergence_at (I := I) Φ R bf hsrc htgt
+    (RealTimeInterval.openWindowLeft a t₀ n)
+    (RealTimeInterval.openWindowRight b t₀ n)
+    (OpenMetricConvergenceData.atWindow Φ co n) htWin x v w using 1
+  · funext k
+    rfl
+  · rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.metric_convergence then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.metric_convergence"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.metric_convergence ``Submission.DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.metric_convergence
+
+theorem ricci_convergence
+    {R : letI : TopologicalSpace P.M := P.topology
+      letI : ChartedSpace H P.M := P.charted
+      letI : IsManifold I ∞ P.M := P.smooth
+      SmoothRiemannianMetric I P.M}
+    {bf : BumpFamily (I := I) Φ} {hsrc : SourceIsSigmaCompact Φ}
+    {htgt : TargetIsSigmaCompact Φ}
+    {a b t₀ : Real} (ht₀ : t₀ ∈ Set.Ioo a b)
+    (hD : X.D = RealTimeInterval.openInterval a b t₀ ht₀)
+    (co : OpenMetricConvergenceData (I := I) Φ R bf hsrc htgt a b t₀)
+    (cLow : Nat → Real) (hcLow : ∀ n, 0 < cLow n)
+    (hbound : letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : IsManifold I ∞ P.M := P.smooth
+      ∀ n k : Nat, ∀ t : Real,
+        t ∈ RealTimeInterval.openWindow a b t₀ n →
+        ∀ (y : SourceDomain (I := I) Φ k)
+          (v : letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+                sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+                sourceDomCharted (I := I) Φ k
+            TangentSpace I y),
+          cLow n * R.inner (y : P.M) v v ≤
+            letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+              sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+              sourceDomCharted (I := I) Φ k
+            letI : IsManifold I ∞ (SourceDomain (I := I) Φ k) :=
+              sourceDomSmooth (I := I) Φ k
+            (sourceMetric (I := I) Φ hsrc htgt k t).inner y v v)
+    (hcovTail : letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : T2Space P.M := P.t2
+        letI : IsManifold I ∞ P.M := P.smooth
+        letI : SigmaCompactSpace P.M := P.sigmaCompact
+      ∀ n q : Nat, ∃ C : Real, ∀ (k : Nat) (t : Real),
+        t ∈ RealTimeInterval.openWindow a b t₀ n →
+        ∀ z : P.M, z ∈ bf.grow k →
+          metricCovDerivNorm (I := I) q
+            (gSeqExt (I := I) Φ R bf hsrc htgt k t) R z ≤ C) :
+    MetricRicciPullbackTendsto (I := I)
+      (Φ.compSubseq co.φ co.strictMono) co.gInf := by
+  intro t ht x v w
+  have htOpen : t ∈ Set.Ioo a b := by
+    simpa only [hD, RealTimeInterval.openInterval] using ht
+  obtain ⟨n, hn⟩ := RealTimeInterval.exists_window_nhds ht₀ htOpen
+  have htWin : t ∈ RealTimeInterval.openWindow a b t₀ n :=
+    mem_of_mem_nhds hn
+  convert FlowMetricConvergenceData.ricci_convergence_at (I := I) Φ R bf hsrc htgt
+      (RealTimeInterval.openWindowLeft a t₀ n)
+      (RealTimeInterval.openWindowRight b t₀ n) (cLow n) (hcLow n)
+      (fun k s hs ↦ hbound n k s hs) (fun q ↦ hcovTail n q)
+      (OpenMetricConvergenceData.atWindow Φ co n) htWin x v w using 1
+  all_goals rfl
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricci_convergence then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricci_convergence"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricci_convergence ``Submission.DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricci_convergence
+
+
+theorem scalar_convergence
+    {R : letI : TopologicalSpace P.M := P.topology
+      letI : ChartedSpace H P.M := P.charted
+      letI : IsManifold I ∞ P.M := P.smooth
+      SmoothRiemannianMetric I P.M}
+    {bf : BumpFamily (I := I) Φ} {hsrc : SourceIsSigmaCompact Φ} {htgt : TargetIsSigmaCompact Φ}
+    {a b t₀ : Real} (ht₀ : t₀ ∈ Set.Ioo a b)
+    (hD : X.D = RealTimeInterval.openInterval a b t₀ ht₀)
+    (co : OpenMetricConvergenceData (I := I) Φ R bf hsrc htgt a b t₀)
+    (cLow : Nat → Real) (hcLow : ∀ n, 0 < cLow n)
+    (hbound : letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : IsManifold I ∞ P.M := P.smooth
+      ∀ n k : Nat, ∀ t : Real,
+        t ∈ RealTimeInterval.openWindow a b t₀ n →
+        ∀ (y : SourceDomain (I := I) Φ k)
+          (v : letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+                sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+                sourceDomCharted (I := I) Φ k
+            TangentSpace I y),
+          cLow n * R.inner (y : P.M) v v ≤
+            letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+              sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+              sourceDomCharted (I := I) Φ k
+            letI : IsManifold I ∞ (SourceDomain (I := I) Φ k) :=
+              sourceDomSmooth (I := I) Φ k
+            (sourceMetric (I := I) Φ hsrc htgt k t).inner y v v)
+    (hcovTail : letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : T2Space P.M := P.t2
+        letI : IsManifold I ∞ P.M := P.smooth
+        letI : SigmaCompactSpace P.M := P.sigmaCompact
+      ∀ n q : Nat, ∃ C : Real, ∀ (k : Nat) (t : Real),
+        t ∈ RealTimeInterval.openWindow a b t₀ n →
+        ∀ z : P.M, z ∈ bf.grow k →
+          metricCovDerivNorm (I := I) q
+            (gSeqExt (I := I) Φ R bf hsrc htgt k t) R z ≤ C) :
+    FunctionPullbackTendsto (I := I) (Φ.compSubseq co.φ co.strictMono)
+      (fun k t x ↦
+        letI : TopologicalSpace (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).topology
+        letI : ChartedSpace H (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).charted
+        letI : IsManifold I ∞ (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).smooth
+        letI : IsManifold I ((∞ : WithTop ℕ∞) + 1)
+            (X.term ((subseq ∘ co.φ) k)).M := by
+          change IsManifold I ∞ (X.term ((subseq ∘ co.φ) k)).M
+          infer_instance
+        letI : SigmaCompactSpace (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).sigmaCompact
+        letI : T2Space (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).t2
+        (X.term ((subseq ∘ co.φ) k)).S.scalar t x)
+      (fun t x ↦
+        letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : IsManifold I ∞ P.M := P.smooth
+        letI : IsManifold I ((∞ : WithTop ℕ∞) + 1) P.M := by
+          change IsManifold I ∞ P.M
+          infer_instance
+        letI : SigmaCompactSpace P.M := P.sigmaCompact
+        letI : T2Space P.M := P.t2
+        metricScalarAt (I := I) (co.gInf t) x) := by
+  intro t ht x
+  have htOpen : t ∈ Set.Ioo a b := by
+    simpa only [hD, RealTimeInterval.openInterval] using ht
+  obtain ⟨n, hn⟩ := RealTimeInterval.exists_window_nhds ht₀ htOpen
+  have htWin : t ∈ RealTimeInterval.openWindow a b t₀ n :=
+    mem_of_mem_nhds hn
+  simpa only [Function.comp_apply, PointedCGHMaps.compSubseq, PointedCGHMaps.map,
+    OpenMetricConvergenceData.atWindow] using
+    FlowMetricConvergenceData.scalar_convergence_at (I := I) Φ R bf hsrc htgt
+      (RealTimeInterval.openWindowLeft a t₀ n)
+      (RealTimeInterval.openWindowRight b t₀ n) (cLow n) (hcLow n)
+      (fun k s hs ↦ hbound n k s hs) (fun q ↦ hcovTail n q)
+      (OpenMetricConvergenceData.atWindow Φ co n) htWin x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.scalar_convergence then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.scalar_convergence"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.scalar_convergence ``Submission.DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.scalar_convergence
+
+theorem ricNorm_convergence
+    {R : letI : TopologicalSpace P.M := P.topology
+      letI : ChartedSpace H P.M := P.charted
+      letI : IsManifold I ∞ P.M := P.smooth
+      SmoothRiemannianMetric I P.M}
+    {bf : BumpFamily (I := I) Φ} {hsrc : SourceIsSigmaCompact Φ} {htgt : TargetIsSigmaCompact Φ}
+    {a b t₀ : Real} (ht₀ : t₀ ∈ Set.Ioo a b)
+    (hD : X.D = RealTimeInterval.openInterval a b t₀ ht₀)
+    (co : OpenMetricConvergenceData (I := I) Φ R bf hsrc htgt a b t₀)
+    (cLow : Nat → Real) (hcLow : ∀ n, 0 < cLow n)
+    (hbound : letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : IsManifold I ∞ P.M := P.smooth
+      ∀ n k : Nat, ∀ t : Real,
+        t ∈ RealTimeInterval.openWindow a b t₀ n →
+        ∀ (y : SourceDomain (I := I) Φ k)
+          (v : letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+                sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+                sourceDomCharted (I := I) Φ k
+            TangentSpace I y),
+          cLow n * R.inner (y : P.M) v v ≤
+            letI : TopologicalSpace (SourceDomain (I := I) Φ k) :=
+              sourceDomTop (I := I) Φ k
+            letI : ChartedSpace H (SourceDomain (I := I) Φ k) :=
+              sourceDomCharted (I := I) Φ k
+            letI : IsManifold I ∞ (SourceDomain (I := I) Φ k) :=
+              sourceDomSmooth (I := I) Φ k
+            (sourceMetric (I := I) Φ hsrc htgt k t).inner y v v)
+    (hcovTail : letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : T2Space P.M := P.t2
+        letI : IsManifold I ∞ P.M := P.smooth
+        letI : SigmaCompactSpace P.M := P.sigmaCompact
+      ∀ n q : Nat, ∃ C : Real, ∀ (k : Nat) (t : Real),
+        t ∈ RealTimeInterval.openWindow a b t₀ n →
+        ∀ z : P.M, z ∈ bf.grow k →
+          metricCovDerivNorm (I := I) q
+            (gSeqExt (I := I) Φ R bf hsrc htgt k t) R z ≤ C) :
+    FunctionPullbackTendsto (I := I) (Φ.compSubseq co.φ co.strictMono)
+      (fun k t x ↦
+        letI : TopologicalSpace (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).topology
+        letI : ChartedSpace H (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).charted
+        letI : IsManifold I ∞ (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).smooth
+        letI : IsManifold I ((∞ : WithTop ℕ∞) + 1)
+            (X.term ((subseq ∘ co.φ) k)).M := by
+          change IsManifold I ∞ (X.term ((subseq ∘ co.φ) k)).M
+          infer_instance
+        letI : SigmaCompactSpace (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).sigmaCompact
+        letI : T2Space (X.term ((subseq ∘ co.φ) k)).M :=
+          (X.term ((subseq ∘ co.φ) k)).t2
+        DifferentialGeometry.PDE.RicciFlow.ricciNorm (I := I)
+          (X.term ((subseq ∘ co.φ) k)).S t x)
+      (fun t x ↦
+        letI : TopologicalSpace P.M := P.topology
+        letI : ChartedSpace H P.M := P.charted
+        letI : IsManifold I ∞ P.M := P.smooth
+        letI : IsManifold I ((∞ : WithTop ℕ∞) + 1) P.M := by
+          change IsManifold I ∞ P.M
+          infer_instance
+        letI : SigmaCompactSpace P.M := P.sigmaCompact
+        letI : T2Space P.M := P.t2
+        normSq0S (I := I) (co.gInf t) x 2
+          (metricRicci (I := I) (co.gInf t) x)) := by
+  intro t ht x
+  have htOpen : t ∈ Set.Ioo a b := by
+    simpa only [hD, RealTimeInterval.openInterval] using ht
+  obtain ⟨n, hn⟩ := RealTimeInterval.exists_window_nhds ht₀ htOpen
+  have htWin : t ∈ RealTimeInterval.openWindow a b t₀ n :=
+    mem_of_mem_nhds hn
+  simpa only [Function.comp_apply, PointedCGHMaps.compSubseq, PointedCGHMaps.map,
+    OpenMetricConvergenceData.atWindow] using
+    FlowMetricConvergenceData.ricNorm_convergence_at (I := I) Φ R bf hsrc htgt
+      (RealTimeInterval.openWindowLeft a t₀ n)
+      (RealTimeInterval.openWindowRight b t₀ n) (cLow n) (hcLow n)
+      (fun k s hs ↦ hbound n k s hs) (fun q ↦ hcovTail n q)
+      (OpenMetricConvergenceData.atWindow Φ co n) htWin x
+
+run_cmd do
+  let env ← Lean.getEnv
+  if env.contains `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricNorm_convergence then
+    throwError "Refusing to shadow existing declaration DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricNorm_convergence"
+  Lean.modifyEnv fun env => Lean.addAlias env `DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricNorm_convergence ``Submission.DifferentialGeometry.CheegerGromovCompactness.OpenMetricConvergenceData.ricNorm_convergence
+
+end OpenMetricConvergenceData
+
+end CheegerGromovCompactness
+end DifferentialGeometry
