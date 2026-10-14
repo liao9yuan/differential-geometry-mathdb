@@ -4,6 +4,10 @@ This branch uses the exact MathDB-pinned Lean v4.33.1 and Mathlib `0df444a360eaa
 
 `Submission.lean` now states the exact frozen goal `Submission.solution : Problem.Target`, imported from `FtpEvalBench.YPoincare_poincare_conjecture`. It derives compactness and simple connectivity from the given homotopy equivalence and applies the upstream Poincare theorem. The proof credit belongs to the upstream DifferentialGeometry and Mathlib contributors; original licenses and source headers are retained.
 
+## Paper and attribution
+
+See [PAPER_REFERENCE.md](PAPER_REFERENCE.md) for the original paper, four authors, equal-contribution note, and release pin: https://arxiv.org/html/2609.33842v1 .
+
 ## Verified components
 
 - The complete backported compactness bridge compiles from source on Lean/Mathlib v4.33.1.
