@@ -1,0 +1,6 @@
+'DifferentialGeometry.Topology.compactSpace_of_homotopyEquiv_sphere' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'DifferentialGeometry.Topology.simplyConnectedSpace_sphere_of_two_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]

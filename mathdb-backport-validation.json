@@ -1,0 +1,172 @@
+{
+  "toolchain": "leanprover/lean4:v4.33.1",
+  "mathlib_commit": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "source_files": [
+    {
+      "path": "DifferentialGeometry/MathlibCompat/Algebra/Homology/HomologicalComplexKernels.lean",
+      "sha256": "6f8383128857325bc8c7df9d58ea3e377eab0e6930ccb910e94becff4b6e33f2"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/AlgebraicTopology/SimplicialSet/Homology/Basic.lean",
+      "sha256": "3a22329e7a21c8a098b13da88f40095680c1940021c592bd9ea8a9b0c6817db1"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/AlgebraicTopology/SimplicialSet/Homology/Relative.lean",
+      "sha256": "545ea0309ada1a625471a74c9ed7d48aa028f6169b6d327e977c54eb38934974"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/AlgebraicTopology/SimplicialSet/SSetPair.lean",
+      "sha256": "ac9b05593ced20e9cbbad560d323cd3588be8c60419ed1a6db797ecdb5d9cf14"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/CategoryTheory/Limits/FunctorCategory/Shapes/Kernels.lean",
+      "sha256": "7ed39bd4bb3d5ddeb71ef4185ee3591fd1b933206218eefa136a9e5356ef8a99"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/CompactSpaceStdSimplex.lean",
+      "sha256": "7ceda7aa965b5bdd6d08b8a379175dd15beabddf2b8b7372dc8d08a5752e95cf"
+    },
+    {
+      "path": "DifferentialGeometry/MathlibCompat/StdSimplex.lean",
+      "sha256": "eda085581c779c4f4f55fec5495994a95eac1b42d3210df6846d14c67d6f34e3"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/ChartTransport.lean",
+      "sha256": "42b05ffc0cc90353c8805e46343756be16a1fe09064424d2bb54227bb9a55b7f"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/CompactEuclidean.lean",
+      "sha256": "fe6c75b38ac0d6827f6f052f62974396cb0810f9b9f7247d7712e3e5120475ab"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/Injectivity.lean",
+      "sha256": "676cbb63ff84871340a74e8ea6d72a85241ad88d7ded95cc0372f5d6327d22d2"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/LocalGood.lean",
+      "sha256": "7a5d0d2b6a4b89552f1575c6802c93c7f53de29eeffc3ca38b6f0e6b57a59980"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/LocalGoodUnion.lean",
+      "sha256": "822c243b07106620f86dd9a2f5da8ba83d33755ed33ec836ee022272a240dc58"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/LocalHomology.lean",
+      "sha256": "07126e59eb92177230089b09733fdcabf1c9334aba384b844fb441fee2f65010"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/Noncompact.lean",
+      "sha256": "2c8b2a4c1dd437eba26d74904f3ad514f84399997eafe145040a5aa20b48f2dd"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/PointRestriction.lean",
+      "sha256": "47b86da2736cdf0b3b4ac1d4ba0edde0c40170b6a34af94021100ba09f226b5f"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Local/Radial.lean",
+      "sha256": "378b4630ec48e55f1f9cb8d8b3e28b63659a2f3fb8634ec90daa972044b89a32"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/MayerVietoris/MayerVietoris.lean",
+      "sha256": "c4bb97d0fcd053d04b13fcf61fb7520d8dd78576823dcd41f00a81803043c39a"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/MayerVietoris/OpenRelative.lean",
+      "sha256": "0830a8ff4fbf02c386692322ff2bab29d7298a29de1c40b789be537fe3449194"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/MayerVietoris/Relative.lean",
+      "sha256": "03c5fe156410ecd5ef37a03a5151cf406d09e9696dca8ee09162086a76f9101b"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/MayerVietoris/ShortExact.lean",
+      "sha256": "62d418bcc29663e3e004750529483677b409f9ceb03c340f41e5a3577d02b7c9"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Naturality.lean",
+      "sha256": "20d3169bdc7ed3d959d70f5d73f7049137b420fdd43047010b9b4c81fcc7a1ab"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Relative/DeltaIso.lean",
+      "sha256": "7c9ec226b81703bfe60d6f4d1023c1539a23b0dd14c6398554ab993081dfa9b7"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Relative/PairVanishing.lean",
+      "sha256": "9b4f0f7f550ee277049a8339518cf464efe6feb71f1460b3e19bf96d20fd44f4"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Relative/SingularExcision.lean",
+      "sha256": "4d44c99dac6b15b1fe68ea32b05d4208841eb02a82337ab136dc90aacfce1f2b"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/SingularPair.lean",
+      "sha256": "f7b74c9f99fd9cdd996b64a01f13c9fa1b405a131211c3df6c73b577ecfe4a13"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/SingularSubcomplex.lean",
+      "sha256": "486d4b30dd40b50dcbdf8ba35c951200c322f97ace369a8fc8def2e41283825b"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Spheres/CompactZero.lean",
+      "sha256": "0a2db95afb8a9b7e49a4011b49125285d2ae6914febe6b2f747f1a3d096c8c43"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Spheres/HomotopySphereCompactness.lean",
+      "sha256": "394d3754db4472413826adddbe35154676af4e3f867374ba0ffef37cf8fe4bb0"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Spheres/SphereHomology.lean",
+      "sha256": "b86e000c2dc7c6414234708d0a7b44ad2ef83be150ca563fec44c2f68cc6ebbf"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Spheres/SphereTopology.lean",
+      "sha256": "ce8b35466183cb59ed63bf039f92eb2035f00ca4b1420968005e1e3394e520f6"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Subdivision/AffineChains.lean",
+      "sha256": "eb668adf8621247ae8003fdd05538fa66b1583ca55a8d4fad458aacfbf174447"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Subdivision/DiameterBound.lean",
+      "sha256": "0da96b2b2c570ce987aab68fe110acad751aec86afd2dda640e5ab70051690de"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Subdivision/SmallSimplices.lean",
+      "sha256": "97c0362b298237557f083bdd551edb54a15d48eee2f948461c3470ece5e605b1"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Subdivision/Subdivision.lean",
+      "sha256": "162508408d0a4a22d23b31869c018dfde10fb0198bb83d47a8489b1ecbef5e35"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Homology/Support.lean",
+      "sha256": "b048c5e1555251e711f15f71dee3fc21f62300044d257ee3efc124ee88fa6724"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Morse/Defs.lean",
+      "sha256": "a2c4c772922075df3ce2a84047f1cdab15bc476dd35c9c415a74fb7fc9abcfe3"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Morse/Strip/Defs.lean",
+      "sha256": "9d9e4b8149b68a71aed14246aedc2e9f2c5c7b3f2bf25c335b8ef23069f43cec"
+    },
+    {
+      "path": "DifferentialGeometry/Topology/Sphere/SphereSimplyConnected.lean",
+      "sha256": "70b176d0ab08c2efed9afc8d14a8a4d36c2ea6e266426fa7d7814def8120392f"
+    }
+  ],
+  "build_command": "lake build DifferentialGeometry.Topology.Homology.Spheres.HomotopySphereCompactness",
+  "build_exit_code": 0,
+  "build_log": "work/v013-compactness-bridge-build.log",
+  "axiom_command": "lake env lean ../v013-fullmathlib-bridge-check.lean",
+  "axiom_log": "work/v013-fullmathlib-bridge-check.log",
+  "source_rebuild_scope": "All local bridge and compatibility modules built from source against pinned Mathlib v4.33.1 cached dependencies. Native upstream v0.1.3 Poincare theorem is not imported by this compactness bridge.",
+  "namespace_collision_fix": "Compatibility simplex declarations live under DifferentialGeometry.MathlibCompat.StdSimplex; native Mathlib Convexity.StdSimplex is not modified or shadowed.",
+  "axiom_exit_code": 0,
+  "axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "full_mathlib_import_passed": true
+}

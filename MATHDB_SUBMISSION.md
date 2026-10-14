@@ -1,48 +1,26 @@
-# MathDB Poincare preparation — v0.1.3
+# Poincare submission preparation on DifferentialGeometry v0.1.3
 
-This branch provides a native `Submission.lean` wrapper around the upstream Poincare theorem. It is **not yet an accepted MathDB verifier submission**.
+This branch uses the exact MathDB-pinned Lean v4.33.1 and Mathlib `0df444a360eaa60ab8c11dca51a86af692955474`. It starts from upstream commit `7a48598d35109aa99d1cc678e2724c213cdf4ff3` and adds a backport of the homotopy-sphere compactness bridge.
 
-## Provenance
+`Submission.lean` now states the exact frozen goal `Submission.solution : Problem.Target`, imported from `FtpEvalBench.YPoincare_poincare_conjecture`. It derives compactness and simple connectivity from the given homotopy equivalence and applies the upstream Poincare theorem. The proof credit belongs to the upstream DifferentialGeometry and Mathlib contributors; original licenses and source headers are retained.
 
-- Upstream: https://github.com/qinz1yang/differential-geometry
-- Release: v0.1.3; source commit `7a48598d35109aa99d1cc678e2724c213cdf4ff3`.
-- Lean: `leanprover/lean4:v4.33.1`.
-- Mathlib: `0df444a360eaa60ab8c11dca51a86af692955474`.
-- The mathematical proof is the work of the upstream DifferentialGeometry contributors. Their LICENSE and NOTICE are retained. This branch only adds a wrapper and submission notes.
+## Verified components
 
-## Verification status
+- The complete backported compactness bridge compiles from source on Lean/Mathlib v4.33.1.
+- A combined import of full Mathlib, the compactness bridge, and the simply connected sphere theorem passes. Both endpoint axiom audits contain only `propext`, `Classical.choice`, and `Quot.sound`.
+- The genuine, unmodified MathDB frozen target and its 229-module support closure compile in the same environment. The target source SHA-256 is `9609b79bd21353e74225bf0e87777ec0a5da6ba3448846fd0ee07b531a596d91`.
+- Upstream CI also built the original v0.1.3 source: https://github.com/qinz1yang/differential-geometry/actions/runs/36305635235 .
 
-Upstream CI https://github.com/qinz1yang/differential-geometry/actions/runs/36305635235 built the exact tagged source with `lake --no-cache build DifferentialGeometry` and completed successfully (26262 jobs). The new wrapper has not been compiled locally in v0.1.3; this release has no downloadable build cache.
+## Work still running
 
-To check from this branch:
+The original Poincare dependency closure is being rebuilt locally before checking the combined final adapter. A separate packaging pass is moving helpers and their declarations into MathDB's required `Submission/` layout and `Submission` namespace. This native-source branch still uses DifferentialGeometry imports and is not yet a verified MathDB upload. No MathDB solution has been published.
 
-```sh
-lake build DifferentialGeometry.Topology.ThreeManifold.Poincare
-lake env lean Submission.lean
-```
+## Backport provenance
 
-## Remaining MathDB requirements
+The new topology bridge is derived from DifferentialGeometry v0.1.4 commit `788efe97894474c032de6dfb1289d515f613d15a`. The compatibility files in `DifferentialGeometry/MathlibCompat/` adapt selected Mathlib definitions and theorems from commit `c55e6e786f49471c72fbddbec5415808896aec1e` to the fixed old API. Changes include relative simplicial homology support, old simplex-coordinate APIs, and older extensionality/connectedness interfaces. The simplex compatibility API is in a unique project namespace to avoid collisions with full Mathlib. No new axioms or incomplete proofs are introduced.
 
-MathDB problem: https://mathdb.com/p/316224/poincare-conjecture
+Problem: https://mathdb.com/p/316224/poincare-conjecture
 
-Its saved formalization is https://mathdb.com/api/posts/b93562c3-e505-49ec-9853-07cffa7a24c3/lean-formalizations (formalization ID `e635de84-f181-4c67-a7e9-d43a90afad09`). It requires `Submission.solution : Problem.Target`, imported from `FtpEvalBench.YPoincare_poincare_conjecture`.
+Frozen target: https://github.com/mathdb-lean/problems/blob/26876961225fa83db241aa0d8b96f920cbc1c780/problems/millennium-poincare/YPoincare_poincare_conjecture.lean
 
-The Lean version and exact Mathlib revision above match MathDB's saved environment. However:
-
-1. The native theorem assumes compactness and simple connectivity. The frozen target assumes a homotopy equivalence with the three-sphere, so compactness must be proved, not added as an assumption. The needed general homotopy-sphere compactness lemma is available in v0.1.4, but was not found in v0.1.3.
-2. MathDB does not execute submitted Lake configurations, and DifferentialGeometry is not among the saved release's permitted external imports. Its rules allow supporting sources under `Submission/` with declarations in namespace `Submission`. The v0.1.3 Poincare closure has 14,197 DifferentialGeometry modules, 204,832,268 source bytes, and 4,021,103 lines. Renaming root declarations, references and imports consistently, recompiling them, and confirming the verifier's resource limits remain necessary.
-
-Do not upload this branch into the automatic proof-verification field as though these requirements were resolved. An ordinary solution post can instead link this source as credited repository evidence and explicitly distinguish upstream/native verification from MathDB verification.
-
-The sibling branch `mathdb-poincare-v0.1.4` contains a locally checked wrapper for the full homotopy-sphere statement in the v0.1.4 environment. Its newer Lean version is incompatible with the current MathDB pin.
-
-## Attempted bridge backport
-
-A separate isolated test copied the v0.1.4 compactness bridge's 31-module closure (30 new files, about 337 kB) into the exact Lean 4.33.1 / Mathlib 0df444a environment. A namespace-aware text scan found no candidate declaration collisions, but that is not a combined kernel check.
-
-The actual build failed with missing Mathlib modules:
-
-- `Mathlib.AlgebraicTopology.SimplicialSet.Homology.Relative`
-- `Mathlib.Geometry.Convex.ConvexSpace.CompactSpaceStdSimplex`
-
-The new sphere simply-connectivity file compiled in the old environment, but the compactness bridge requires additional Mathlib backport work. No failing bridge files were added to this branch. The successful v0.1.4 wrapper remains the validated full homotopy-sphere result.
+The final local check must use the official frozen-target compiled support path in addition to this project's `lake env` paths. MathDB itself supplies that target module to the submission checker.
