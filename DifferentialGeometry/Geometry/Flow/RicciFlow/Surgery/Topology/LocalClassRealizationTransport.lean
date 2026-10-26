@@ -94,13 +94,3 @@ theorem localClassRealizationLocallyConstant_iff_forall_isClopen
         fun y hy => ⟨fun hy' => absurd hy' hy, fun hxc => absurd hxc hx⟩⟩
 
 end DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
-
-open Lean in
-run_cmd do
-  let allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
-  for n in [``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.localClassRealizationLocallyConstant_of_localClassTransport,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.localClassTransport_of_localOrientationPreservingSelfDiffeomorphismTransitive,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.localClassRealizationLocallyConstant_iff_forall_isClopen] do
-    let axs ← Lean.collectAxioms n
-    unless axs.all (fun a => allowed.contains a) do
-      throwError "unexpected axioms for {n}: {axs}"

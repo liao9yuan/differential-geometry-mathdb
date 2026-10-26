@@ -171,23 +171,3 @@ theorem exists_linearMap_eq_and_bijective_zsmul_not_bijective_zsmul :
     simp at hfst
 
 end DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
-
-open Lean in
-run_cmd do
-  let allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
-  for n in [``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.puncturedAbsoluteToRelativeInjective,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.fundamentalClassCandidate,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.fundamentalClassCandidate_eq_choose,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.fundamentalClassCandidate_local,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.injective_of_bijective_zsmul_linearMap,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.bijective_zsmul_choose_iff_injective_absoluteToRelative,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.bijective_zsmul_choose_of_injective_absoluteToRelative,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.fundamentalClassCandidate_generator_of_injective,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.puncturedAbsoluteToRelativeInjective_of_noncompactThreeManifoldTopHomologyVanishing,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.bijective_zsmul_choose_of_noncompactThreeManifoldTopHomologyVanishing,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.fundamentalClassCandidate_generator_of_noncompactThreeManifoldTopHomologyVanishing,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.puncturedAbsoluteToRelativeInjective_sphereThree,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.exists_linearMap_eq_and_bijective_zsmul_not_bijective_zsmul] do
-    let axs ← Lean.collectAxioms n
-    unless axs.all (fun a => allowed.contains a) do
-      throwError "unexpected axioms for {n}: {axs}"

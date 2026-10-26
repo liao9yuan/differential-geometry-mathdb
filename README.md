@@ -6,6 +6,8 @@ The original formalization is by Ziyang Qin, Yuan Liao, Ayush Khaitan, and Benne
 
 MathDB preparation starts from upstream **v0.1.3**, commit `7a48598d35109aa99d1cc678e2724c213cdf4ff3`, matching the problem's frozen Lean 4.33.1 environment. This fork adds the target adapter, compatibility backports, and MathDB submission packaging. See [the preparation status](MATHDB_SUBMISSION.md) for completed checks and remaining work. Local validation and MathDB acceptance are reported separately.
 
+For MathDB's updated large-repository verifier, submit the [`mathdb-poincare-v0.1.3` branch URL](https://github.com/liao9yuan/differential-geometry-mathdb/tree/mathdb-poincare-v0.1.3). This branch contains the root [`Submission.lean`](Submission.lean). The 2026-10-26 compatibility update removes five diagnostic axiom-check commands from the proof's import closure and replaces two private `opaque` declarations with a definition and a theorem, preserving their bodies. MathDB performs its own axiom audit and full verification.
+
 The upstream project documentation follows.
 
 # Differential Geometry in Lean 4

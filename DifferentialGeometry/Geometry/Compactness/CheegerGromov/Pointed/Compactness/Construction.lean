@@ -1263,7 +1263,7 @@ noncomputable def connectedCanonicalMetricCompactnessOfConvergentChain
 
 attribute [-instance] Tensor0SBundle.tangentSpaceNormedAddCommGroup
   Tensor0SBundle.tangentSpaceNormedSpace in
-private opaque connectedCanonicalMetricCompactness
+private def connectedCanonicalMetricCompactness
     {X : PointedRiemannianSeq.{u, uE, uH} (I := I)}
     (P : ∀ k, ProperMetricOn (I := I) (X.obj k))
     (B : HasPairwiseApproximateIsometries (X := X) P) :

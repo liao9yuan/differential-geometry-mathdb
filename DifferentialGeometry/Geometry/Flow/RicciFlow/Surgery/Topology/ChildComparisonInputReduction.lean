@@ -409,26 +409,3 @@ theorem rfs_child_comparison_of_canonicalLocalEDistComparison_and_class_generato
 end GeometricCutoffRecord
 
 end DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
-
-open Lean in
-run_cmd do
-  let allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
-  for n in [``DifferentialGeometry.Topology.exists_eq_zsmul_and_exists_linearMap_eq_one_not_pos,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.TubeSystem.PuncturedCoreCutChain.ofSimplyConnectedComponent,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.SmoothCutCapTransition.puncturedCoreCutChainProducer_iff_middleSphereCuttingSeparation,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.SmoothCutCapTransition.childSimplicityFrontier_iff_childCollaredStarCoverProducer_and_puncturedCoreCutChainProducer,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.SmoothCutCapTransition.not_nonempty_childCarrierCollaredStarCover_of_not_simplyConnectedSpace,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.SmoothCutCapTransition.not_nonempty_childCarrierCollaredStarCover_of_capRange_eq_univ,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.SmoothCutCapTransition.not_nonempty_childCarrierCollaredStarCover_of_middleSphereCuttingSeparation,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.ChildComparisonReducedInputs,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.ChildComparisonInputs.toReducedInputs,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.rfs_child_comparison_of_reducedInputs,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.rfs_child_comparison_of_canonicalReducedInputs,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.rfs_child_comparison_of_canonicalTerminalInputs,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.rfs_child_comparison_of_canonicalUniformConvergence,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.ComparisonSupport.rfs_whole_parent_map_class_eq_of_multiplierForm,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.rfs_child_comparison_of_localEDistComparison_and_class_generator,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.GeometricCutoffRecord.rfs_child_comparison_of_canonicalLocalEDistComparison_and_class_generator] do
-    let axs ← Lean.collectAxioms n
-    unless axs.all (fun a => allowed.contains a) do
-      throwError "unexpected dependencies for {n}: {axs}"

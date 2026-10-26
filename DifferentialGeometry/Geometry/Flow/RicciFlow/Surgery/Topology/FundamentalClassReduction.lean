@@ -40,13 +40,3 @@ def ClosedThreeManifoldFundamentalClassFrontier : Prop :=
     [IsManifold ThreeModel ∞ M] (o : TangentOrientationSection M), localClassTransport o
 
 end DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
-
-open Lean in
-run_cmd do
-  let allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
-  for n in [``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.PuncturedThreeManifoldTopHomologyVanishing,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.exists_unique_fundamentalClass_of_puncturedVanishing_of_localClassTransport,
-      ``DifferentialGeometry.PDE.RicciFlow.Surgery.Topology.ClosedThreeManifoldFundamentalClassFrontier] do
-    let axs ← Lean.collectAxioms n
-    unless axs.all (fun a => allowed.contains a) do
-      throwError "unexpected axioms for {n}: {axs}"

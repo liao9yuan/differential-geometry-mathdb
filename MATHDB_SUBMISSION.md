@@ -15,11 +15,27 @@ See [PAPER_REFERENCE.md](PAPER_REFERENCE.md) for the original paper, four author
 - The genuine, unmodified MathDB frozen target and its 229-module support closure compile in the same environment. The target source SHA-256 is `9609b79bd21353e74225bf0e87777ec0a5da6ba3448846fd0ee07b531a596d91`.
 - Upstream CI also built the original v0.1.3 source: https://github.com/qinz1yang/differential-geometry/actions/runs/36305635235 .
 
-## Current status
+## Original native validation
 
 The original Poincare dependency closure has compiled successfully from source (22,902 Lake jobs). The complete native `Submission.solution : Problem.Target` adapter also compiled against the genuine frozen target. Its exact axiom audit contains only `propext`, `Classical.choice`, and `Quot.sound`. A complete merged audit inspected 237,126 constants across all 14,234 project modules; the nine names overlapping the frozen environment have exactly identical types, values, and universe parameters. Evidence is saved under `verification/native-*`.
 
-A separate packaging pass is moving helpers and their declarations into MathDB's required `Submission/` layout and `Submission` namespace. This checked native-source branch still uses DifferentialGeometry imports. The final upload layout and MathDB automated acceptance remain pending. No MathDB solution has been published.
+The separate `mathdb-poincare-submission-v0.1.3` branch contains the earlier namespace-relocated package and its local validation reports. A solution post is available at https://mathdb.com/p/316224/poincare-conjecture#s1 . Its initial repository attachment was blocked by MathDB's previous 1 MB download limit; that historical failure is not a verification result for the present revision.
+
+## Large-repository compatibility update (2026-10-26)
+
+MathDB's maintainer reports that large repositories are now supported and requests this native-source branch:
+
+https://github.com/liao9yuan/differential-geometry-mathdb/tree/mathdb-poincare-v0.1.3
+
+Use the branch URL so MathDB can find the root `Submission.lean` and record its exact commit. The default branch does not contain that entry point.
+
+The compatibility changes are limited to:
+
+- Removing the five trailing `run_cmd` axiom-check blocks in `ChildComparisonInputReduction`, `FundamentalClassGeneratorFrontier`, `FundamentalClassMinimalHypotheses`, `FundamentalClassReduction`, and `LocalClassRealizationTransport`. These commands only inspected existing declarations; MathDB supplies its own axiom audit.
+- Changing `completeInst` in `Geometry/Flow/RicciFlow/Estimates/Distance/Barrier.lean` from `private opaque` to `private theorem`, since it proves `CompleteSpace M`.
+- Changing `connectedCanonicalMetricCompactness` in `Geometry/Compactness/CheegerGromov/Pointed/Compactness/Construction.lean` from `private opaque` to `private def`, since it constructs compactness data. This file already has a `noncomputable section`.
+
+Both declaration bodies and the complete `Submission.lean` entry point are unchanged. The verification evidence above describes the original native revision. Targeted checks passed for all seven edited modules and the entry point against cached imports; the entry point reports only `propext`, `Classical.choice`, and `Quot.sound`. See [the compatibility check report](verification/native-maintainer-compatibility-2026-10-26.json). These checks do not constitute a clean rebuild or a new full kernel replay. MathDB's own verification of the new commit remains pending. The maintainer estimates about two hours for the first server build, with faster subsequent submissions.
 
 ## Backport provenance
 

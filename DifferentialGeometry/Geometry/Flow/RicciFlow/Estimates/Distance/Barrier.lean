@@ -934,7 +934,7 @@ theorem exists_scaled_distance_support_of_calabi_tail
 
 attribute [-instance] Tensor0SBundle.tangentSpaceNormedAddCommGroup
   Tensor0SBundle.tangentSpaceNormedSpace in
-private opaque completeInst
+private theorem completeInst
     (g : SmoothRiemannianMetric I M)
     (h : RiemannianMetricComplete (I := I) g) :
     letI : IsManifold I 1 M :=

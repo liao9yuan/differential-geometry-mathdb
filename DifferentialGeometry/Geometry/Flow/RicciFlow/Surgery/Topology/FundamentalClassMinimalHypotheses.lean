@@ -141,28 +141,3 @@ theorem integralRelativeConnecting_two_compl_origin_threeSpace_ne_zero :
       (M := ThreeSpace) (0 : ThreeSpace)).mpr h0)
 
 end DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
-
-open Lean in
-run_cmd do
-  let allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
-  let ns : Name := `DifferentialGeometry.PDE.RicciFlow.Surgery.Topology
-  let decls : List Name :=
-    [`euclideanStandardSimplexClassGenerator,
-      `euclideanStandardSimplexClassGenerator_iff_exists_boundaryFunctional,
-      `euclideanStandardSimplexClassGenerator_iff_isSphereHomologyGenerator,
-      `localOrientationClass_generator_of_euclideanStandardSimplexClassGenerator,
-      `existsFundamentalClassAt_iff_integralRelativeConnecting_eq_zero,
-      `integralRelativeConnecting_eq_zero_iff_puncturedInclusion_injective,
-      `integralRelativeConnecting_eq_zero_of_subsingleton_punctured,
-      `exists_unique_fundamentalClass_of_connecting_eq_zero_of_subsingleton_punctured,
-      `exists_unique_fundamentalClass_of_connecting_eq_zero_of_localClassTransport,
-      `exists_unique_fundamentalClass_of_puncturedVanishing_through_connecting,
-      `bijective_zsmul_choose_of_euclideanStandardSimplexClassGenerator,
-      `subsingleton_integralHomology_two_compl_singleton_sphereThree,
-      `subsingleton_integralHomology_three_compl_singleton_sphereThree,
-      `integralRelativeConnecting_two_compl_singleton_sphereThree_eq_zero,
-      `integralRelativeConnecting_two_compl_origin_threeSpace_ne_zero]
-  for n in decls.map (ns.append ·) do
-    let axs ← Lean.collectAxioms n
-    unless axs.all (fun a => allowed.contains a) do
-      throwError "unexpected axioms for {n}: {axs}"
